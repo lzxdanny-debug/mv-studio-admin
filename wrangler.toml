@@ -1,0 +1,8 @@
+name = "ai-studio-admin"
+main = ".open-next/worker.js"
+compatibility_date = "2025-04-15"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
