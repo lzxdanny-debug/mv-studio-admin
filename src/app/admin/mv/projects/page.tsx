@@ -62,6 +62,10 @@ const STATUS_OPTIONS = [
   { label: '失败', value: 'failed' },
 ];
 
+interface MvCapabilities {
+  importEnabled: boolean;
+}
+
 export default function AdminMvProjectsPage() {
   const router = useRouter();
   const qc = useQueryClient();
@@ -84,6 +88,16 @@ export default function AdminMvProjectsPage() {
     },
     placeholderData: (prev) => prev,
   });
+
+  // 环境能力：本地 dev 后端会返回 importEnabled=true，线上保持 false。
+  // 当 query 处于 loading（首次）时按钮先按"禁用"展示，避免线上闪一下可点。
+  const { data: capabilities } = useQuery<MvCapabilities>({
+    queryKey: ['admin', 'mv', 'capabilities'],
+    queryFn: () => apiClient.get('/admin/mv/capabilities') as any,
+    // 能力字段几乎不变，缓存久一点；导入按钮可见性不需要频繁拉取
+    staleTime: 5 * 60_000,
+  });
+  const importEnabled = capabilities?.importEnabled === true;
 
   /** 单行导出：调 API 拉全量 JSON 后由浏览器触发下载 */
   const handleExport = async (row: MvProjectRow) => {
@@ -258,16 +272,24 @@ export default function AdminMvProjectsPage() {
             />
             <button
               onClick={handleImportClick}
-              disabled={importing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
-              title="导入由「导出」按钮生成的 .json 文件，将自动归属到当前 admin 名下"
+              disabled={importing || !importEnabled}
+              className={
+                importEnabled
+                  ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50'
+                  : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-200 text-slate-500 cursor-not-allowed'
+              }
+              title={
+                importEnabled
+                  ? '导入由「导出」按钮生成的 .json 文件，将自动归属到当前 admin 名下'
+                  : '当前环境已禁止导入（生产环境保护）。仅在本地 dev 设置 MV_IMPORT_ENABLED=true 后可用，用于把线上数据拉到本地调试'
+              }
             >
               {importing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Upload className="h-3.5 w-3.5" />
               )}
-              {importing ? '导入中...' : '导入 MV'}
+              {importing ? '导入中...' : importEnabled ? '导入 MV' : '导入 MV（本环境已禁用）'}
             </button>
           </div>
         </div>
