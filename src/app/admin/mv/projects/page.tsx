@@ -12,6 +12,19 @@ import { SearchBar } from '@/components/search-bar';
 import { formatDate } from '@/lib/utils';
 import { exportMvProject, importMvProject } from '@/lib/mv-import-export';
 
+/**
+ * 当一条 MV 是通过 admin 导入接口从其它环境带过来时，importSource 为非 null 对象。
+ * 字段语义与后端 MvProject.importSource 严格对应——这里全部声明 string 是因为
+ * 后端 jsonb 序列化时会把 Date 等都转成 ISO 字符串。
+ */
+interface ImportSource {
+  sourceProjectId: string;
+  sourceUserEmail: string | null;
+  sourceUserDisplayName: string | null;
+  originalCreatedAt: string;
+  importedAt: string;
+}
+
 interface MvProjectRow {
   id: string;
   title: string;
@@ -24,6 +37,7 @@ interface MvProjectRow {
   videoProvider: string;
   resultUrl: string | null;
   errorMessage: string | null;
+  importSource: ImportSource | null;
   createdAt: string;
   updatedAt: string;
   userDisplayName: string | null;
@@ -115,12 +129,30 @@ export default function AdminMvProjectsPage() {
       header: '项目',
       render: (row) => (
         <div className="min-w-0">
-          <Link
-            href={`/admin/mv/projects/${row.id}`}
-            className="font-medium text-slate-900 hover:text-purple-600 truncate block"
-          >
-            {row.title || '(未命名)'}
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <Link
+              href={`/admin/mv/projects/${row.id}`}
+              className="font-medium text-slate-900 hover:text-purple-600 truncate"
+            >
+              {row.title || '(未命名)'}
+            </Link>
+            {row.importSource && (
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 flex-shrink-0"
+                title={
+                  `从其它环境导入\n` +
+                  `源用户：${row.importSource.sourceUserDisplayName ?? '—'}` +
+                  (row.importSource.sourceUserEmail ? ` (${row.importSource.sourceUserEmail})` : '') +
+                  `\n源项目 ID：${row.importSource.sourceProjectId}` +
+                  `\n原创建：${row.importSource.originalCreatedAt}` +
+                  `\n导入于：${row.importSource.importedAt}`
+                }
+              >
+                <Download className="h-2.5 w-2.5" />
+                已导入
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-400 truncate">{row.id}</p>
         </div>
       ),

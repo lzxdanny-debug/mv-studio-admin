@@ -41,6 +41,14 @@ interface MvProjectDetail {
     errorMessage: string | null;
     enableLipsync: boolean;
     compositionHistory: Array<{ url: string; createdAt: string; name?: string }> | null;
+    /** 非 null 表示该项目来自 admin 跨环境导入，记录上一跳来源 */
+    importSource: {
+      sourceProjectId: string;
+      sourceUserEmail: string | null;
+      sourceUserDisplayName: string | null;
+      originalCreatedAt: string;
+      importedAt: string;
+    } | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -237,6 +245,29 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                     </span>
                   </div>
                 </div>
+
+                {project.importSource && (
+                  <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-100 rounded-xl text-xs text-purple-700">
+                    <Download className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-medium">该项目从其它环境导入，与本地真实数据区分</p>
+                      <p className="text-purple-600/80">
+                        源用户：{project.importSource.sourceUserDisplayName ?? '—'}
+                        {project.importSource.sourceUserEmail && (
+                          <span> ({project.importSource.sourceUserEmail})</span>
+                        )}
+                      </p>
+                      <p className="text-purple-600/80 break-all">
+                        源项目 ID：{project.importSource.sourceProjectId}
+                      </p>
+                      <p className="text-purple-600/80">
+                        原创建：{formatDate(project.importSource.originalCreatedAt)}
+                        <span className="mx-1.5 text-purple-300">·</span>
+                        导入于：{formatDate(project.importSource.importedAt)}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {project.errorMessage && (
                   <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600">
