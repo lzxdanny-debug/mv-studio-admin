@@ -29,7 +29,7 @@ export default function AdminQuickVideoToolPage() {
         taskId: taskId.trim() || undefined,
         sessionId: sessionId.trim() || undefined,
       }) as any,
-    onSuccess: (data) => setResult(data),
+    onSuccess: (data) => setResult(data as LookupResult),
     onError: (err: any) =>
       setResult({ errorMessage: err?.message || '查询失败' }),
   });

@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { Film } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Download, Film, Loader2, Upload } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { DataTable, DataTableColumn } from '@/components/data-table';
 import { StatusBadge } from '@/components/status-badge';
 import { SearchBar } from '@/components/search-bar';
 import { formatDate } from '@/lib/utils';
+import { exportMvProject, importMvProject } from '@/lib/mv-import-export';
 
 interface MvProjectRow {
   id: string;
@@ -47,9 +49,14 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminMvProjectsPage() {
+  const router = useRouter();
+  const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [exportingId, setExportingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
     queryKey: ['admin', 'mv', 'projects', { page, status, search }],
@@ -63,6 +70,44 @@ export default function AdminMvProjectsPage() {
     },
     placeholderData: (prev) => prev,
   });
+
+  /** 单行导出：调 API 拉全量 JSON 后由浏览器触发下载 */
+  const handleExport = async (row: MvProjectRow) => {
+    setExportingId(row.id);
+    try {
+      await exportMvProject(row.id, row.title);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`导出失败：${msg}`);
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  /** 右上角导入：触发隐藏 file input，由 onChange 完成读取与上传 */
+  const handleImportClick = () => {
+    if (importing) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // 立刻 reset value，否则同一个文件第二次选不会触发 onChange
+    e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    try {
+      const { newProjectId } = await importMvProject(file);
+      qc.invalidateQueries({ queryKey: ['admin', 'mv', 'projects'] });
+      // 直接跳到新项目详情，便于立刻查看
+      router.push(`/admin/mv/projects/${newProjectId}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`导入失败：${msg}`);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const columns: DataTableColumn<MvProjectRow>[] = [
     {
@@ -126,6 +171,34 @@ export default function AdminMvProjectsPage() {
         <span className="text-xs text-slate-500">{formatDate(row.createdAt)}</span>
       ),
     },
+    {
+      key: 'actions',
+      header: '操作',
+      width: 'w-24',
+      render: (row) => {
+        const isExporting = exportingId === row.id;
+        return (
+          <button
+            onClick={(e) => {
+              // 阻止事件冒泡到行链接（如有），并阻止 Link 默认行为
+              e.preventDefault();
+              e.stopPropagation();
+              void handleExport(row);
+            }}
+            disabled={isExporting}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-purple-600 hover:bg-purple-50 disabled:opacity-50 transition-colors"
+            title="导出项目 JSON（含全部 shots/planning/assets）"
+          >
+            {isExporting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            导出
+          </button>
+        );
+      },
+    },
   ];
 
   return (
@@ -140,6 +213,30 @@ export default function AdminMvProjectsPage() {
             <p className="text-sm text-slate-500 mt-1">
               共 {data?.total ?? 0} 个项目
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* 隐藏 input：通过按钮 click 触发，避免裸露 input 影响布局；
+                同一文件二选时需要在 onChange 后清空 value */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleImportFileChange}
+            />
+            <button
+              onClick={handleImportClick}
+              disabled={importing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+              title="导入由「导出」按钮生成的 .json 文件，将自动归属到当前 admin 名下"
+            >
+              {importing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              {importing ? '导入中...' : '导入 MV'}
+            </button>
           </div>
         </div>
 

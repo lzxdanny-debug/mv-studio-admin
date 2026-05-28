@@ -11,12 +11,15 @@ import {
   Play,
   ExternalLink,
   AlertTriangle,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { StatusBadge } from '@/components/status-badge';
 import { ShotCard, ShotCardData } from '@/components/shot-card';
 import { QueryState } from '@/components/query-state';
 import { formatDate, cn } from '@/lib/utils';
+import { exportMvProject } from '@/lib/mv-import-export';
 
 interface MvProjectDetail {
   project: {
@@ -100,6 +103,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
   const router = useRouter();
   const qc = useQueryClient();
   const [tab, setTab] = useState<TabKey>('overview');
+  const [exporting, setExporting] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useQuery<MvProjectDetail>({
     queryKey: ['admin', 'mv', 'project', id],
@@ -143,6 +147,20 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
     }
   };
 
+  /** 导出当前项目 JSON：列表页和详情页共用 utility，下载文件名由 utility 决定 */
+  const handleExport = async () => {
+    if (!data) return;
+    setExporting(true);
+    try {
+      await exportMvProject(data.project.id, data.project.title);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`导出失败：${msg}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const project = data?.project;
   const shots = data?.shots ?? [];
   const planning = data?.planning ?? [];
@@ -160,6 +178,19 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
           </Link>
           {project && (
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                title="导出项目 JSON（含全部 shots/planning/assets）"
+              >
+                {exporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                导出 JSON
+              </button>
               <button
                 onClick={() => resetMutation.mutate()}
                 disabled={resetMutation.isPending}
