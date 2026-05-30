@@ -7,6 +7,7 @@ import {
   Film,
   Clapperboard,
   Palette,
+  UserSquare,
   FileText,
   Zap,
   Users,
@@ -43,6 +44,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/admin/mv/projects', label: 'MV 项目', icon: Film },
       { href: '/admin/mv/shots', label: '镜头运维', icon: Clapperboard },
       { href: '/admin/mv/styles', label: '风格库', icon: Palette },
+      { href: '/admin/mv/character-presets', label: '默认角色图', icon: UserSquare },
     ],
   },
   {

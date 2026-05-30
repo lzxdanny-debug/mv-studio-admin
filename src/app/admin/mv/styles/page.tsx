@@ -6,6 +6,7 @@ import { Palette, RefreshCw, ImageOff } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
 import { cn } from '@/lib/utils';
+import { useConfirm } from '@/components/ui/dialog-provider';
 
 interface StyleDef {
   tag: string;
@@ -17,6 +18,7 @@ interface StyleDef {
 
 export default function AdminMvStylesPage() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery<StyleDef[]>({
@@ -61,10 +63,14 @@ export default function AdminMvStylesPage() {
               补齐缺失预览图
             </button>
             <button
-              onClick={() => {
-                if (window.confirm('强制重新生成所有风格预览图？耗时较长且会消耗 AI 配额。')) {
-                  generate.mutate(true);
-                }
+              onClick={async () => {
+                const ok = await confirm({
+                  title: '强制重新生成所有风格预览图？',
+                  description: '耗时较长且会消耗 AI 配额，已有的预览图也会被覆盖。',
+                  variant: 'warning',
+                  confirmText: '全量重生',
+                });
+                if (ok) generate.mutate(true);
               }}
               disabled={generate.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"

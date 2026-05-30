@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { SearchBar } from '@/components/search-bar';
 import { formatDate } from '@/lib/utils';
 import { exportMvProject, importMvProject } from '@/lib/mv-import-export';
+import { useAlert } from '@/components/ui/dialog-provider';
 
 /**
  * 当一条 MV 是通过 admin 导入接口从其它环境带过来时，importSource 为非 null 对象。
@@ -69,6 +70,7 @@ interface MvCapabilities {
 export default function AdminMvProjectsPage() {
   const router = useRouter();
   const qc = useQueryClient();
+  const alert = useAlert();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
@@ -106,7 +108,7 @@ export default function AdminMvProjectsPage() {
       await exportMvProject(row.id, row.title);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`导出失败：${msg}`);
+      await alert({ title: '导出失败', description: msg, variant: 'danger' });
     } finally {
       setExportingId(null);
     }
@@ -131,7 +133,7 @@ export default function AdminMvProjectsPage() {
       router.push(`/admin/mv/projects/${newProjectId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`导入失败：${msg}`);
+      await alert({ title: '导入失败', description: msg, variant: 'danger' });
     } finally {
       setImporting(false);
     }

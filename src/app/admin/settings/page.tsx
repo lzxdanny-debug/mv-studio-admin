@@ -19,6 +19,7 @@ import {
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { useConfirm } from '@/components/ui/dialog-provider';
 
 interface StorageConfig {
   secretId: string;
@@ -267,6 +268,7 @@ interface SubtitleDiagnoseResp {
 
 function MvSubtitleDefaultSection() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [draft, setDraft] = useState<MvSubtitleConfig | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [diagnose, setDiagnose] = useState<SubtitleDiagnoseResp | null>(null);
@@ -494,10 +496,14 @@ function MvSubtitleDefaultSection() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm('确认推送当前默认配置到所有「字幕未设置」的项目？\n（不影响用户已主动调过字幕的项目）')) {
-                push.mutate(false);
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: '推送默认配置到未设置项目？',
+                description: '仅推送给 subtitle_config=null 的项目，不影响用户已主动调过字幕的项目。',
+                variant: 'default',
+                confirmText: '推送',
+              });
+              if (ok) push.mutate(false);
             }}
             disabled={push.isPending || dirty}
             title={dirty ? '请先保存当前修改' : '推送给 subtitle_config=null 的项目'}
@@ -508,10 +514,14 @@ function MvSubtitleDefaultSection() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm('⚠️ 强制覆盖会清空所有项目的用户自定义字幕配置，无法撤销。\n确认继续？')) {
-                push.mutate(true);
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: '强制覆盖所有项目的字幕配置？',
+                description: '此操作会清空所有项目的用户自定义字幕配置，无法撤销。',
+                variant: 'danger',
+                confirmText: '我已确认，强制覆盖',
+              });
+              if (ok) push.mutate(true);
             }}
             disabled={push.isPending || dirty}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium text-red-600 transition-colors"

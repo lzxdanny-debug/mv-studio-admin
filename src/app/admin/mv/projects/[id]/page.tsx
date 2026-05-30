@@ -20,6 +20,7 @@ import { ShotCard, ShotCardData } from '@/components/shot-card';
 import { QueryState } from '@/components/query-state';
 import { formatDate, cn } from '@/lib/utils';
 import { exportMvProject } from '@/lib/mv-import-export';
+import { useConfirm, useAlert } from '@/components/ui/dialog-provider';
 
 interface MvProjectDetail {
   project: {
@@ -110,6 +111,8 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const confirm = useConfirm();
+  const alert = useAlert();
   const [tab, setTab] = useState<TabKey>('overview');
   const [exporting, setExporting] = useState(false);
 
@@ -144,15 +147,15 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
     onSuccess: () => refetch(),
   });
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!data) return;
-    if (
-      window.confirm(
-        `确认删除项目「${data.project.title || data.project.id}」吗？\n仅删除 DB 记录，COS 文件保留。`,
-      )
-    ) {
-      deleteMutation.mutate();
-    }
+    const ok = await confirm({
+      title: `删除项目「${data.project.title || data.project.id}」？`,
+      description: '仅删除 DB 记录，COS 文件保留。',
+      variant: 'danger',
+      confirmText: '删除',
+    });
+    if (ok) deleteMutation.mutate();
   };
 
   /** 导出当前项目 JSON：列表页和详情页共用 utility，下载文件名由 utility 决定 */
@@ -163,7 +166,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
       await exportMvProject(data.project.id, data.project.title);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`导出失败：${msg}`);
+      await alert({ title: '导出失败', description: msg, variant: 'danger' });
     } finally {
       setExporting(false);
     }
