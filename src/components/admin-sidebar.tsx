@@ -15,6 +15,7 @@ import {
   LogOut,
   Shield,
   Settings,
+  Cloud,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,7 @@ const NAV_SECTIONS: NavSection[] = [
 ];
 
 const BOTTOM_NAV_ITEMS: NavItem[] = [
+  { href: '/admin/ai-providers', label: 'AI Provider', icon: Cloud },
   { href: '/admin/settings', label: '系统设置', icon: Settings },
 ];
 
