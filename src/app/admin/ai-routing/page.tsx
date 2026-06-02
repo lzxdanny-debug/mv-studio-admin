@@ -15,6 +15,9 @@ import {
   Pencil,
   Save,
   X,
+  Activity,
+  TrendingUp,
+  Clock,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -24,6 +27,7 @@ type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
+  | 'visionAnalyze'
   | 'imageNanoBanana'
   | 'videoSingleRef'
   | 'videoMultiRef'
@@ -188,9 +192,379 @@ export default function AiRoutingPage() {
             </div>
           )}
         </QueryState>
+
+        {listQ.data && (
+          <RouterTelemetrySection labels={listQ.data.labels} />
+        )}
       </div>
     </div>
   );
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Day 8: Telemetry —— 最近调用 + capability × provider 汇总
+// ──────────────────────────────────────────────────────────────────────
+
+interface TelemetrySummaryResp {
+  rangeHours: number;
+  rows: Array<{
+    capability: AiCapability;
+    provider: RoutingProvider | null;
+    total: number;
+    success: number;
+    fellBack: number;
+    avgElapsedMs: number;
+    p50ElapsedMs: number;
+    p95ElapsedMs: number;
+  }>;
+  topErrors: Array<{ kind: string; count: number }>;
+}
+
+interface InvocationRow {
+  id: string;
+  capability: AiCapability;
+  finalSuccess: boolean;
+  fellBack: boolean;
+  streaming: boolean;
+  totalElapsedMs: number;
+  usedProvider: RoutingProvider | null;
+  usedModel: string | null;
+  errorKind: string | null;
+  errorMessage: string | null;
+  attempts: Array<{
+    provider: RoutingProvider;
+    model: string;
+    ok: boolean;
+    elapsedMs: number;
+    errorKind?: string;
+    errorMessage?: string;
+  }>;
+  createdAt: string;
+}
+
+interface InvocationsResp {
+  rows: InvocationRow[];
+  capability: AiCapability | null;
+  limit: number;
+}
+
+function RouterTelemetrySection({
+  labels,
+}: {
+  labels: Record<AiCapability, string>;
+}) {
+  const qc = useQueryClient();
+  const [rangeHours, setRangeHours] = useState<number>(24);
+  const [filterCap, setFilterCap] = useState<AiCapability | ''>('');
+
+  const summaryQ = useQuery<TelemetrySummaryResp>({
+    queryKey: ['admin', 'ai-routing', 'summary', rangeHours],
+    queryFn: () =>
+      apiClient.get(
+        `/admin/ai-routing/summary?rangeHours=${rangeHours}`,
+      ) as Promise<TelemetrySummaryResp>,
+    refetchInterval: 30_000,
+  });
+
+  const invocationsQ = useQuery<InvocationsResp>({
+    queryKey: ['admin', 'ai-routing', 'invocations', filterCap],
+    queryFn: () => {
+      const qs = new URLSearchParams({ limit: '50' });
+      if (filterCap) qs.set('capability', filterCap);
+      return apiClient.get(
+        `/admin/ai-routing/invocations?${qs.toString()}`,
+      ) as Promise<InvocationsResp>;
+    },
+    refetchInterval: 30_000,
+  });
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'ai-routing', 'summary'] });
+    qc.invalidateQueries({ queryKey: ['admin', 'ai-routing', 'invocations'] });
+  };
+
+  return (
+    <div className="space-y-4 pt-6 border-t border-slate-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+            <Activity className="h-4 w-4 text-purple-600" />
+            调用埋点（Day 8）
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            每次 router 调用都会写一条记录（best-effort，DB 异常不影响业务）。
+            数据每 30 秒自动刷新。
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={rangeHours}
+            onChange={(e) => setRangeHours(parseInt(e.target.value, 10))}
+            className="px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white"
+          >
+            <option value={1}>近 1 小时</option>
+            <option value={6}>近 6 小时</option>
+            <option value={24}>近 24 小时</option>
+            <option value={72}>近 3 天</option>
+            <option value={168}>近 7 天</option>
+            <option value={720}>近 30 天</option>
+          </select>
+          <button
+            onClick={refresh}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700"
+          >
+            <RefreshCw className="h-3 w-3" />
+            刷新
+          </button>
+        </div>
+      </div>
+
+      <QueryState
+        isLoading={summaryQ.isLoading}
+        isError={summaryQ.isError}
+        error={summaryQ.error}
+        isEmpty={!summaryQ.data?.rows.length}
+        emptyMessage={`近 ${rangeHours}h 还没有调用记录（业务侧未触发或 router 未启用）`}
+        height="h-32"
+      >
+        {summaryQ.data && summaryQ.data.rows.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Capability</th>
+                  <th className="text-left px-3 py-2 font-medium">Provider</th>
+                  <th className="text-right px-3 py-2 font-medium">总数</th>
+                  <th className="text-right px-3 py-2 font-medium">成功</th>
+                  <th className="text-right px-3 py-2 font-medium">成功率</th>
+                  <th className="text-right px-3 py-2 font-medium">fallback</th>
+                  <th className="text-right px-3 py-2 font-medium">p50</th>
+                  <th className="text-right px-3 py-2 font-medium">p95</th>
+                  <th className="text-right px-3 py-2 font-medium">均值</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {summaryQ.data.rows.map((r, i) => {
+                  const successRate = r.total > 0 ? r.success / r.total : 0;
+                  return (
+                    <tr key={`${r.capability}-${r.provider ?? 'fail'}-${i}`}>
+                      <td className="px-3 py-2 font-medium text-slate-700">
+                        {labels[r.capability] ?? r.capability}
+                      </td>
+                      <td className="px-3 py-2">
+                        {r.provider ? (
+                          <span className="text-slate-600">
+                            {PROVIDER_META[r.provider].label}
+                          </span>
+                        ) : (
+                          <span className="text-red-500">全部失败</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-600">
+                        {r.total}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-600">
+                        {r.success}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono">
+                        <span
+                          className={cn(
+                            successRate >= 0.95
+                              ? 'text-emerald-600'
+                              : successRate >= 0.8
+                                ? 'text-amber-600'
+                                : 'text-red-600',
+                          )}
+                        >
+                          {(successRate * 100).toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-500">
+                        {r.fellBack > 0 ? r.fellBack : '-'}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-500">
+                        {fmtMs(r.p50ElapsedMs)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-500">
+                        {fmtMs(r.p95ElapsedMs)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-slate-500">
+                        {fmtMs(r.avgElapsedMs)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </QueryState>
+
+      {summaryQ.data && summaryQ.data.topErrors.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+            <TrendingUp className="h-3.5 w-3.5" />
+            近 {rangeHours}h 错误分类 TOP {summaryQ.data.topErrors.length}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {summaryQ.data.topErrors.map((e) => (
+              <span
+                key={e.kind}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-white border border-amber-300 text-amber-900"
+              >
+                <span className="font-mono">{e.kind}</span>
+                <span className="text-amber-600">×{e.count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-2">
+        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5 text-slate-500" />
+          最近 50 次调用
+        </h3>
+        <select
+          value={filterCap}
+          onChange={(e) => setFilterCap(e.target.value as AiCapability | '')}
+          className="px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white"
+        >
+          <option value="">全部 capability</option>
+          {Object.entries(labels).map(([cap, label]) => (
+            <option key={cap} value={cap}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <QueryState
+        isLoading={invocationsQ.isLoading}
+        isError={invocationsQ.isError}
+        error={invocationsQ.error}
+        isEmpty={!invocationsQ.data?.rows.length}
+        emptyMessage="暂无调用记录"
+        height="h-32"
+      >
+        {invocationsQ.data && invocationsQ.data.rows.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">时间</th>
+                  <th className="text-left px-3 py-2 font-medium">Capability</th>
+                  <th className="text-left px-3 py-2 font-medium">结果</th>
+                  <th className="text-left px-3 py-2 font-medium">Provider · Model</th>
+                  <th className="text-right px-3 py-2 font-medium">耗时</th>
+                  <th className="text-left px-3 py-2 font-medium">轨迹</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invocationsQ.data.rows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="px-3 py-2 font-mono text-slate-500 whitespace-nowrap">
+                      {fmtRelative(row.createdAt)}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {labels[row.capability] ?? row.capability}
+                      {row.streaming && (
+                        <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-medium bg-blue-50 text-blue-700">
+                          stream
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {row.finalSuccess ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-700">
+                          <CheckCircle2 className="h-3 w-3" />
+                          成功
+                          {row.fellBack && (
+                            <span className="px-1 rounded text-[9px] bg-amber-100 text-amber-700">
+                              fallback
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-red-700">
+                          <AlertTriangle className="h-3 w-3" />
+                          失败
+                          {row.errorKind && (
+                            <span className="font-mono text-[10px] text-red-600">
+                              {row.errorKind}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {row.usedProvider ? (
+                        <span className="text-slate-600">
+                          {PROVIDER_META[row.usedProvider].label}
+                          <span className="text-slate-400 mx-1">·</span>
+                          <span className="font-mono text-[10px] text-slate-500">
+                            {row.usedModel}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-slate-500">
+                      {fmtMs(row.totalElapsedMs)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {row.attempts.map((a, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border',
+                              a.ok
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-red-200 bg-red-50 text-red-700',
+                            )}
+                            title={a.errorMessage ?? ''}
+                          >
+                            {PROVIDER_META[a.provider]?.label ?? a.provider}
+                            <span className="font-mono text-[9px] opacity-70">
+                              {fmtMs(a.elapsedMs)}
+                            </span>
+                            {a.errorKind && (
+                              <span className="font-mono text-[9px]">
+                                {a.errorKind}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </QueryState>
+    </div>
+  );
+}
+
+function fmtMs(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  const min = Math.floor(ms / 60_000);
+  const s = Math.round((ms % 60_000) / 1000);
+  return `${min}m${s}s`;
+}
+
+function fmtRelative(iso: string): string {
+  const t = new Date(iso).getTime();
+  const diff = Date.now() - t;
+  if (diff < 60_000) return `${Math.max(1, Math.floor(diff / 1000))}s ago`;
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h ago`;
+  return `${Math.floor(diff / 86400_000)}d ago`;
 }
 
 // ──────────────────────────────────────────────────────────────────────
