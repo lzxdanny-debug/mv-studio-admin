@@ -42,6 +42,8 @@ interface ListResp {
   rows: ResolvedRouting[];
   capabilities: AiCapability[];
   labels: Record<AiCapability, string>;
+  /** Day 4 总开关：env AI_ROUTER_ENABLED 是否打开（启动期读取，不可在 admin 改） */
+  routerGloballyEnabled: boolean;
 }
 
 interface MetaResp {
@@ -114,6 +116,50 @@ export default function AiRoutingPage() {
             刷新
           </button>
         </div>
+
+        {listQ.data && (
+          <div
+            className={cn(
+              'rounded-xl border px-4 py-3 text-sm',
+              listQ.data.routerGloballyEnabled
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                : 'border-amber-200 bg-amber-50 text-amber-900',
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {listQ.data.routerGloballyEnabled ? (
+                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-emerald-600" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+              )}
+              <div className="space-y-1 leading-relaxed">
+                {listQ.data.routerGloballyEnabled ? (
+                  <>
+                    <div className="font-semibold">
+                      Day 4 总开关已开启（AI_ROUTER_ENABLED=true）
+                    </div>
+                    <div className="text-xs text-emerald-800/80">
+                      业务侧 PromptSafetyRewriter / 故事板 / 视频生成（单图&amp;多图）会优先走以下路由配置；
+                      未支持的能力（流式规划 / 音频）仍走 Mountsea。任何 capability 的「启用」开关关闭时该
+                      能力直接 fallback 到 Mountsea 老路径。
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="font-semibold">
+                      Day 4 总开关未开启（AI_ROUTER_ENABLED=false / 未设置）
+                    </div>
+                    <div className="text-xs text-amber-800/80">
+                      目前业务侧所有 AI 调用走原 Mountsea 直调路径，下方路由配置仅作展示&amp;预热，
+                      <strong>不生效</strong>。在服务器 .env 中设 <code className="px-1 py-0.5 rounded bg-amber-100">AI_ROUTER_ENABLED=true</code>{' '}
+                      并重启 API 后生效。
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <QueryState
           isLoading={listQ.isLoading || metaQ.isLoading}
