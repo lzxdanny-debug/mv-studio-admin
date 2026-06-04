@@ -3,8 +3,8 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Film, Loader2, Upload } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Download, Film, Loader2, RefreshCw, Upload } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { DataTable, DataTableColumn } from '@/components/data-table';
 import { StatusBadge } from '@/components/status-badge';
@@ -119,6 +119,43 @@ export default function AdminMvProjectsPage() {
     if (importing) return;
     fileInputRef.current?.click();
   };
+
+  /**
+   * 全局对账：调一次后端「跑过去 6h 时间窗 reconcileWindow」逻辑（等价于手动跑 cron）。
+   * 用于不想等整点 cron 时立刻把估算金额刷成真实账单值。
+   * 后端会跳过 reconciled_at 已落库的记录，可反复触发。
+   */
+  const reconcileNowMutation = useMutation<{
+    mountsea: number;
+    fal: number;
+    cloudflare: number;
+    total: number;
+    reconciled: number;
+    unmatched: number;
+    window: { hours: number; startIso: string; endIso: string };
+  }>({
+    mutationFn: () =>
+      apiClient.post('/admin/mv/cost/reconcile-now?hours=6', {}) as any,
+    onSuccess: async (s) => {
+      // 刷新所有项目的成本明细（不知道用户当前在哪一个项目详情页）
+      await qc.invalidateQueries({ queryKey: ['admin', 'mv'] });
+      await alert({
+        title: '对账完成',
+        description:
+          `时间窗：${s.window.startIso.slice(11, 19)} → ${s.window.endIso.slice(11, 19)}（最近 ${s.window.hours}h）\n\n` +
+          `本次窗口待对账记录：${s.total} 条\n` +
+          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea} · fal ${s.fal} · cf ${s.cloudflare}）\n` +
+          `未匹配：${s.unmatched} 条（下次 cron 会再尝试，或扩大时间窗后重试）`,
+      });
+    },
+    onError: async (err: any) => {
+      await alert({
+        title: '对账失败',
+        description: err?.message ?? String(err),
+        variant: 'danger',
+      });
+    },
+  });
 
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -263,6 +300,21 @@ export default function AdminMvProjectsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* 全局立即对账：手动触发对账 cron，覆盖最近 6 小时窗口内所有项目。
+                cron 默认整点跑一次，这里给运营一个不用等的入口。 */}
+            <button
+              onClick={() => reconcileNowMutation.mutate()}
+              disabled={reconcileNowMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              title="立刻调用上游账单 API，把最近 6 小时窗口内所有未对账的 MV 估算金额换成真实金额。幂等，可反复触发。"
+            >
+              {reconcileNowMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              {reconcileNowMutation.isPending ? '对账中...' : '立即对账（最近 6h）'}
+            </button>
             {/* 隐藏 input：通过按钮 click 触发，避免裸露 input 影响布局；
                 同一文件二选时需要在 onChange 后清空 value */}
             <input
