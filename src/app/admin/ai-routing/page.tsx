@@ -100,7 +100,7 @@ export default function AiRoutingPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
-      <div className="p-6 space-y-4 max-w-5xl">
+      <div className="p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">

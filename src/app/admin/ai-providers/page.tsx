@@ -178,7 +178,7 @@ export default function AiProvidersPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
-      <div className="p-6 space-y-4 max-w-5xl">
+      <div className="p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -206,7 +206,7 @@ export default function AiProvidersPage() {
           isEmpty={false}
           height="h-64"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
             {(['cloudflare', 'fal', 'mountsea'] as const).map((p) => {
               const view = data?.find((c) => c.provider === p);
               return view ? (

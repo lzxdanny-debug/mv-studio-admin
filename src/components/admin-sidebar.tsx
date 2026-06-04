@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   LayoutDashboard,
   Film,
-  Clapperboard,
   Palette,
   UserSquare,
   FileText,
@@ -17,6 +16,8 @@ import {
   Settings,
   Cloud,
   Cable,
+  Terminal,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -44,9 +45,9 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'MV 业务',
     items: [
       { href: '/admin/mv/projects', label: 'MV 项目', icon: Film },
-      { href: '/admin/mv/shots', label: '镜头运维', icon: Clapperboard },
       { href: '/admin/mv/styles', label: '风格库', icon: Palette },
       { href: '/admin/mv/character-presets', label: '默认角色图', icon: UserSquare },
+      { href: '/admin/mv/defaults', label: 'MV 默认配置', icon: SlidersHorizontal },
     ],
   },
   {
@@ -73,6 +74,7 @@ const NAV_SECTIONS: NavSection[] = [
 const BOTTOM_NAV_ITEMS: NavItem[] = [
   { href: '/admin/ai-providers', label: 'AI Provider', icon: Cloud },
   { href: '/admin/ai-routing', label: 'AI 路由配置', icon: Cable },
+  { href: '/admin/logs', label: '系统日志', icon: Terminal },
   { href: '/admin/settings', label: '系统设置', icon: Settings },
 ];
 

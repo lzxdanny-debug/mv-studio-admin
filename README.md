@@ -55,7 +55,6 @@ pnpm dev
 /admin                       仪表盘（MV 项目统计、趋势、镜头执行）
 /admin/mv/projects           MV 项目列表
 /admin/mv/projects/[id]      MV 项目详情（基础信息 / 镜头 / 规划 / 成片历史）
-/admin/mv/shots              跨项目镜头清单（运维 retry / reset）
 /admin/mv/styles             风格库（含预览图与重生触发）
 /admin/tools/lrc             LRC 任务（内存态）
 /admin/tools/quick-video     快速视频任务状态查询

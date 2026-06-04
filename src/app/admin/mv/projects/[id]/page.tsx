@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Download,
   Loader2,
+  DollarSign,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { StatusBadge } from '@/components/status-badge';
@@ -105,7 +106,86 @@ const STEP_LABELS: Record<number, string> = {
   10: '最终合成',
 };
 
-type TabKey = 'overview' | 'shots' | 'planning' | 'history';
+type TabKey = 'overview' | 'shots' | 'planning' | 'history' | 'costs';
+
+/**
+ * 项目成本明细接口返回（GET /admin/mv/projects/:id/costs）
+ *
+ * 设计要点：
+ *   - records 是按时间顺序的全量原始记录，前端可以做"时间线视图"
+ *   - byStep / byProvider 是聚合桶，给汇总卡片用
+ *   - totals.mountsea_credits / fal_usd / cloudflare_neuron 三种**原生**计费单位并存，
+ *     不做汇率换算，避免"估算 RMB 把误差放大"的副作用（这是阶段 1 设计共识，
+ *     等阶段 2 做面向用户的 charge_credits 时再统一换算）
+ *   - priceTableMatched=false 时，DB 记录的 cost 与当前价格表不一致（说明价格表更新了
+ *     但历史记录没回填），前端可以显眼标注让运维知道"这条数据该刷一下"
+ */
+interface CostBucket {
+  calls: number;
+  success: number;
+  failure: number;
+  mountsea_credits: number;
+  fal_usd: number;
+  cloudflare_neuron: number;
+  elapsed_ms_sum: number;
+}
+
+interface ProjectCosts {
+  project: {
+    id: string;
+    title: string;
+    userId: string;
+    status: string;
+    createdAt: string;
+    costSummary: Record<string, number | string | null> | null;
+  };
+  totals: CostBucket;
+  byStep: Record<string, CostBucket>;
+  byProvider: Record<string, CostBucket>;
+  records: Array<{
+    id: string;
+    shotId: string | null;
+    step: string;
+    provider: 'mountsea' | 'fal' | 'cloudflare';
+    model: string;
+    quantity: number;
+    quantityUnit: string;
+    costNativeAmount: number | null;
+    costNativeUnit: 'credits' | 'usd' | 'neuron' | null;
+    chargeCredits: number | null;
+    chargeCnyFen: number | null;
+    elapsedMs: number | null;
+    success: boolean;
+    priceTableMatched: boolean;
+    priceTableEstimate: number | null;
+    /** 阶段 2：账单对账字段 */
+    providerRequestId: string | null;
+    reconciledAt: string | null;
+    reconciledAmount: number | null;
+    reconciledSource: string | null;
+    /** 对账后 vs 估算值偏差百分比；正数=估算偏低 */
+    reconciledDiffPct: number | null;
+    metadata: Record<string, unknown> | null;
+    createdAt: string;
+  }>;
+}
+
+interface ReconcileSummary {
+  mountsea: number;
+  fal: number;
+  cloudflare: number;
+  total: number;
+  reconciled: number;
+  unmatched: number;
+}
+
+const STEP_TAG_LABELS: Record<string, string> = {
+  lrc_transcribe: 'LRC 转写',
+  music_analyze: '音乐分析',
+  storyboard_image: '故事板图',
+  video_gen: '镜头视频',
+  lipsync_post: '口型后处理',
+};
 
 export default function AdminMvProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -312,6 +392,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                       ['shots', `镜头 (${shots.length})`],
                       ['planning', `规划步骤 (${planning.length})`],
                       ['history', `成片历史 (${(project.compositionHistory?.length ?? 0) + (project.resultUrl ? 1 : 0)})`],
+                      ['costs', '成本明细'],
                     ] as [TabKey, string][]
                   ).map(([key, label]) => (
                     <button
@@ -347,6 +428,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                       history={project.compositionHistory ?? []}
                     />
                   )}
+                  {tab === 'costs' && <CostsTab projectId={id} />}
                 </div>
               </div>
             </>
@@ -562,6 +644,379 @@ function HistoryTab({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * 成本明细 Tab —— 阶段 1：内部审计视角
+ *
+ * 数据特征：
+ *   - cost_native_amount 取自 native-pricing.ts 公开价格表，与上游真实账单可能存在 ±20% 偏差
+ *   - 三种原生计费单位（Mountsea credits / Fal USD / Cloudflare Neuron）并存，不做汇率换算
+ *   - 失败记录也会出现：上游"扣了钱没出片"的场景需要可见，运维核账时也要看到这部分损耗
+ *
+ * UI 分层：
+ *   1. 顶部 3 张大卡：三种原生单位的总额（视觉上类似账单首页）
+ *   2. 中部双栏：按步骤聚合 + 按 Provider 聚合（横向对比："是哪个步骤在烧钱"和"是哪家在烧钱"）
+ *   3. 底部表格：原始记录时间线，可点开 metadata 看 raw payload
+ */
+function CostsTab({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error } = useQuery<ProjectCosts>({
+    queryKey: ['admin', 'mv', 'project', projectId, 'costs'],
+    queryFn: () => apiClient.get(`/admin/mv/projects/${projectId}/costs`) as any,
+    refetchInterval: 30_000,
+  });
+
+  const reconcileMutation = useMutation<ReconcileSummary>({
+    mutationFn: () => apiClient.post(`/admin/mv/projects/${projectId}/reconcile`, {}) as any,
+    onSuccess: (summary) => {
+      const msg = `对账完成：成功 ${summary.reconciled}/${summary.total} ` +
+        `（mountsea ${summary.mountsea} · fal ${summary.fal} · cf ${summary.cloudflare}）`;
+      // 利用 alert 也行，这里用浏览器原生 + console
+      // 顺便把成本明细 cache 失效，让 UI 自动刷新
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'mv', 'project', projectId, 'costs'] });
+      window.alert(msg);
+    },
+    onError: (err: any) => {
+      window.alert('对账失败：' + (err?.message ?? String(err)));
+    },
+  });
+
+  // 统计已对账 / 未对账 / 误差
+  const reconStats = useMemo(() => {
+    if (!data) return null;
+    let reconciled = 0;
+    let unreconciled = 0;
+    let totalEstUsd = 0;
+    let totalRealUsd = 0;
+    for (const r of data.records) {
+      if (r.reconciledAt) reconciled++;
+      else unreconciled++;
+      // 仅 USD 单位的简单累加（mountsea credits/cf neuron 不汇总到这里，避免单位混淆）
+      if (r.costNativeUnit === 'usd' && r.costNativeAmount != null) totalEstUsd += r.costNativeAmount;
+      if (r.reconciledAmount != null && (r.reconciledSource === 'fal_billing_events' || r.reconciledSource === 'cf_aig_logs')) {
+        totalRealUsd += r.reconciledAmount;
+      }
+    }
+    return { reconciled, unreconciled, totalEstUsd, totalRealUsd };
+  }, [data]);
+
+  return (
+    <QueryState
+      isLoading={isLoading}
+      isError={isError}
+      error={error}
+      isEmpty={!data || data.records.length === 0}
+      emptyMessage="该项目尚未产生任何成本记录"
+      height="h-64"
+    >
+      {data && (
+        <div className="space-y-5">
+          {/* 对账状态横幅 */}
+          {reconStats && (
+            <div className="rounded-xl border bg-slate-50 px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-4 flex-wrap text-sm">
+                <span className="text-slate-700">
+                  对账状态：
+                  <span className="font-semibold text-emerald-700 ml-1">{reconStats.reconciled} 已对账</span>
+                  <span className="mx-1 text-slate-300">/</span>
+                  <span className="font-semibold text-amber-700">{reconStats.unreconciled} 估算中</span>
+                </span>
+                {reconStats.totalRealUsd > 0 && (
+                  <span className="text-slate-600">
+                    USD 部分：估算 ${reconStats.totalEstUsd.toFixed(4)} → 真实 ${reconStats.totalRealUsd.toFixed(4)}
+                    {reconStats.totalEstUsd > 0 && (
+                      <span className={cn(
+                        'ml-2 px-1.5 py-0.5 rounded text-xs font-mono',
+                        reconStats.totalRealUsd > reconStats.totalEstUsd
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-emerald-100 text-emerald-700',
+                      )}>
+                        {reconStats.totalRealUsd > reconStats.totalEstUsd ? '+' : ''}
+                        {(((reconStats.totalRealUsd - reconStats.totalEstUsd) / reconStats.totalEstUsd) * 100).toFixed(1)}%
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => reconcileMutation.mutate()}
+                disabled={reconcileMutation.isPending}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-medium transition"
+              >
+                {reconcileMutation.isPending ? '对账中…' : '立即对账'}
+              </button>
+            </div>
+          )}
+
+          <CostHeaderCards totals={data.totals} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CostBreakdownCard
+              title="按步骤聚合"
+              labelMap={STEP_TAG_LABELS}
+              buckets={data.byStep}
+            />
+            <CostBreakdownCard
+              title="按 Provider 聚合"
+              buckets={data.byProvider}
+            />
+          </div>
+          <CostRecordsTable records={data.records} />
+        </div>
+      )}
+    </QueryState>
+  );
+}
+
+function CostHeaderCards({ totals }: { totals: CostBucket }) {
+  // 三栏并列展示原生单位，按数值大小自动着色（非 0 高亮）
+  const cards: Array<{ label: string; value: number; suffix: string; color: string }> = [
+    {
+      label: 'Mountsea',
+      value: totals.mountsea_credits,
+      suffix: 'credits',
+      color: 'from-purple-50 to-purple-100 text-purple-700 border-purple-200',
+    },
+    {
+      label: 'Fal',
+      value: totals.fal_usd,
+      suffix: 'USD',
+      color: 'from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200',
+    },
+    {
+      label: 'Cloudflare',
+      value: totals.cloudflare_neuron,
+      suffix: 'Neuron',
+      color: 'from-amber-50 to-amber-100 text-amber-700 border-amber-200',
+    },
+  ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {cards.map((c) => (
+        <div
+          key={c.label}
+          className={cn(
+            'rounded-xl border p-4 bg-gradient-to-br',
+            c.value > 0 ? c.color : 'from-slate-50 to-slate-100 text-slate-500 border-slate-200',
+          )}
+        >
+          <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
+            <DollarSign className="h-3.5 w-3.5" />
+            {c.label}
+          </div>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tabular-nums">
+              {c.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+            </span>
+            <span className="text-xs opacity-70">{c.suffix}</span>
+          </div>
+          <div className="text-[11px] opacity-60 mt-1">
+            {totals.calls} 次调用 · 成功 {totals.success} / 失败 {totals.failure}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CostBreakdownCard({
+  title,
+  buckets,
+  labelMap,
+}: {
+  title: string;
+  buckets: Record<string, CostBucket>;
+  labelMap?: Record<string, string>;
+}) {
+  // 按总调用次数倒序，让"最热"维度排最上面
+  const rows = Object.entries(buckets).sort((a, b) => b[1].calls - a[1].calls);
+  if (rows.length === 0) {
+    return (
+      <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+        <p className="text-sm font-medium text-slate-700 mb-2">{title}</p>
+        <p className="text-xs text-slate-400">暂无数据</p>
+      </div>
+    );
+  }
+  return (
+    <div className="border border-slate-200 rounded-xl p-4 bg-white">
+      <p className="text-sm font-medium text-slate-800 mb-3">{title}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-[11px] text-slate-400 uppercase tracking-wide">
+            <tr>
+              <th className="text-left pb-2 font-medium">Key</th>
+              <th className="text-right pb-2 font-medium">调用</th>
+              <th className="text-right pb-2 font-medium">Mountsea</th>
+              <th className="text-right pb-2 font-medium">Fal $</th>
+              <th className="text-right pb-2 font-medium">CF Neu</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {rows.map(([k, b]) => (
+              <tr key={k}>
+                <td className="py-1.5 text-slate-700">
+                  <span className="font-medium">{labelMap?.[k] ?? k}</span>
+                  <span className="text-slate-400 ml-1.5 text-[11px]">
+                    {b.success}✓ {b.failure > 0 ? `${b.failure}✗` : ''}
+                  </span>
+                </td>
+                <td className="py-1.5 text-right tabular-nums text-slate-600">{b.calls}</td>
+                <td className="py-1.5 text-right tabular-nums text-purple-600">
+                  {b.mountsea_credits > 0 ? b.mountsea_credits.toFixed(2) : '—'}
+                </td>
+                <td className="py-1.5 text-right tabular-nums text-emerald-600">
+                  {b.fal_usd > 0 ? b.fal_usd.toFixed(4) : '—'}
+                </td>
+                <td className="py-1.5 text-right tabular-nums text-amber-600">
+                  {b.cloudflare_neuron > 0 ? b.cloudflare_neuron.toFixed(0) : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CostRecordsTable({ records }: { records: ProjectCosts['records'] }) {
+  // 时间倒序，最新记录排最上面，方便排查"刚刚那次失败到底烧了多少"
+  const sorted = [...records].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  return (
+    <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+        <p className="text-sm font-medium text-slate-800">原始记录（{records.length} 条）</p>
+        <p className="text-[11px] text-slate-400">
+          <span className="text-amber-600">⚠️</span> 价格表已变更 ·
+          <span className="ml-2 px-1 py-0.5 rounded bg-emerald-50 text-emerald-700">已对账</span>
+          <span className="ml-1 px-1 py-0.5 rounded bg-amber-50 text-amber-700">估算中</span>
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-[11px] text-slate-500 bg-slate-50">
+            <tr>
+              <th className="text-left px-3 py-2 font-medium">时间</th>
+              <th className="text-left px-3 py-2 font-medium">步骤</th>
+              <th className="text-left px-3 py-2 font-medium">Provider · Model</th>
+              <th className="text-right px-3 py-2 font-medium">Quantity</th>
+              <th className="text-right px-3 py-2 font-medium">估算 Cost</th>
+              <th className="text-right px-3 py-2 font-medium">真实账单</th>
+              <th className="text-right px-3 py-2 font-medium">耗时</th>
+              <th className="text-center px-3 py-2 font-medium">状态</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {sorted.map((r) => (
+              <tr key={r.id} className="hover:bg-slate-50">
+                <td className="px-3 py-2 text-slate-500 whitespace-nowrap">
+                  {new Date(r.createdAt).toLocaleTimeString()}
+                </td>
+                <td className="px-3 py-2 text-slate-700 whitespace-nowrap">
+                  <span className="font-medium">{STEP_TAG_LABELS[r.step] ?? r.step}</span>
+                  {r.shotId && (
+                    <span className="ml-1 text-slate-400 text-[10px]">
+                      shot #{r.shotId.slice(0, 4)}
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
+                  <span
+                    className={cn(
+                      'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mr-1.5',
+                      r.provider === 'mountsea' && 'bg-purple-50 text-purple-700',
+                      r.provider === 'fal' && 'bg-emerald-50 text-emerald-700',
+                      r.provider === 'cloudflare' && 'bg-amber-50 text-amber-700',
+                    )}
+                  >
+                    {r.provider}
+                  </span>
+                  <span className="font-mono text-[11px]">{r.model}</span>
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-slate-700 whitespace-nowrap">
+                  {r.quantity}
+                  <span className="text-slate-400 ml-1">{r.quantityUnit}</span>
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                  {r.costNativeAmount != null ? (
+                    <span
+                      className={cn(
+                        'font-medium',
+                        r.costNativeUnit === 'credits' && 'text-purple-700',
+                        r.costNativeUnit === 'usd' && 'text-emerald-700',
+                        r.costNativeUnit === 'neuron' && 'text-amber-700',
+                      )}
+                    >
+                      {r.costNativeAmount.toFixed(r.costNativeUnit === 'usd' ? 4 : 2)}
+                      <span className="text-slate-400 text-[10px] ml-0.5">
+                        {r.costNativeUnit === 'credits' ? 'C' : r.costNativeUnit === 'usd' ? '$' : 'N'}
+                      </span>
+                      {!r.priceTableMatched && (
+                        <span className="ml-1 text-amber-500" title="价格表已变更，DB 记录值与当前估算不一致">
+                          ⚠️
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
+                  {r.reconciledAmount != null ? (
+                    <span title={`来源：${r.reconciledSource}\n对账时间：${r.reconciledAt}`}>
+                      <span className="font-semibold text-emerald-700">
+                        {r.reconciledAmount.toFixed(r.reconciledSource === 'mountsea_usage' ? 0 : 4)}
+                      </span>
+                      <span className="text-slate-400 text-[10px] ml-0.5">
+                        {r.reconciledSource === 'mountsea_usage' ? 'C' : '$'}
+                      </span>
+                      {r.reconciledDiffPct != null && Math.abs(r.reconciledDiffPct) >= 5 && (
+                        <span
+                          className={cn(
+                            'ml-1 px-1 py-0.5 rounded text-[9px] font-mono',
+                            r.reconciledDiffPct > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700',
+                          )}
+                          title={`估算 ${r.costNativeAmount} → 实际 ${r.reconciledAmount}`}
+                        >
+                          {r.reconciledDiffPct > 0 ? '+' : ''}
+                          {r.reconciledDiffPct}%
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-amber-500 text-[10px]" title="尚未对账，cron 每小时跑一次，或点上方「立即对账」">
+                      估算中
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">
+                  {r.elapsedMs != null ? `${(r.elapsedMs / 1000).toFixed(1)}s` : '—'}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {r.success ? (
+                    <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-medium">
+                      OK
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-block px-1.5 py-0.5 rounded bg-red-50 text-red-700 text-[10px] font-medium"
+                      title={(r.metadata?.errorMessage as string) ?? ''}
+                    >
+                      FAIL
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
