@@ -15,14 +15,16 @@ export function formatUsdAmount(usd: number, maxDecimals = 4): string {
   return `$${usd.toFixed(maxDecimals)}`;
 }
 
-/** Frankfurter 免费汇率（无需 API Key）：https://www.frankfurter.app/ */
+/** 经 Next.js 同源 API 代理 Frankfurter，避免浏览器 CORS */
 export async function fetchCnyPerUsd(): Promise<number> {
-  const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=CNY', {
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`汇率接口 HTTP ${res.status}`);
-  const json = (await res.json()) as { rates?: { CNY?: number } };
-  const rate = json.rates?.CNY;
-  if (!rate || rate <= 0) throw new Error('汇率数据无效');
-  return rate;
+  try {
+    const res = await fetch('/api/exchange-rate/cny-per-usd', { cache: 'no-store' });
+    if (!res.ok) return DEFAULT_CNY_PER_USD;
+    const json = (await res.json()) as { cnyPerUsd?: number };
+    const rate = json.cnyPerUsd;
+    if (!rate || rate <= 0 || !Number.isFinite(rate)) return DEFAULT_CNY_PER_USD;
+    return rate;
+  } catch {
+    return DEFAULT_CNY_PER_USD;
+  }
 }

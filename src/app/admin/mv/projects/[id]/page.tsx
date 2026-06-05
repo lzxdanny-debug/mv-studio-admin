@@ -121,6 +121,10 @@ const STEP_LABELS: Record<number, string> = {
 
 type TabKey = 'costs' | 'assets' | 'shots' | 'planning' | 'history';
 
+function safeCostNumber(value: number | null | undefined): number {
+  return Number.isFinite(value) ? (value as number) : 0;
+}
+
 function MountseaAmount({
   credits,
   align = 'right',
@@ -132,12 +136,13 @@ function MountseaAmount({
   usdClassName?: string;
   cnyPerUsd?: number;
 }) {
-  if (credits <= 0) return <span className="text-slate-300">—</span>;
+  const safeCredits = safeCostNumber(credits);
+  if (safeCredits <= 0) return <span className="text-slate-300">—</span>;
   return (
     <div className={cn('tabular-nums', align === 'right' && 'text-right')}>
-      <div className={usdClassName}>{formatUsdAmount(mountseaCreditsToUsd(credits, cnyPerUsd))}</div>
+      <div className={usdClassName}>{formatUsdAmount(mountseaCreditsToUsd(safeCredits, cnyPerUsd))}</div>
       <div className="text-[10px] text-slate-400 font-normal">
-        {credits.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits
+        {safeCredits.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits
       </div>
     </div>
   );
@@ -884,6 +889,7 @@ function CostsTab({ projectId }: { projectId: string }) {
     queryFn: fetchCnyPerUsd,
     staleTime: 60 * 60 * 1000,
     retry: 1,
+    placeholderData: DEFAULT_CNY_PER_USD,
   });
 
   const reconcileMutation = useMutation<ReconcileSummary>({
@@ -1076,7 +1082,7 @@ function CostHeaderCards({
     {
       key: 'mountsea',
       label: 'Mountsea',
-      value: totals.mountsea_credits,
+      value: safeCostNumber(totals.mountsea_credits),
       suffix: 'credits',
       color: 'from-purple-50 to-purple-100 text-purple-700 border-purple-200',
       decimals: 2,
@@ -1084,7 +1090,7 @@ function CostHeaderCards({
     {
       key: 'fal',
       label: 'Fal',
-      value: totals.fal_usd,
+      value: safeCostNumber(totals.fal_usd),
       suffix: 'USD',
       color: 'from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200',
       decimals: 4,
@@ -1092,7 +1098,7 @@ function CostHeaderCards({
     {
       key: 'cloudflare',
       label: 'Cloudflare',
-      value: totals.cloudflare_usd,
+      value: safeCostNumber(totals.cloudflare_usd),
       suffix: 'USD',
       color: 'from-amber-50 to-amber-100 text-amber-700 border-amber-200',
       decimals: 2,
@@ -1103,32 +1109,33 @@ function CostHeaderCards({
       {cards.map((c) => {
         const bucket = byProvider[c.key] ?? totals;
         const isMountsea = c.key === 'mountsea';
+        const value = safeCostNumber(c.value);
         return (
           <div
             key={c.label}
             className={cn(
               'rounded-xl border p-4 bg-gradient-to-br',
-              c.value > 0 ? c.color : 'from-slate-50 to-slate-100 text-slate-500 border-slate-200',
+              value > 0 ? c.color : 'from-slate-50 to-slate-100 text-slate-500 border-slate-200',
             )}
           >
             <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
               <DollarSign className="h-3.5 w-3.5" />
               {c.label}
             </div>
-            {isMountsea && c.value > 0 ? (
+            {isMountsea && value > 0 ? (
               <div className="mt-1">
                 <div className="text-2xl font-bold tabular-nums">
-                  {formatUsdAmount(mountseaCreditsToUsd(c.value, cnyPerUsd))}
+                  {formatUsdAmount(mountseaCreditsToUsd(value, cnyPerUsd))}
                 </div>
                 <div className="text-[11px] text-slate-400 font-normal mt-0.5">
-                  {c.value.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits
+                  {value.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits
                 </div>
               </div>
             ) : (
               <div className="mt-1 flex items-baseline gap-1.5">
                 <span className="text-2xl font-bold tabular-nums">
-                  {c.value.toLocaleString(undefined, {
-                    minimumFractionDigits: c.value > 0 ? Math.min(c.decimals, 2) : 0,
+                  {value.toLocaleString(undefined, {
+                    minimumFractionDigits: value > 0 ? Math.min(c.decimals, 2) : 0,
                     maximumFractionDigits: c.decimals,
                   })}
                 </span>
@@ -1214,9 +1221,9 @@ function CostBreakdownCard({
                   {b.calls > 0 ? b.calls : '—'}
                 </td>
                 <td className="py-1.5 text-right">
-                  {b.mountsea_credits > 0 ? (
+                  {safeCostNumber(b.mountsea_credits) > 0 ? (
                     <MountseaAmount
-                      credits={b.mountsea_credits}
+                      credits={safeCostNumber(b.mountsea_credits)}
                       usdClassName="text-purple-600 font-medium text-xs"
                       cnyPerUsd={cnyPerUsd}
                     />
@@ -1225,10 +1232,12 @@ function CostBreakdownCard({
                   )}
                 </td>
                 <td className="py-1.5 text-right tabular-nums text-emerald-600">
-                  {b.fal_usd > 0 ? b.fal_usd.toFixed(4) : '—'}
+                  {safeCostNumber(b.fal_usd) > 0 ? safeCostNumber(b.fal_usd).toFixed(4) : '—'}
                 </td>
                 <td className="py-1.5 text-right tabular-nums text-amber-600">
-                  {b.cloudflare_usd > 0 ? b.cloudflare_usd.toFixed(2) : '—'}
+                  {safeCostNumber(b.cloudflare_usd) > 0
+                    ? safeCostNumber(b.cloudflare_usd).toFixed(2)
+                    : '—'}
                 </td>
               </tr>
             ))}
