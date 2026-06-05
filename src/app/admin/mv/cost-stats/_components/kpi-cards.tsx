@@ -7,6 +7,7 @@ import {
   formatPercent,
   formatUsd,
 } from '../_lib/types';
+import { DEFAULT_CNY_PER_USD, MOUNTSEA_CREDITS_PER_CNY } from '@/lib/mountsea-pricing';
 
 /**
  * 4 张 KPI 卡（成本统计页顶栏）：
@@ -23,7 +24,7 @@ interface KpiCardsProps {
   payload: CostStatsPayload;
 }
 
-const USD_PER_MOUNTSEA_CREDIT = 0.0014;
+const USD_PER_MOUNTSEA_CREDIT = 1 / MOUNTSEA_CREDITS_PER_CNY / DEFAULT_CNY_PER_USD;
 const USD_PER_CLOUDFLARE_NEURON = 0;
 
 export function KpiCards({ payload }: KpiCardsProps) {
@@ -37,10 +38,11 @@ export function KpiCards({ payload }: KpiCardsProps) {
     summary.estimated.mountseaCredits * USD_PER_MOUNTSEA_CREDIT +
     summary.estimated.cloudflareNeuron * USD_PER_CLOUDFLARE_NEURON;
 
+  // reconciled.falUsd 后端已合并 fal_billing_events + cf_aig_logs 两个 USD 来源，
+  // cloudflareNeuron 现在恒为 0（CF 真实账单不是 neuron 计价）
   const recTotalUsd =
     summary.reconciled.falUsd +
-    summary.reconciled.mountseaCredits * USD_PER_MOUNTSEA_CREDIT +
-    summary.reconciled.cloudflareNeuron * USD_PER_CLOUDFLARE_NEURON;
+    summary.reconciled.mountseaCredits * USD_PER_MOUNTSEA_CREDIT;
 
   // "失败浪费" = 失败分类中标记 likelyBilled=true 的总估算
   const wastedUsd = failureBreakdown
@@ -76,7 +78,7 @@ export function KpiCards({ payload }: KpiCardsProps) {
           </>
         }
         helperTitle={
-          'Mountsea credits 按 0.0014 USD/credit 折算，Cloudflare 暂未登记单价。\n' +
+          'Mountsea：100 credits = 1 CNY，按 CNY/USD=7.2 折算；Cloudflare 暂未登记单价。\n' +
           '此为量级展示，不用于结算（结算以对账后的真实账单 reconciled_amount 为准）。'
         }
       />

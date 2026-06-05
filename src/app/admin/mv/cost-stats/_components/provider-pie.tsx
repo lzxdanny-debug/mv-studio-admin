@@ -116,7 +116,9 @@ export function ProviderPie({ payload }: { payload: CostStatsPayload }) {
                       <td className="py-1.5 text-right">
                         {row.reconciledAmount > 0 ? (
                           <span className="text-emerald-600">
-                            {formatNative(row.reconciledAmount, row.estUnit)}
+                            {/* 真实账单单位由 reconciled_source 决定，跟估算单位解耦
+                                （例：CF 估算单位=null 但真实账单是 USD）*/}
+                            {formatNative(row.reconciledAmount, row.reconciledUnit)}
                           </span>
                         ) : (
                           <span className="text-slate-300">—</span>

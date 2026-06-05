@@ -40,9 +40,14 @@ export interface CostStatsPayload {
     calls: number;
     success: number;
     failed: number;
+    /** 估算金额（按 cost_native_unit 求和；CF 价格表为空时为 0） */
     estAmount: number;
+    /** 估算单位（credits/usd/neuron），CF 因价格表空时为 null → 前端显示 "—" */
     estUnit: string | null;
+    /** 真实账单金额（按 reconciled_source 求和） */
     reconciledAmount: number;
+    /** 真实账单单位（mountsea_usage→credits / fal_billing_events,cf_aig_logs→usd） */
+    reconciledUnit: string | null;
   }>;
   byStep: Array<{
     step: string;
