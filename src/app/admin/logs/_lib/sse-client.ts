@@ -64,8 +64,19 @@ export async function startSse<T = any>(opts: SseClientOpts<T>): Promise<void> {
         if (!dataLines.length) continue;
         const text = dataLines.join('\n');
         try {
-          const parsed = JSON.parse(text) as T;
-          onEvent(parsed);
+          let parsed: any = JSON.parse(text);
+          // 兼容 NestJS @Sse 把 MessageEvent 整体序列化的情况：
+          // 收到的可能是 { data: { type, payload } }（双层包装），
+          // 也可能是直接 { type, payload }。两种都要能解析。
+          if (
+            parsed &&
+            typeof parsed === 'object' &&
+            'data' in parsed &&
+            !('type' in parsed)
+          ) {
+            parsed = parsed.data;
+          }
+          onEvent(parsed as T);
         } catch (err) {
           onError?.(new Error(`SSE 数据解析失败: ${text.slice(0, 200)}`));
         }
