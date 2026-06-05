@@ -18,6 +18,7 @@ import {
   Cable,
   Terminal,
   SlidersHorizontal,
+  LineChart,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'MV 业务',
     items: [
       { href: '/admin/mv/projects', label: 'MV 项目', icon: Film },
+      { href: '/admin/mv/cost-stats', label: '成本统计', icon: LineChart },
       { href: '/admin/mv/styles', label: '风格库', icon: Palette },
       { href: '/admin/mv/character-presets', label: '默认角色图', icon: UserSquare },
       { href: '/admin/mv/defaults', label: 'MV 默认配置', icon: SlidersHorizontal },
