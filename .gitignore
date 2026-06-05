@@ -28,6 +28,8 @@ out/
 *.log
 *.log.*
 logs/
+# 例外：admin 后台「系统日志」前端页面路径恰好叫 logs（不是日志输出目录）
+!src/app/admin/logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
