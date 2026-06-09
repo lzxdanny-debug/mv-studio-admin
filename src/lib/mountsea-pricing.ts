@@ -4,9 +4,20 @@ export const MOUNTSEA_CREDITS_PER_CNY = 100;
 /** 无实时汇率时的兜底（≈ 7.2 CNY/USD） */
 export const DEFAULT_CNY_PER_USD = 7.2;
 
+export function mountseaCreditsToCny(credits: number): number {
+  if (!Number.isFinite(credits) || credits <= 0) return 0;
+  return credits / MOUNTSEA_CREDITS_PER_CNY;
+}
+
 export function mountseaCreditsToUsd(credits: number, cnyPerUsd = DEFAULT_CNY_PER_USD): number {
   if (!Number.isFinite(credits) || credits <= 0 || cnyPerUsd <= 0) return 0;
-  return credits / MOUNTSEA_CREDITS_PER_CNY / cnyPerUsd;
+  return mountseaCreditsToCny(credits) / cnyPerUsd;
+}
+
+export function formatCnyAmount(cny: number, maxDecimals = 2): string {
+  if (!Number.isFinite(cny) || cny <= 0) return '¥0.00';
+  if (cny >= 1) return `¥${cny.toFixed(2)}`;
+  return `¥${cny.toFixed(maxDecimals)}`;
 }
 
 export function formatUsdAmount(usd: number, maxDecimals = 4): string {

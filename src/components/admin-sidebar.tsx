@@ -19,6 +19,7 @@ import {
   Terminal,
   SlidersHorizontal,
   LineChart,
+  Disc3,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,12 @@ const NAV_SECTIONS: NavSection[] = [
       { href: '/admin/mv/styles', label: '风格库', icon: Palette },
       { href: '/admin/mv/character-presets', label: '默认角色图', icon: UserSquare },
       { href: '/admin/mv/defaults', label: 'MV 默认配置', icon: SlidersHorizontal },
+    ],
+  },
+  {
+    title: '音乐',
+    items: [
+      { href: '/admin/music/tasks', label: '音乐任务', icon: Disc3 },
     ],
   },
   {
