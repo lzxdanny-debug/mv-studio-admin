@@ -18,10 +18,17 @@ import {
   Activity,
   TrendingUp,
   Clock,
+  Type,
+  Eye,
+  Image as ImageIcon,
+  Film,
+  Mic,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { PaginationBar } from '@/components/pagination-bar';
 
 type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea';
 type AiCapability =
@@ -30,7 +37,9 @@ type AiCapability =
   | 'visionAnalyze'
   | 'imageNanoBanana'
   | 'videoSingleRef'
+  | 'videoUltron'
   | 'videoMultiRef'
+  | 'videoLipsync'
   | 'audioTranscribe'
   | 'audioAnalyze';
 
@@ -55,6 +64,7 @@ interface MetaResp {
   labels: Record<AiCapability, string>;
   support: Record<AiCapability, RoutingProvider[]>;
   defaultModels: Record<AiCapability, Partial<Record<RoutingProvider, string>>>;
+  modelOptions: Record<AiCapability, Partial<Record<RoutingProvider, string[]>>>;
 }
 
 const PROVIDER_META: Record<
@@ -79,6 +89,58 @@ const PROVIDER_META: Record<
     iconWrap: 'bg-purple-50',
     iconColor: 'text-purple-600',
   },
+};
+
+// 能力分组：双 capability 一行并排；视频用 tab（多图/单图/对口型）
+interface CapGroup {
+  key: string;
+  title: string;
+  icon: typeof Cloud;
+  caps: AiCapability[];
+  /** 一行并排展示（文本、音频等 2 个子类） */
+  inline?: boolean;
+  /** tab 切换（视频 3 个子类） */
+  tabbed?: boolean;
+}
+
+const CAP_GROUPS: CapGroup[] = [
+  {
+    key: 'text',
+    title: '文本生成',
+    icon: Type,
+    caps: ['textGpt', 'textGemini'],
+    inline: true,
+  },
+  { key: 'vision', title: '视觉理解', icon: Eye, caps: ['visionAnalyze'] },
+  { key: 'image', title: '图像生成', icon: ImageIcon, caps: ['imageNanoBanana'] },
+  {
+    key: 'video',
+    title: '视频生成',
+    icon: Film,
+    caps: ['videoUltron', 'videoMultiRef', 'videoSingleRef', 'videoLipsync'],
+    tabbed: true,
+  },
+  {
+    key: 'audio',
+    title: '音频',
+    icon: Mic,
+    caps: ['audioTranscribe', 'audioAnalyze'],
+    inline: true,
+  },
+];
+
+const VIDEO_TAB_LABEL: Partial<Record<AiCapability, string>> = {
+  videoUltron: 'Ultron 高质量',
+  videoMultiRef: '多图参考',
+  videoSingleRef: '单图',
+  videoLipsync: '对口型',
+};
+
+const INLINE_SUB_LABEL: Partial<Record<AiCapability, string>> = {
+  textGpt: 'GPT',
+  textGemini: 'Gemini',
+  audioTranscribe: '转写',
+  audioAnalyze: '分析',
 };
 
 export default function AiRoutingPage() {
@@ -173,22 +235,34 @@ export default function AiRoutingPage() {
           height="h-64"
         >
           {listQ.data && metaQ.data && (
-            <div className="space-y-3">
-              {listQ.data.capabilities.map((cap) => {
-                const row = listQ.data!.rows.find((r) => r.capability === cap);
-                if (!row) return null;
-                return (
-                  <CapabilityRow
-                    key={cap}
-                    row={row}
-                    meta={metaQ.data!}
-                    label={listQ.data!.labels[cap]}
-                    editing={editing === cap}
-                    onEnterEdit={() => setEditing(cap)}
-                    onExitEdit={() => setEditing(null)}
-                  />
+            <div className="space-y-5">
+              {(() => {
+                const data = listQ.data!;
+                const meta = metaQ.data!;
+                const grouped = new Set(CAP_GROUPS.flatMap((g) => g.caps));
+                const leftover = data.capabilities.filter(
+                  (c) => !grouped.has(c),
                 );
-              })}
+                const groups: CapGroup[] = [...CAP_GROUPS];
+                if (leftover.length > 0) {
+                  groups.push({
+                    key: 'other',
+                    title: '其他',
+                    icon: ServerCog,
+                    caps: leftover,
+                  });
+                }
+                return groups.map((g) => (
+                  <CapabilityGroup
+                    key={g.key}
+                    group={g}
+                    listData={data}
+                    meta={meta}
+                    editing={editing}
+                    setEditing={setEditing}
+                  />
+                ));
+              })()}
             </div>
           )}
         </QueryState>
@@ -243,9 +317,11 @@ interface InvocationRow {
 }
 
 interface InvocationsResp {
-  rows: InvocationRow[];
+  items: InvocationRow[];
+  total: number;
+  page: number;
+  pageSize: number;
   capability: AiCapability | null;
-  limit: number;
 }
 
 function RouterTelemetrySection({
@@ -256,6 +332,12 @@ function RouterTelemetrySection({
   const qc = useQueryClient();
   const [rangeHours, setRangeHours] = useState<number>(24);
   const [filterCap, setFilterCap] = useState<AiCapability | ''>('');
+  const {
+    page: invPage,
+    setPage: setInvPage,
+    pageSize: invPageSize,
+    onPageSizeChange: onInvPageSizeChange,
+  } = useServerPagination();
 
   const summaryQ = useQuery<TelemetrySummaryResp>({
     queryKey: ['admin', 'ai-routing', 'summary', rangeHours],
@@ -267,13 +349,24 @@ function RouterTelemetrySection({
   });
 
   const invocationsQ = useQuery<InvocationsResp>({
-    queryKey: ['admin', 'ai-routing', 'invocations', filterCap],
-    queryFn: () => {
-      const qs = new URLSearchParams({ limit: '50' });
+    queryKey: ['admin', 'ai-routing', 'invocations', filterCap, invPage],
+    queryFn: async () => {
+      const qs = new URLSearchParams({
+        page: String(invPage),
+        pageSize: String(invPageSize),
+      });
       if (filterCap) qs.set('capability', filterCap);
-      return apiClient.get(
+      const raw = (await apiClient.get(
         `/admin/ai-routing/invocations?${qs.toString()}`,
-      ) as Promise<InvocationsResp>;
+      )) as InvocationsResp & { rows?: InvocationRow[]; limit?: number };
+      const items = raw.items ?? raw.rows ?? [];
+      return {
+        items,
+        total: raw.total ?? items.length,
+        page: raw.page ?? invPage,
+        pageSize: raw.pageSize ?? invPageSize,
+        capability: raw.capability ?? null,
+      };
     },
     refetchInterval: 30_000,
   });
@@ -423,11 +516,11 @@ function RouterTelemetrySection({
       <div className="flex items-center justify-between pt-2">
         <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
           <Clock className="h-3.5 w-3.5 text-slate-500" />
-          最近 50 次调用
+          调用记录
         </h3>
         <select
           value={filterCap}
-          onChange={(e) => setFilterCap(e.target.value as AiCapability | '')}
+          onChange={(e) => { setFilterCap(e.target.value as AiCapability | ''); setInvPage(1); }}
           className="px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white"
         >
           <option value="">全部 capability</option>
@@ -443,11 +536,11 @@ function RouterTelemetrySection({
         isLoading={invocationsQ.isLoading}
         isError={invocationsQ.isError}
         error={invocationsQ.error}
-        isEmpty={!invocationsQ.data?.rows.length}
+        isEmpty={!(invocationsQ.data?.items?.length)}
         emptyMessage="暂无调用记录"
         height="h-32"
       >
-        {invocationsQ.data && invocationsQ.data.rows.length > 0 && (
+        {(invocationsQ.data?.items?.length ?? 0) > 0 && (
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
             <table className="w-full text-xs">
               <thead className="bg-slate-50 text-slate-500">
@@ -461,7 +554,7 @@ function RouterTelemetrySection({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {invocationsQ.data.rows.map((row) => (
+                {invocationsQ.data!.items.map((row) => (
                   <tr key={row.id}>
                     <td className="px-3 py-2 font-mono text-slate-500 whitespace-nowrap">
                       {fmtRelative(row.createdAt)}
@@ -543,6 +636,13 @@ function RouterTelemetrySection({
                 ))}
               </tbody>
             </table>
+            <PaginationBar
+              page={invPage}
+              pageSize={invPageSize}
+              total={invocationsQ.data?.total}
+              onPageChange={setInvPage}
+              onPageSizeChange={onInvPageSizeChange}
+            />
           </div>
         )}
       </QueryState>
@@ -568,6 +668,118 @@ function fmtRelative(iso: string): string {
 }
 
 // ──────────────────────────────────────────────────────────────────────
+// 能力分组（视频用 tab 切换多图/单图）
+// ──────────────────────────────────────────────────────────────────────
+
+function CapabilityGroup({
+  group,
+  listData,
+  meta,
+  editing,
+  setEditing,
+}: {
+  group: CapGroup;
+  listData: ListResp;
+  meta: MetaResp;
+  editing: AiCapability | null;
+  setEditing: (c: AiCapability | null) => void;
+}) {
+  const caps = group.caps.filter((c) => listData.capabilities.includes(c));
+  const [activeTab, setActiveTab] = useState<AiCapability>(caps[0] ?? group.caps[0]);
+  const Icon = group.icon;
+
+  if (caps.length === 0) return null;
+
+  const cardShell = (children: React.ReactNode) => (
+    <section className="w-full">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 bg-purple-100 border-b border-purple-200 flex items-center gap-2.5">
+          <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-white/90 border border-purple-200 shadow-sm">
+            <Icon className="h-4 w-4 text-purple-700" />
+          </span>
+          <h2 className="text-sm font-bold text-purple-950 tracking-wide">
+            {group.title}
+          </h2>
+        </div>
+        <div className="p-4">{children}</div>
+      </div>
+    </section>
+  );
+
+  /** 子 capability 固定占 50% 宽，不平铺整行 */
+  const capGrid = (items: React.ReactNode) => (
+    <div className="grid grid-cols-2 gap-4 items-start">{items}</div>
+  );
+
+  const renderCap = (c: AiCapability, opts?: { compact?: boolean; subLabel?: string }) => {
+    const row = listData.rows.find((r) => r.capability === c);
+    if (!row) return null;
+    return (
+      <CapabilityRow
+        key={c}
+        bare
+        compact={opts?.compact}
+        row={row}
+        meta={meta}
+        label={listData.labels[c]}
+        subLabel={opts?.subLabel ?? INLINE_SUB_LABEL[c]}
+        editing={editing === c}
+        onEnterEdit={() => setEditing(c)}
+        onExitEdit={() => setEditing(null)}
+      />
+    );
+  };
+
+  if (group.tabbed) {
+    const activeCap = caps.includes(activeTab) ? activeTab : caps[0];
+    const row = listData.rows.find((r) => r.capability === activeCap);
+    return cardShell(
+      <>
+        <div className="flex gap-1 mb-3 bg-slate-100 p-1 rounded-xl max-w-[50%]">
+          {caps.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setActiveTab(c)}
+              className={cn(
+                'flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-center',
+                activeCap === c
+                  ? 'bg-white text-purple-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+            >
+              {VIDEO_TAB_LABEL[c] ?? listData.labels[c]}
+            </button>
+          ))}
+        </div>
+        {row && (
+          <div className="w-1/2">
+            <CapabilityRow
+              bare
+              row={row}
+              meta={meta}
+              label={listData.labels[activeCap]}
+              subLabel={VIDEO_TAB_LABEL[activeCap]}
+              editing={editing === activeCap}
+              onEnterEdit={() => setEditing(activeCap)}
+              onExitEdit={() => setEditing(null)}
+            />
+          </div>
+        )}
+      </>,
+    );
+  }
+
+  if (group.inline && caps.length >= 2) {
+    return cardShell(
+      capGrid(caps.map((c) => renderCap(c, { compact: true }))),
+    );
+  }
+
+  return cardShell(capGrid(caps.map((c) => renderCap(c))));
+}
+
+// ──────────────────────────────────────────────────────────────────────
 // 单 capability 行
 // ──────────────────────────────────────────────────────────────────────
 
@@ -575,20 +787,27 @@ function CapabilityRow({
   row,
   meta,
   label,
+  subLabel,
   editing,
   onEnterEdit,
   onExitEdit,
+  bare = false,
+  compact = false,
 }: {
   row: ResolvedRouting;
   meta: MetaResp;
   label: string;
+  subLabel?: string;
   editing: boolean;
   onEnterEdit: () => void;
   onExitEdit: () => void;
+  bare?: boolean;
+  compact?: boolean;
 }) {
   const qc = useQueryClient();
   const supportedProviders = meta.support[row.capability];
   const defaultModelsForCap = meta.defaultModels[row.capability];
+  const modelOptionsForCap = meta.modelOptions?.[row.capability] ?? {};
 
   const [primary, setPrimary] = useState<RoutingProvider>(row.primary.provider);
   const [secondary, setSecondary] = useState<RoutingProvider | null>(row.secondary?.provider ?? null);
@@ -625,26 +844,28 @@ function CapabilityRow({
   );
 
   const onlyOneProvider = supportedProviders.length === 1;
-  const PrimaryIcon = PROVIDER_META[row.primary.provider].icon;
-  const SecondaryIcon = row.secondary
-    ? PROVIDER_META[row.secondary.provider].icon
-    : null;
 
   if (!editing) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-slate-800">{label}</p>
+      <div
+        className={cn(
+          'flex flex-col',
+          bare
+            ? compact
+              ? 'rounded-xl border border-slate-100 bg-slate-50/60 p-2.5 h-full'
+              : 'rounded-xl border border-slate-100 bg-slate-50/50 p-3'
+            : 'bg-white border border-slate-200 rounded-2xl p-4',
+        )}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className={cn('font-semibold text-slate-800', compact ? 'text-xs' : 'text-sm')}>
+                {subLabel ?? label}
+              </p>
               {!row.isActive && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-200 text-slate-600">
                   已禁用
-                </span>
-              )}
-              {row.source === 'code' && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700">
-                  默认配置
                 </span>
               )}
               {onlyOneProvider && (
@@ -653,62 +874,71 @@ function CapabilityRow({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-2 text-xs">
-              <ProviderChip provider={row.primary.provider} model={row.primary.model} role="主" />
-              {row.secondary && (
-                <>
-                  <ChevronRight className="h-3 w-3 text-slate-300" />
-                  <ProviderChip
-                    provider={row.secondary.provider}
-                    model={row.secondary.model}
-                    role="兜底"
-                  />
-                </>
-              )}
-              {!row.secondary && (
-                <span className="text-[11px] text-slate-400">（无兜底）</span>
-              )}
-            </div>
+            {subLabel && !compact && (
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{label}</p>
+            )}
           </div>
           <button
             type="button"
             onClick={onEnterEdit}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50 text-xs font-medium text-slate-700"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50 text-[10px] font-medium text-slate-700 flex-shrink-0"
           >
-            <Pencil className="h-3 w-3" />
+            <Pencil className="h-2.5 w-2.5" />
             编辑
           </button>
+        </div>
+
+        <div className="space-y-1.5">
+          <ProviderBlock provider={row.primary.provider} model={row.primary.model} role="主" prominent />
+          {row.secondary ? (
+            <>
+              <div className="flex justify-center py-0.5">
+                <ChevronRight className="h-3 w-3 text-slate-300 rotate-90" />
+              </div>
+              <ProviderBlock
+                provider={row.secondary.provider}
+                model={row.secondary.model}
+                role="兜底"
+              />
+            </>
+          ) : (
+            <p className="text-[10px] text-slate-400 text-center pt-1">无兜底</p>
+          )}
         </div>
       </div>
     );
   }
 
-  // 编辑模式
+  // 编辑模式：主在上、备在下，层次分明
   return (
-    <div className="bg-white border-2 border-purple-300 rounded-2xl p-4 space-y-3">
+    <div
+      className={cn(
+        'space-y-3',
+        bare
+          ? 'rounded-xl border border-purple-200 bg-purple-50/40 p-3'
+          : 'bg-white border-2 border-purple-300 rounded-2xl p-4',
+      )}
+    >
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-800">{label}</p>
-        <button
-          type="button"
-          onClick={onExitEdit}
-          className="text-slate-400 hover:text-slate-700"
-        >
+        <p className="text-sm font-semibold text-slate-800">{subLabel ?? label}</p>
+        <button type="button" onClick={onExitEdit} className="text-slate-400 hover:text-slate-700">
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* 主 */}
-        <div className="space-y-2 rounded-xl bg-slate-50 p-3 border border-slate-100">
-          <p className="text-[11px] font-semibold text-slate-500">主 Provider</p>
+      <div className="space-y-2">
+        {/* 主 Provider — 强调 */}
+        <div className="space-y-2 rounded-xl bg-white p-3 border-2 border-purple-200 shadow-sm">
+          <p className="text-xs font-semibold text-purple-700">主 Provider</p>
           <select
             value={primary}
             onChange={(e) => {
               const p = e.target.value as RoutingProvider;
               setPrimary(p);
+              setModelPrimary(''); // 切换 provider 重置模型选择
               if (secondary === p) setSecondary(null);
             }}
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white"
+            className="w-full px-2 py-2 text-sm border border-slate-200 rounded-lg bg-white"
           >
             {supportedProviders.map((p) => (
               <option key={p} value={p}>
@@ -716,21 +946,27 @@ function CapabilityRow({
               </option>
             ))}
           </select>
-          <input
-            type="text"
+          <ModelSelect
             value={modelPrimary}
-            onChange={(e) => setModelPrimary(e.target.value)}
-            placeholder={`模型（默认 ${defaultModelsForCap[primary] ?? '-'}）`}
-            className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-white"
+            onChange={setModelPrimary}
+            options={modelOptionsForCap[primary] ?? []}
+            defaultModel={defaultModelsForCap[primary]}
           />
         </div>
 
-        {/* 备 */}
-        <div className="space-y-2 rounded-xl bg-slate-50 p-3 border border-slate-100">
-          <p className="text-[11px] font-semibold text-slate-500">备 Provider（兜底）</p>
+        <div className="flex justify-center">
+          <ChevronRight className="h-4 w-4 text-slate-300 rotate-90" />
+        </div>
+
+        {/* 备 Provider — 次级 */}
+        <div className="space-y-2 rounded-xl bg-slate-50/80 p-3 border border-slate-200">
+          <p className="text-[11px] font-medium text-slate-500">备 Provider（兜底）</p>
           <select
             value={secondary ?? ''}
-            onChange={(e) => setSecondary((e.target.value || null) as RoutingProvider | null)}
+            onChange={(e) => {
+              setSecondary((e.target.value || null) as RoutingProvider | null);
+              setModelSecondary(''); // 切换 provider 重置模型选择
+            }}
             disabled={secondaryCandidates.length === 0}
             className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:bg-slate-100"
           >
@@ -741,17 +977,13 @@ function CapabilityRow({
               </option>
             ))}
           </select>
-          <input
-            type="text"
+          <ModelSelect
             value={modelSecondary}
-            onChange={(e) => setModelSecondary(e.target.value)}
+            onChange={setModelSecondary}
+            options={secondary ? (modelOptionsForCap[secondary] ?? []) : []}
+            defaultModel={secondary ? defaultModelsForCap[secondary] : undefined}
             disabled={!secondary}
-            placeholder={
-              secondary
-                ? `模型（默认 ${defaultModelsForCap[secondary] ?? '-'}）`
-                : '需先选 Provider'
-            }
-            className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-white disabled:bg-slate-100"
+            disabledPlaceholder="需先选 Provider"
           />
         </div>
       </div>
@@ -817,27 +1049,79 @@ function CapabilityRow({
   );
 }
 
-function ProviderChip({
+/** 模型 ID 下拉框：第一项为「默认」(空值)，其余为候选模型；当前自定义值不在候选时自动并入。 */
+function ModelSelect({
+  value,
+  onChange,
+  options,
+  defaultModel,
+  disabled = false,
+  disabledPlaceholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  defaultModel?: string;
+  disabled?: boolean;
+  disabledPlaceholder?: string;
+}) {
+  // 当前值若是自定义（不在候选里），并入列表以免丢失
+  const merged = value && !options.includes(value) ? [value, ...options] : options;
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-slate-50 disabled:bg-slate-100"
+    >
+      {disabled && disabledPlaceholder ? (
+        <option value="">{disabledPlaceholder}</option>
+      ) : (
+        <option value="">默认（{defaultModel ?? '-'}）</option>
+      )}
+      {merged.map((m) => (
+        <option key={m} value={m}>
+          {m}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function ProviderBlock({
   provider,
   model,
   role,
+  prominent = false,
 }: {
   provider: RoutingProvider;
   model: string;
   role: '主' | '兜底';
+  prominent?: boolean;
 }) {
   const meta = PROVIDER_META[provider];
   const Icon = meta.icon;
   return (
-    <span className="inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg border border-slate-200 bg-white">
-      <span className={cn('h-4 w-4 rounded flex items-center justify-center', meta.iconWrap)}>
-        <Icon className={cn('h-2.5 w-2.5', meta.iconColor)} />
-      </span>
-      <span className="text-[11px] font-medium text-slate-700">{meta.label}</span>
-      <span className="text-[10px] text-slate-400">·</span>
-      <span className="text-[10px] font-mono text-slate-500">{model || '默认'}</span>
-      <span className="text-[10px] text-slate-300">·</span>
-      <span className="text-[10px] text-slate-400">{role}</span>
-    </span>
+    <div
+      className={cn(
+        'rounded-lg border px-2 py-1.5',
+        prominent
+          ? 'border-purple-200 bg-white'
+          : 'border-slate-100 bg-slate-50/80',
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className={cn('h-4 w-4 rounded flex items-center justify-center', meta.iconWrap)}>
+          <Icon className={cn('h-2.5 w-2.5', meta.iconColor)} />
+        </span>
+        <span className={cn('font-medium text-slate-700', prominent ? 'text-[11px]' : 'text-[10px]')}>
+          {meta.label}
+        </span>
+        <span className="text-[9px] text-slate-400 ml-auto">{role}</span>
+      </div>
+      <p className="text-[10px] font-mono text-slate-500 mt-1 truncate pl-5">
+        {model || '默认模型'}
+      </p>
+    </div>
   );
 }

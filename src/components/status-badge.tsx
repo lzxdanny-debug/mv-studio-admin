@@ -46,6 +46,8 @@ const GENERIC: Record<string, { label: string; className: string }> = {
   processing: { label: '处理中', className: 'bg-blue-50 text-blue-700 border-blue-200' },
   running: { label: '运行中', className: 'bg-blue-50 text-blue-700 border-blue-200' },
   completed: { label: '完成', className: 'bg-green-50 text-green-700 border-green-200' },
+  done: { label: '已完成', className: 'bg-green-50 text-green-700 border-green-200' },
+  instrumental: { label: '纯音乐', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   succeeded: { label: '成功', className: 'bg-green-50 text-green-700 border-green-200' },
   failed: { label: '失败', className: 'bg-red-50 text-red-700 border-red-200' },
   cancelled: { label: '已取消', className: 'bg-slate-100 text-slate-500 border-slate-200' },

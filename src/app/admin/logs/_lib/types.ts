@@ -33,6 +33,9 @@ export interface SearchHit {
 
 export interface SearchResult {
   hits: SearchHit[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
   truncated: boolean;
   scanned: { files: number; bytes: number };
   elapsedMs: number;

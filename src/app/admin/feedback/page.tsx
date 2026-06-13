@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ExternalLink, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { PaginationBar } from '@/components/pagination-bar';
 
 interface FeedbackRow {
   id: string;
@@ -54,16 +56,16 @@ const READ_OPTIONS = [
 
 export default function AdminFeedbackPage() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
+  const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [category, setCategory] = useState('');
   const [readFilter, setReadFilter] = useState('');
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'feedback', { page, category, readFilter }],
+    queryKey: ['admin', 'feedback', { page, pageSize, category, readFilter }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
-      params.set('pageSize', '20');
+      params.set('pageSize', String(pageSize));
       if (category) params.set('category', category);
       if (readFilter) params.set('isRead', readFilter);
       return apiClient.get(`/admin/feedback?${params.toString()}`) as any;
@@ -81,7 +83,6 @@ export default function AdminFeedbackPage() {
     },
   });
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
@@ -229,31 +230,15 @@ export default function AdminFeedbackPage() {
           </div>
         </QueryState>
 
-        {data && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page <= 1}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-600',
-                page <= 1 && 'opacity-40 cursor-not-allowed',
-              )}
-            >
-              上一页
-            </button>
-            <span className="text-xs text-slate-500">
-              第 {page} / {totalPages} 页
-            </span>
-            <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page >= totalPages}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-600',
-                page >= totalPages && 'opacity-40 cursor-not-allowed',
-              )}
-            >
-              下一页
-            </button>
+        {data && (
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <PaginationBar
+              page={page}
+              pageSize={data.pageSize}
+              total={data.total}
+              onPageChange={setPage}
+              onPageSizeChange={onPageSizeChange}
+            />
           </div>
         )}
       </div>

@@ -2,24 +2,24 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import {
   Settings as SettingsIcon,
   HardDrive,
-  Eye,
-  EyeOff,
   CheckCircle2,
   XCircle,
-  SlidersHorizontal,
-  ArrowRight,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { SecretInput } from '@/components/secret-input';
 
 interface StorageConfig {
-  secretId: string;
-  secretKey: string;
+  secretIdMasked: string;
+  secretIdConfigured: boolean;
+  secretIdFromEnv: boolean;
+  secretKeyMasked: string;
+  secretKeyConfigured: boolean;
+  secretKeyFromEnv: boolean;
   bucket: string;
   region: string;
 }
@@ -39,7 +39,6 @@ export default function AdminSettingsPage() {
     bucket: '',
     region: '',
   });
-  const [showSecret, setShowSecret] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery<StorageConfig>({
@@ -63,7 +62,12 @@ export default function AdminSettingsPage() {
     onError: () => setMsg({ ok: false, text: '保存失败，请检查输入后重试。' }),
   });
 
-  const configured = !!(data?.secretId && data?.secretKey && data?.bucket && data?.region);
+  const configured = !!(
+    data?.secretIdConfigured &&
+    data?.secretKeyConfigured &&
+    data?.bucket &&
+    data?.region
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +80,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
-      <div className="p-6 space-y-4 max-w-3xl">
+      <div className="p-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <SettingsIcon className="h-5 w-5 text-purple-600" />
@@ -130,38 +134,25 @@ export default function AdminSettingsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">SecretId</label>
-                    <input
-                      type="text"
-                      autoComplete="off"
-                      placeholder={configured ? '留空则不修改' : 'AKIDxxxxxxxxxxxxxxxx'}
+                    <SecretInput
+                      configured={data?.secretIdConfigured}
+                      maskedPreview={data?.secretIdMasked}
                       value={form.secretId}
-                      onChange={(e) => setForm((f) => ({ ...f, secretId: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                      onChange={(secretId) => setForm((f) => ({ ...f, secretId }))}
+                      placeholder="AKIDxxxxxxxxxxxxxxxx"
+                      type="text"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">SecretKey</label>
-                    <div className="relative">
-                      <input
-                        type={showSecret ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        placeholder={configured ? '留空则不修改' : '32 位字符串'}
-                        value={form.secretKey}
-                        onChange={(e) => setForm((f) => ({ ...f, secretKey: e.target.value }))}
-                        className="w-full px-3 py-2 pr-9 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSecret((v) => !v)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showSecret ? (
-                          <EyeOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </div>
+                    <SecretInput
+                      configured={data?.secretKeyConfigured}
+                      maskedPreview={data?.secretKeyMasked}
+                      value={form.secretKey}
+                      onChange={(secretKey) => setForm((f) => ({ ...f, secretKey }))}
+                      placeholder="32 位字符串"
+                      showToggle
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Bucket</label>
@@ -210,30 +201,6 @@ export default function AdminSettingsPage() {
             </div>
           </section>
         </QueryState>
-
-        {/* MV 默认配置已迁移到独立页面：保留一个跳转入口避免老用户找不到 */}
-        <section>
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            其他配置
-          </h2>
-          <Link
-            href="/admin/mv/defaults"
-            className="block bg-white border border-slate-200 rounded-2xl p-4 hover:border-purple-300 hover:bg-purple-50/30 transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
-                <SlidersHorizontal className="h-4 w-4 text-purple-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800">MV 默认配置</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  字幕样式默认 / 音频压缩参数 已迁移至独立页面
-                </p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-purple-600 transition-colors" />
-            </div>
-          </Link>
-        </section>
       </div>
     </div>
   );

@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Disc3, RefreshCw, Search, DollarSign } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { QueryState } from '@/components/query-state';
+import { PaginationBar } from '@/components/pagination-bar';
 import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/utils';
 import { useAlert } from '@/components/ui/dialog-provider';
@@ -34,17 +36,17 @@ interface ListResponse {
 
 export default function AdminMusicTasksPage() {
   const alert = useAlert();
-  const [page, setPage] = useState(1);
+  const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ListResponse>({
-    queryKey: ['admin', 'music', 'tasks', page, search, status],
+    queryKey: ['admin', 'music', 'tasks', page, pageSize, search, status],
     queryFn: () =>
       apiClient.get('/admin/music/tasks', {
         params: {
           page,
-          pageSize: 20,
+          pageSize,
           search: search || undefined,
           status: status || undefined,
         },
@@ -67,7 +69,6 @@ export default function AdminMusicTasksPage() {
     },
   });
 
-  const totalPages = data ? Math.ceil(data.total / data.pageSize) : 1;
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
@@ -173,27 +174,16 @@ export default function AdminMusicTasksPage() {
                 ))}
               </tbody>
             </table>
+            {data && (
+              <PaginationBar
+                page={page}
+                pageSize={data.pageSize}
+                total={data.total}
+                onPageChange={setPage}
+                onPageSizeChange={onPageSizeChange}
+              />
+            )}
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1 rounded-lg text-xs border border-slate-200 bg-white disabled:opacity-40"
-              >
-                上一页
-              </button>
-              <span className="text-xs text-slate-500">{page} / {totalPages}</span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1 rounded-lg text-xs border border-slate-200 bg-white disabled:opacity-40"
-              >
-                下一页
-              </button>
-            </div>
-          )}
         </QueryState>
       </div>
     </div>

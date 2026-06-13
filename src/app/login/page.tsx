@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '@/stores/auth.store';
+import { useAdminAuthStore } from '@/stores/admin-auth.store';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, logout, isAuthenticated, user } = useAuthStore();
+  const { login, logout, isAuthenticated, adminUser } = useAdminAuthStore();
   const [mounted, setMounted] = useState(false);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -19,24 +19,19 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
-  // Already logged in as admin → go to dashboard
-  // But first verify tokens actually exist in localStorage; the Zustand-persisted
-  // isAuthenticated can be stale (e.g. after token expiry cleared the tokens but
-  // not the store state), which would create an /admin ↔ /login redirect loop.
   useEffect(() => {
     if (!mounted) return;
-    if (isAuthenticated && user?.role === 'admin') {
+    if (isAuthenticated && adminUser) {
       const hasToken =
         !!localStorage.getItem('admin_access_token') ||
         !!localStorage.getItem('admin_refresh_token');
       if (hasToken) {
         router.replace('/admin');
       } else {
-        // Stale store state — clear it so the login form shows properly
         logout();
       }
     }
-  }, [mounted, isAuthenticated, user, router, logout]);
+  }, [mounted, isAuthenticated, adminUser, router, logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

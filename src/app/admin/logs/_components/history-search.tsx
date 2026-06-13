@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Loader2,
@@ -16,6 +16,7 @@ import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { LogFileMeta, LogLevel, SearchResult } from '../_lib/types';
 import { LogLineRow } from './log-line';
+import { PaginationBar } from '@/components/pagination-bar';
 
 const LEVEL_OPTIONS: Array<{ key: LogLevel | 'all'; label: string }> = [
   { key: 'all', label: '全部级别' },
@@ -40,7 +41,14 @@ export function HistorySearch({ files }: Props) {
   const [user, setUser] = useState('');
   const [level, setLevel] = useState<LogLevel | 'all'>('all');
   const [regex, setRegex] = useState(false);
-  const [limit, setLimit] = useState(200);
+  const [pageSize, setPageSize] = useState(50);
+  const [page, setPage] = useState(1);
+
+  const onPageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
+  const [searchEnabled, setSearchEnabled] = useState(false);
 
   const targetFiles = useMemo(() => {
     if (includeArchived) return selected;
@@ -48,25 +56,43 @@ export function HistorySearch({ files }: Props) {
     return selected.filter((n) => files.find((f) => f.name === n)?.active);
   }, [selected, includeArchived, files]);
 
-  const search = useMutation<SearchResult, Error>({
-    mutationFn: () => {
+  const canSearch = !!(keyword.trim() || user.trim() || level !== 'all');
+
+  const search = useQuery<SearchResult, Error>({
+    queryKey: [
+      'admin',
+      'logs',
+      'search',
+      targetFiles.join(','),
+      keyword,
+      user,
+      level,
+      regex,
+      pageSize,
+      page,
+    ],
+    queryFn: () => {
       const qs = new URLSearchParams();
       if (targetFiles.length) qs.set('files', targetFiles.join(','));
       if (keyword.trim()) qs.set('keyword', keyword.trim());
       if (user.trim()) qs.set('user', user.trim());
       if (level !== 'all') qs.set('level', level);
       if (regex) qs.set('regex', '1');
-      qs.set('limit', String(limit));
+      qs.set('page', String(page));
+      qs.set('pageSize', String(pageSize));
       return apiClient.get(`/admin/logs/search?${qs.toString()}`) as Promise<SearchResult>;
     },
+    enabled: searchEnabled && canSearch,
   });
 
   const onSearch = () => {
-    if (!keyword.trim() && !user.trim() && level === 'all') {
-      search.reset();
+    if (!canSearch) {
+      setSearchEnabled(false);
+      setPage(1);
       return;
     }
-    search.mutate();
+    setPage(1);
+    setSearchEnabled(true);
   };
 
   const onKeyEnter = (e: React.KeyboardEvent) => {
@@ -151,7 +177,7 @@ export function HistorySearch({ files }: Props) {
 
           <button
             onClick={onSearch}
-            disabled={search.isPending || totalSize > SEARCH_TOTAL_HARD_LIMIT}
+            disabled={search.isFetching || totalSize > SEARCH_TOTAL_HARD_LIMIT}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium"
             title={
               totalSize > SEARCH_TOTAL_HARD_LIMIT
@@ -159,7 +185,7 @@ export function HistorySearch({ files }: Props) {
                 : undefined
             }
           >
-            {search.isPending ? (
+            {search.isFetching ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Search className="h-3.5 w-3.5" />
@@ -215,16 +241,6 @@ export function HistorySearch({ files }: Props) {
             包含 logrotate 历史归档（共 {files.filter((f) => !f.active).length} 个）
           </label>
 
-          <select
-            value={limit}
-            onChange={(e) => setLimit(parseInt(e.target.value, 10))}
-            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white"
-          >
-            <option value={50}>最多 50 行</option>
-            <option value={200}>最多 200 行</option>
-            <option value={500}>最多 500 行</option>
-            <option value={1000}>最多 1000 行</option>
-          </select>
         </div>
       </div>
 
@@ -273,8 +289,9 @@ export function HistorySearch({ files }: Props) {
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
           <span>
-            命中 <span className="font-semibold">{search.data.hits.length}</span> 条
-            {search.data.truncated && <span className="ml-1">（已截断，达到 limit 上限）</span>}
+            第 <span className="font-semibold">{search.data.page}</span> 页 · 本页{' '}
+            <span className="font-semibold">{search.data.hits.length}</span> 条
+            {search.data.hasMore && <span className="ml-1">（还有更多结果）</span>}
           </span>
           <span className="text-slate-500">·</span>
           <span className="flex items-center gap-1">
@@ -298,7 +315,7 @@ export function HistorySearch({ files }: Props) {
 
       {/* 结果列表 */}
       <div className="flex-1 mt-2 overflow-hidden bg-white border border-slate-200 rounded-2xl flex flex-col min-h-0">
-        {search.isPending ? (
+        {search.isFetching && !search.data ? (
           <div className="flex-1 flex items-center justify-center text-xs text-slate-400">
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
             搜索中（最多 5s 自动超时）…
@@ -309,17 +326,27 @@ export function HistorySearch({ files }: Props) {
               在所选文件范围内未匹配到任何行。试试扩大文件范围、放宽级别或勾选「包含归档」
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-              {search.data.hits.map((h, i) => (
-                <LogLineRow
-                  key={`${h.file}:${h.lineNumber}:${i}`}
-                  file={h.file}
-                  lineNumber={h.lineNumber}
-                  parsed={h.parsed}
-                  highlight={keyword.trim() || undefined}
-                />
-              ))}
-            </div>
+            <>
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                {search.data.hits.map((h, i) => (
+                  <LogLineRow
+                    key={`${h.file}:${h.lineNumber}:${i}`}
+                    file={h.file}
+                    lineNumber={h.lineNumber}
+                    parsed={h.parsed}
+                    highlight={keyword.trim() || undefined}
+                  />
+                ))}
+              </div>
+              <PaginationBar
+                page={page}
+                pageSize={pageSize}
+                hasMore={search.data.hasMore}
+                onPageChange={setPage}
+                onPageSizeChange={onPageSizeChange}
+                pageSizeOptions={[50, 100, 200]}
+              />
+            </>
           )
         ) : (
           <div className="flex-1 flex items-center justify-center text-xs text-slate-400 px-4 text-center">

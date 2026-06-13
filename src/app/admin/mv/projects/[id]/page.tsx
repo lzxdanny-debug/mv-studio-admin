@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,9 +21,13 @@ import {
   ChevronsUpDown,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useAdminAuthStore } from '@/stores/admin-auth.store';
+import { canAccessTab, firstAllowedTab } from '@/lib/admin-permissions';
 import { StatusBadge } from '@/components/status-badge';
 import { ShotCard, ShotCardData } from '@/components/shot-card';
 import { QueryState } from '@/components/query-state';
+import { PaginationBar } from '@/components/pagination-bar';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { formatDate, cn } from '@/lib/utils';
 import {
   DEFAULT_CNY_PER_USD,
@@ -150,7 +154,7 @@ function MountseaAmount({
 
 /** 未对账记录：失败且大概率未产生上游账单 vs 仍可能对账/同步 */
 function classifyUnreconciledRecord(
-  r: ProjectCosts['records'][number],
+  r: CostRecordRow,
 ): 'failed_no_bill' | 'pending_sync' {
   if (r.success) return 'pending_sync';
 
@@ -209,19 +213,7 @@ interface CostBucket {
   elapsed_ms_sum: number;
 }
 
-interface ProjectCosts {
-  project: {
-    id: string;
-    title: string;
-    userId: string;
-    status: string;
-    createdAt: string;
-    costSummary: Record<string, number | string | null> | null;
-  };
-  totals: CostBucket;
-  byStep: Record<string, CostBucket>;
-  byProvider: Record<string, CostBucket>;
-  records: Array<{
+type CostRecordRow = {
     id: string;
     shotId: string | null;
     step: string;
@@ -246,7 +238,31 @@ interface ProjectCosts {
     reconciledDiffPct: number | null;
     metadata: Record<string, unknown> | null;
     createdAt: string;
-  }>;
+};
+
+interface ProjectCosts {
+  project: {
+    id: string;
+    title: string;
+    userId: string;
+    status: string;
+    createdAt: string;
+    costSummary: Record<string, number | string | null> | null;
+  };
+  totals: CostBucket;
+  byStep: Record<string, CostBucket>;
+  byProvider: Record<string, CostBucket>;
+  recordTotal: number;
+  reconStats: {
+    reconciled: number;
+    failedNoBill: number;
+    pendingSync: number;
+    falRecUsd: number;
+    cfRecUsd: number;
+    mountseaRecCredits: number;
+    falEstUsd: number;
+    mountseaEstCredits: number;
+  };
 }
 
 interface ReconcileSummary {
@@ -310,6 +326,8 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
   const qc = useQueryClient();
   const confirm = useConfirm();
   const alert = useAlert();
+  const permissions = useAdminAuthStore((s) => s.permissions);
+  const canManageGeneration = useAdminAuthStore((s) => s.hasPermission('generation.manage'));
   const [tab, setTab] = useState<TabKey>('costs');
   const [exporting, setExporting] = useState(false);
 
@@ -318,6 +336,31 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
     queryFn: () => apiClient.get(`/admin/mv/projects/${id}`) as any,
     refetchInterval: 15_000,
   });
+
+  const tabDefs = useMemo(
+    () =>
+      (
+        [
+          ['costs', '成本明细'],
+          ['assets', '素材'],
+          ['shots', `镜头 (${data?.shots?.length ?? 0})`],
+          ['planning', `规划步骤 (${data?.planning?.length ?? 0})`],
+          [
+            'history',
+            `成片历史 (${(data?.project?.compositionHistory?.length ?? 0) + (data?.project?.resultUrl ? 1 : 0)})`,
+          ],
+        ] as [TabKey, string][]
+      ).filter(([key]) => canAccessTab(permissions, 'mv.project.detail', key)),
+    [permissions, data],
+  );
+
+  useEffect(() => {
+    if (!tabDefs.length) return;
+    if (!tabDefs.some(([k]) => k === tab)) {
+      const first = firstAllowedTab(permissions, 'mv.project.detail') as TabKey | null;
+      if (first) setTab(first);
+    }
+  }, [tabDefs, tab, permissions]);
 
   const deleteMutation = useMutation({
     mutationFn: () => apiClient.delete(`/admin/mv/projects/${id}`) as any,
@@ -504,15 +547,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
 
               <div className="bg-white border border-slate-200 rounded-2xl">
                 <div className="flex border-b border-slate-100 px-4">
-                  {(
-                    [
-                      ['costs', '成本明细'],
-                      ['assets', '素材'],
-                      ['shots', `镜头 (${shots.length})`],
-                      ['planning', `规划步骤 (${planning.length})`],
-                      ['history', `成片历史 (${(project.compositionHistory?.length ?? 0) + (project.resultUrl ? 1 : 0)})`],
-                    ] as [TabKey, string][]
-                  ).map(([key, label]) => (
+                  {tabDefs.map(([key, label]) => (
                     <button
                       key={key}
                       onClick={() => setTab(key)}
@@ -539,6 +574,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                       onRetry={(shotId, force) => retryShotMutation.mutate({ shotId, force })}
                       onReset={(shotId) => resetShotMutation.mutate({ shotId })}
                       isMutating={retryShotMutation.isPending || resetShotMutation.isPending}
+                      canManage={canManageGeneration}
                     />
                   )}
                   {tab === 'planning' && <PlanningTab planning={planning} />}
@@ -690,11 +726,13 @@ function ShotsTab({
   onRetry,
   onReset,
   isMutating,
+  canManage = false,
 }: {
   shots: MvProjectDetail['shots'];
   onRetry: (shotId: string, force?: boolean) => void;
   onReset: (shotId: string) => void;
   isMutating: boolean;
+  canManage?: boolean;
 }) {
   if (shots.length === 0) {
     return (
@@ -708,6 +746,7 @@ function ShotsTab({
           key={shot.id}
           shot={shot as ShotCardData}
           actions={
+            canManage ? (
             <>
               <button
                 onClick={() => onRetry(shot.id, false)}
@@ -731,6 +770,7 @@ function ShotsTab({
                 重置状态
               </button>
             </>
+            ) : undefined
           }
         />
       ))}
@@ -907,61 +947,19 @@ function CostsTab({ projectId }: { projectId: string }) {
     },
   });
 
-  // 统计已对账 / 失败未计费 / 待同步 + USD 汇总（避免 CF 无估算时产生误导百分比）
   const reconStats = useMemo(() => {
     if (!data) return null;
-
-    let reconciled = 0;
-    let failedNoBill = 0;
-    let pendingSync = 0;
-
-    let falRecUsd = 0;
-    let cfRecUsd = 0;
-    let mountseaRecUsd = 0;
-
-    let falEstUsd = 0;
-    let mountseaEstCredits = 0;
-
-    for (const r of data.records) {
-      if (r.reconciledAt) {
-        reconciled++;
-        if (r.reconciledSource === 'fal_billing_events' && r.reconciledAmount != null) {
-          falRecUsd += r.reconciledAmount;
-        } else if (r.reconciledSource === 'cf_aig_logs' && r.reconciledAmount != null) {
-          cfRecUsd += r.reconciledAmount;
-        } else if (r.reconciledSource === 'mountsea_usage' && r.reconciledAmount != null) {
-          mountseaRecUsd += mountseaCreditsToUsd(r.reconciledAmount, cnyPerUsd);
-        }
-      } else if (classifyUnreconciledRecord(r) === 'failed_no_bill') {
-        failedNoBill++;
-      } else {
-        pendingSync++;
-      }
-
-      if (r.costNativeUnit === 'usd' && r.costNativeAmount != null) {
-        falEstUsd += r.costNativeAmount;
-      }
-      if (r.costNativeUnit === 'credits' && r.costNativeAmount != null) {
-        mountseaEstCredits += r.costNativeAmount;
-      }
-    }
-
-    const mountseaEstUsd = mountseaCreditsToUsd(mountseaEstCredits, cnyPerUsd);
+    const rs = data.reconStats;
+    const mountseaEstUsd = mountseaCreditsToUsd(rs.mountseaEstCredits, cnyPerUsd);
+    const mountseaRecUsd = mountseaCreditsToUsd(rs.mountseaRecCredits, cnyPerUsd);
     const mountseaUsd = mountseaRecUsd > 0 ? mountseaRecUsd : mountseaEstUsd;
-    const totalCostUsd = falRecUsd + cfRecUsd + mountseaUsd;
-
+    const totalCostUsd = rs.falRecUsd + rs.cfRecUsd + mountseaUsd;
     return {
-      reconciled,
-      failedNoBill,
-      pendingSync,
-      falRecUsd,
-      cfRecUsd,
+      ...rs,
       mountseaRecUsd,
-      mountseaUsd,
       mountseaEstUsd,
+      mountseaUsd,
       totalCostUsd,
-      falEstUsd,
-      mountseaEstCredits,
     };
   }, [data, cnyPerUsd]);
 
@@ -970,7 +968,7 @@ function CostsTab({ projectId }: { projectId: string }) {
       isLoading={isLoading}
       isError={isError}
       error={error}
-      isEmpty={!data || data.records.length === 0}
+      isEmpty={!data || data.recordTotal === 0}
       emptyMessage="该项目尚未产生任何成本记录"
       height="h-64"
     >
@@ -1055,7 +1053,14 @@ function CostsTab({ projectId }: { projectId: string }) {
               cnyPerUsd={cnyPerUsd}
             />
           </div>
-          <CostRecordsTable records={data.records} cnyPerUsd={cnyPerUsd} />
+          <CostRecordsTable
+            projectId={projectId}
+            recordTotal={data.recordTotal}
+            providerOptions={Object.keys(data.byProvider).sort()}
+            stepOptions={Object.keys(data.byStep).sort()}
+            failureTotal={data.totals.failure}
+            cnyPerUsd={cnyPerUsd}
+          />
         </div>
       )}
     </QueryState>
@@ -1248,7 +1253,7 @@ function CostBreakdownCard({
   );
 }
 
-function resolveCostRecordRequestId(r: ProjectCosts['records'][number]): string | null {
+function resolveCostRecordRequestId(r: CostRecordRow): string | null {
   if (r.providerRequestId) return r.providerRequestId;
   const err = typeof r.metadata?.errorMessage === 'string' ? r.metadata.errorMessage : '';
   const hubMatch = err.match(/hub-[0-9a-f-]{36}/i);
@@ -1270,21 +1275,21 @@ type CostRecordSortKey =
 
 type SortDir = 'asc' | 'desc';
 
-function getEstCostSortValue(r: ProjectCosts['records'][number]): number {
+function getEstCostSortValue(r: CostRecordRow): number {
   if (r.costNativeAmount == null) return -1;
   if (r.costNativeUnit === 'credits') return mountseaCreditsToUsd(r.costNativeAmount);
   return r.costNativeAmount;
 }
 
-function getRecCostSortValue(r: ProjectCosts['records'][number]): number {
+function getRecCostSortValue(r: CostRecordRow): number {
   if (r.reconciledAmount == null) return -1;
   if (r.reconciledSource === 'mountsea_usage') return mountseaCreditsToUsd(r.reconciledAmount);
   return r.reconciledAmount;
 }
 
 function compareCostRecords(
-  a: ProjectCosts['records'][number],
-  b: ProjectCosts['records'][number],
+  a: CostRecordRow,
+  b: CostRecordRow,
   key: CostRecordSortKey,
   dir: SortDir,
 ): number {
@@ -1427,7 +1432,7 @@ function CopyIdButton({ value, title = '复制' }: { value: string; title?: stri
 }
 
 function resolveReconciledCellDisplay(
-  r: ProjectCosts['records'][number],
+  r: CostRecordRow,
 ): {
   kind: 'amount' | 'reason';
   label?: string;
@@ -1581,7 +1586,7 @@ function ReconciledBillCell({
   r,
   cnyPerUsd = DEFAULT_CNY_PER_USD,
 }: {
-  r: ProjectCosts['records'][number];
+  r: CostRecordRow;
   cnyPerUsd?: number;
 }) {
   const display = resolveReconciledCellDisplay(r);
@@ -1651,35 +1656,78 @@ function ReconciledBillCell({
 }
 
 function CostRecordsTable({
-  records,
+  projectId,
+  recordTotal,
+  providerOptions,
+  stepOptions,
+  failureTotal,
   cnyPerUsd = DEFAULT_CNY_PER_USD,
 }: {
-  records: ProjectCosts['records'];
+  projectId: string;
+  recordTotal: number;
+  providerOptions: string[];
+  stepOptions: string[];
+  failureTotal: number;
   cnyPerUsd?: number;
 }) {
+  const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [showFailedCosts, setShowFailedCosts] = useState(false);
   const [providerFilter, setProviderFilter] = useState('');
   const [stepFilter, setStepFilter] = useState('');
   const [reconciledFilter, setReconciledFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortKey, setSortKey] = useState<CostRecordSortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-  const providerOptions = useMemo(
-    () => Array.from(new Set(records.map((r) => r.provider))).sort(),
-    [records],
-  );
-  const stepOptions = useMemo(
-    () => Array.from(new Set(records.map((r) => r.step))).sort(),
-    [records],
-  );
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
-  const failedCount = useMemo(
-    () => records.filter((r) => !r.success).length,
-    [records],
-  );
+  const recordsQ = useQuery<{
+    items: CostRecordRow[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>({
+    queryKey: [
+      'admin',
+      'mv',
+      'project',
+      projectId,
+      'cost-records',
+      page,
+      providerFilter,
+      stepFilter,
+      reconciledFilter,
+      showFailedCosts,
+      debouncedSearch,
+      sortKey,
+      sortDir,
+    ],
+    queryFn: () => {
+      const qs = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        sortKey,
+        sortDir,
+      });
+      if (providerFilter) qs.set('provider', providerFilter);
+      if (stepFilter) qs.set('step', stepFilter);
+      if (reconciledFilter !== 'all') qs.set('reconciled', reconciledFilter);
+      if (!showFailedCosts) qs.set('success', 'true');
+      if (debouncedSearch) qs.set('search', debouncedSearch);
+      return apiClient.get(
+        `/admin/mv/projects/${projectId}/cost-records?${qs}`,
+      ) as any;
+    },
+  });
+
+  const visible = recordsQ.data?.items ?? [];
 
   const handleSort = (key: CostRecordSortKey) => {
+    setPage(1);
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -1687,43 +1735,6 @@ function CostRecordsTable({
       setSortDir(key === 'createdAt' ? 'desc' : 'asc');
     }
   };
-
-  const visible = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    let rows = records.filter((r) => {
-      if (!showFailedCosts && !r.success) return false;
-      if (providerFilter && r.provider !== providerFilter) return false;
-      if (stepFilter && r.step !== stepFilter) return false;
-      if (reconciledFilter === 'yes' && !r.reconciledAt) return false;
-      if (reconciledFilter === 'no' && r.reconciledAt) return false;
-      if (!q) return true;
-      const requestId = resolveCostRecordRequestId(r) ?? '';
-      const haystack = [
-        r.model,
-        r.provider,
-        r.step,
-        STEP_TAG_LABELS[r.step] ?? '',
-        requestId,
-        r.providerRequestId ?? '',
-        r.shotId ?? '',
-        typeof r.metadata?.errorMessage === 'string' ? r.metadata.errorMessage : '',
-      ]
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
-    });
-    rows = [...rows].sort((a, b) => compareCostRecords(a, b, sortKey, sortDir));
-    return rows;
-  }, [
-    records,
-    showFailedCosts,
-    providerFilter,
-    stepFilter,
-    reconciledFilter,
-    searchQuery,
-    sortKey,
-    sortDir,
-  ]);
 
   const hasActiveFilters =
     showFailedCosts ||
@@ -1733,6 +1744,7 @@ function CostRecordsTable({
     searchQuery.trim() !== '';
 
   const resetFilters = () => {
+    setPage(1);
     setShowFailedCosts(false);
     setProviderFilter('');
     setStepFilter('');
@@ -1742,13 +1754,18 @@ function CostRecordsTable({
     setSortDir('desc');
   };
 
+  const filterChange = <T,>(setter: (v: T) => void, value: T) => {
+    setPage(1);
+    setter(value);
+  };
+
   return (
     <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
       <div className="px-4 py-2.5 border-b border-slate-100 space-y-2.5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm font-medium text-slate-800">
-            原始记录（{visible.length}
-            {visible.length !== records.length ? ` / ${records.length}` : ''} 条）
+            原始记录（{recordsQ.data?.total ?? recordTotal} 条
+            {recordsQ.isFetching && ' · 加载中…'}）
           </p>
           <p className="text-[11px] text-slate-400">
             <span className="text-amber-600">⚠️</span> 价格表已变更 ·
@@ -1761,13 +1778,13 @@ function CostRecordsTable({
           <input
             type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => filterChange(setSearchQuery, e.target.value)}
             placeholder="搜索 model / requestId / shot…"
             className="h-7 px-2.5 rounded-md border border-slate-200 text-[11px] text-slate-700 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-purple-400"
           />
           <select
             value={providerFilter}
-            onChange={(e) => setProviderFilter(e.target.value)}
+            onChange={(e) => filterChange(setProviderFilter, e.target.value)}
             className="h-7 px-2 rounded-md border border-slate-200 text-[11px] text-slate-700 bg-white"
           >
             <option value="">全部 Provider</option>
@@ -1779,7 +1796,7 @@ function CostRecordsTable({
           </select>
           <select
             value={stepFilter}
-            onChange={(e) => setStepFilter(e.target.value)}
+            onChange={(e) => filterChange(setStepFilter, e.target.value)}
             className="h-7 px-2 rounded-md border border-slate-200 text-[11px] text-slate-700 bg-white"
           >
             <option value="">全部步骤</option>
@@ -1791,7 +1808,9 @@ function CostRecordsTable({
           </select>
           <select
             value={reconciledFilter}
-            onChange={(e) => setReconciledFilter(e.target.value as 'all' | 'yes' | 'no')}
+            onChange={(e) =>
+              filterChange(setReconciledFilter, e.target.value as 'all' | 'yes' | 'no')
+            }
             className="h-7 px-2 rounded-md border border-slate-200 text-[11px] text-slate-700 bg-white"
           >
             <option value="all">全部对账状态</option>
@@ -1802,12 +1821,12 @@ function CostRecordsTable({
             <input
               type="checkbox"
               checked={showFailedCosts}
-              onChange={(e) => setShowFailedCosts(e.target.checked)}
+              onChange={(e) => filterChange(setShowFailedCosts, e.target.checked)}
               className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
             />
             显示失败计费
-            {failedCount > 0 && !showFailedCosts && (
-              <span className="text-slate-400">（{failedCount} 隐藏）</span>
+            {failureTotal > 0 && !showFailedCosts && (
+              <span className="text-slate-400">（{failureTotal} 隐藏）</span>
             )}
           </label>
           {hasActiveFilters && (
@@ -1890,7 +1909,7 @@ function CostRecordsTable({
             {visible.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
-                  {records.length === 0
+                  {recordTotal === 0
                     ? '暂无成本记录'
                     : '当前筛选下无记录，可调整筛选或勾选「显示失败计费」'}
                 </td>
@@ -1999,6 +2018,15 @@ function CostRecordsTable({
           </tbody>
         </table>
       </div>
+      {recordsQ.data && (
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          total={recordsQ.data.total}
+          onPageChange={setPage}
+          onPageSizeChange={onPageSizeChange}
+        />
+      )}
     </div>
   );
 }

@@ -57,7 +57,7 @@ async function refreshAccessToken(): Promise<string> {
     if (!refreshToken) {
       throw new Error('NO_REFRESH_TOKEN');
     }
-    const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+    const response = await axios.post(`${API_URL}/admin/auth/refresh`, { refreshToken });
     const tokens = response.data?.data ?? response.data;
     const { accessToken, refreshToken: newRefreshToken } = tokens;
     localStorage.setItem('admin_access_token', accessToken);

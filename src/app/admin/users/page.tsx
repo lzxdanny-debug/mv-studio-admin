@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, ShieldOff, Users as UsersIcon } from 'lucide-react';
+import { Ban, Check, Users as UsersIcon } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
 import { SearchBar } from '@/components/search-bar';
 import { DataTable, DataTableColumn } from '@/components/data-table';
+
+type UserStatus = 'active' | 'suspended' | 'banned' | 'deleted';
 
 interface AdminUserRow {
   id: string;
@@ -15,13 +18,31 @@ interface AdminUserRow {
   displayName: string;
   avatarUrl: string | null;
   role: 'user' | 'admin';
+  status: UserStatus;
+  emailVerified: boolean;
+  primaryProvider: string;
   googleId: string | null;
   hasPassword: boolean;
   mountseaBound: boolean;
   creditBalance: number;
   mvProjectCount: number;
+  lastLoginAt: string | null;
   createdAt: string;
 }
+
+export const STATUS_META: Record<UserStatus, { label: string; cls: string }> = {
+  active: { label: '正常', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+  suspended: { label: '已暂停', cls: 'bg-amber-50 text-amber-700 border-amber-100' },
+  banned: { label: '已封禁', cls: 'bg-red-50 text-red-700 border-red-100' },
+  deleted: { label: '已注销', cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+};
+
+const STATUS_OPTIONS = [
+  { label: '全部状态', value: '' },
+  { label: '正常', value: 'active' },
+  { label: '已暂停', value: 'suspended' },
+  { label: '已封禁', value: 'banned' },
+];
 
 interface ListResponse {
   items: AdminUserRow[];
@@ -30,34 +51,28 @@ interface ListResponse {
   pageSize: number;
 }
 
-const ROLE_OPTIONS = [
-  { label: '全部', value: '' },
-  { label: '管理员', value: 'admin' },
-  { label: '普通用户', value: 'user' },
-];
-
 export default function AdminUsersPage() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
+  const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [search, setSearch] = useState('');
-  const [role, setRole] = useState('');
+  const [status, setStatus] = useState('');
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'users', { page, search, role }],
+    queryKey: ['admin', 'users', { page, pageSize, search, status }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
-      params.set('pageSize', '20');
+      params.set('pageSize', String(pageSize));
       if (search) params.set('search', search);
-      if (role) params.set('role', role);
+      if (status) params.set('status', status);
       return apiClient.get(`/admin/users?${params.toString()}`) as any;
     },
     placeholderData: (prev) => prev,
   });
 
-  const roleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: 'user' | 'admin' }) =>
-      apiClient.patch(`/admin/users/${userId}/role`, { role }) as any,
+  const statusMutation = useMutation({
+    mutationFn: ({ userId, status }: { userId: string; status: UserStatus }) =>
+      apiClient.patch(`/admin/users/${userId}/status`, { status }) as any,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
   });
 
@@ -94,9 +109,23 @@ export default function AdminUsersPage() {
       header: '邮箱 / 绑定',
       render: (row) => (
         <div className="min-w-0">
-          <p className="text-xs text-slate-700 truncate">{row.email || '—'}</p>
+          <p className="text-xs text-slate-700 truncate">
+            {row.email || '—'}
+            {row.email && (
+              <span
+                className={cn(
+                  'ml-1.5 inline-flex items-center px-1 py-0.5 rounded text-[9px] border',
+                  row.emailVerified
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                    : 'bg-slate-50 text-slate-400 border-slate-200',
+                )}
+              >
+                {row.emailVerified ? '已验证' : '未验证'}
+              </span>
+            )}
+          </p>
           <div className="flex gap-1 mt-0.5">
-            {row.mountseaBound && (
+            {row.primaryProvider === 'mountsea' && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-cyan-50 text-cyan-700 border border-cyan-100">
                 Mountsea
               </span>
@@ -116,17 +145,30 @@ export default function AdminUsersPage() {
       ),
     },
     {
-      key: 'role',
-      header: '角色',
-      width: 'w-24',
+      key: 'status',
+      header: '状态',
+      width: 'w-20',
+      render: (row) => {
+        const meta = STATUS_META[row.status] ?? STATUS_META.active;
+        return (
+          <span
+            className={cn(
+              'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border',
+              meta.cls,
+            )}
+          >
+            {meta.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'lastLogin',
+      header: '最近登录',
+      width: 'w-36',
       render: (row) => (
-        <span
-          className={cn(
-            'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium',
-            row.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600',
-          )}
-        >
-          {row.role === 'admin' ? '管理员' : '普通用户'}
+        <span className="text-xs text-slate-500">
+          {row.lastLoginAt ? formatDate(row.lastLoginAt) : '—'}
         </span>
       ),
     },
@@ -162,34 +204,33 @@ export default function AdminUsersPage() {
       width: 'w-32',
       align: 'right',
       render: (row) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            roleMutation.mutate({
-              userId: row.id,
-              role: row.role === 'admin' ? 'user' : 'admin',
-            });
-          }}
-          disabled={roleMutation.isPending}
-          className={cn(
-            'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50',
-            row.role === 'admin'
-              ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
-              : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200',
-          )}
-        >
-          {row.role === 'admin' ? (
-            <>
-              <ShieldOff className="h-3 w-3" />
-              撤销
-            </>
+        <div className="flex items-center justify-end gap-1.5">
+          {row.status === 'active' ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                statusMutation.mutate({ userId: row.id, status: 'banned' });
+              }}
+              disabled={statusMutation.isPending}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border bg-red-50 hover:bg-red-100 text-red-700 border-red-200 transition-colors disabled:opacity-50"
+            >
+              <Ban className="h-3 w-3" />
+              封禁
+            </button>
           ) : (
-            <>
-              <Shield className="h-3 w-3" />
-              提权
-            </>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                statusMutation.mutate({ userId: row.id, status: 'active' });
+              }}
+              disabled={statusMutation.isPending}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 transition-colors disabled:opacity-50"
+            >
+              <Check className="h-3 w-3" />
+              解禁
+            </button>
           )}
-        </button>
+        </div>
       ),
     },
   ];
@@ -200,10 +241,10 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <UsersIcon className="h-5 w-5 text-purple-600" />
-            用户管理
+            C 端用户
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            共 {data?.total ?? 0} 名用户
+            共 {data?.total ?? 0} 名注册用户 · 后台管理员请至「系统 → 后台管理员」
           </p>
         </div>
 
@@ -218,15 +259,15 @@ export default function AdminUsersPage() {
             width="w-64"
           />
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
-            {ROLE_OPTIONS.map((opt) => (
+            {STATUS_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => {
                   setPage(1);
-                  setRole(opt.value);
+                  setStatus(opt.value);
                 }}
                 className={
-                  role === opt.value
+                  status === opt.value
                     ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-600 text-white'
                     : 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
                 }
@@ -244,11 +285,12 @@ export default function AdminUsersPage() {
           isLoading={isLoading}
           isError={isError}
           error={error}
-          emptyMessage="暂无用户"
+          emptyMessage="暂无 C 端用户"
           page={data?.page ?? page}
-          pageSize={data?.pageSize ?? 20}
+          pageSize={data?.pageSize ?? pageSize}
           total={data?.total}
           onPageChange={setPage}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </div>

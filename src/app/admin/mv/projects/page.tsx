@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Film, Loader2, RefreshCw, Upload } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { DataTable, DataTableColumn } from '@/components/data-table';
 import { StatusBadge } from '@/components/status-badge';
 import { SearchBar } from '@/components/search-bar';
@@ -71,7 +72,7 @@ export default function AdminMvProjectsPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const alert = useAlert();
-  const [page, setPage] = useState(1);
+  const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -79,11 +80,11 @@ export default function AdminMvProjectsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'mv', 'projects', { page, status, search }],
+    queryKey: ['admin', 'mv', 'projects', { page, pageSize, status, search }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
-      params.set('pageSize', '20');
+      params.set('pageSize', String(pageSize));
       if (status) params.set('status', status);
       if (search) params.set('search', search);
       return apiClient.get(`/admin/mv/projects?${params.toString()}`) as any;
@@ -387,9 +388,10 @@ export default function AdminMvProjectsPage() {
           error={error}
           emptyMessage="暂无 MV 项目"
           page={data?.page ?? page}
-          pageSize={data?.pageSize ?? 20}
+          pageSize={data?.pageSize ?? pageSize}
           total={data?.total}
           onPageChange={setPage}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </div>

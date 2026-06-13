@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users,
@@ -10,6 +11,9 @@ import {
   Clapperboard,
   MessageCircle,
   Calendar,
+  Wallet,
+  Coins,
+  ChevronRight,
 } from 'lucide-react';
 import {
   LineChart,
@@ -39,7 +43,13 @@ interface OverviewStats {
   };
   shots: { total: number; completed: number; failed: number };
   feedback: { unread: number };
-  today: { newUsers: number; newProjects: number; doneProjects: number };
+  today: {
+    newUsers: number;
+    newProjects: number;
+    doneProjects: number;
+    rechargeCents: number;
+    costCny: number;
+  };
 }
 
 interface TrendPoint {
@@ -105,6 +115,46 @@ function StatCard({
   );
 }
 
+function FinanceCard({
+  href,
+  label,
+  value,
+  sub,
+  icon: Icon,
+  gradient,
+}: {
+  href: string;
+  label: string;
+  value: string;
+  sub: string;
+  icon: React.ElementType;
+  gradient: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group relative overflow-hidden rounded-2xl p-5 flex items-center gap-4 text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all bg-gradient-to-br',
+        gradient,
+      )}
+    >
+      {/* 装饰光斑 */}
+      <div className="absolute -right-6 -top-8 w-28 h-28 rounded-full bg-white/10" />
+      <div className="absolute -right-2 bottom-0 w-20 h-20 rounded-full bg-white/5" />
+
+      <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0">
+        <Icon className="h-6 w-6 text-white" />
+      </div>
+      <div className="flex-1 min-w-0 relative">
+        <p className="text-xs font-medium text-white/80">{label}</p>
+        <p className="text-3xl font-bold tabular-nums mt-1">{value}</p>
+        <p className="text-xs text-white/70 mt-1">{sub}</p>
+      </div>
+      <ChevronRight className="h-5 w-5 text-white/60 group-hover:text-white group-hover:translate-x-0.5 transition-all relative" />
+    </Link>
+  );
+}
+
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -152,9 +202,9 @@ export default function AdminDashboard() {
   const cards = s
     ? [
         {
-          label: '用户总数',
+          label: 'C 端用户',
           value: s.users.total.toLocaleString(),
-          sub: `其中管理员 ${s.users.admin} 人`,
+          sub: `后台管理员 ${s.users.admin} 人`,
           icon: Users,
           color: 'text-blue-600',
           iconBg: 'bg-blue-50',
@@ -230,6 +280,28 @@ export default function AdminDashboard() {
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
       <div className="p-6 space-y-6">
+        {/* 今日财务速览 —— 置顶高亮 */}
+        {s && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FinanceCard
+              href="/admin/billing"
+              label="今日充值金额"
+              value={`$${((s.today.rechargeCents ?? 0) / 100).toFixed(2)}`}
+              sub="点击查看财务总览"
+              icon={Wallet}
+              gradient="from-emerald-500 to-teal-600"
+            />
+            <FinanceCard
+              href="/admin/billing/cost"
+              label="今日成本"
+              value={`¥${(s.today.costCny ?? 0).toFixed(2)}`}
+              sub="点击查看成本统计"
+              icon={Coins}
+              gradient="from-amber-500 to-orange-600"
+            />
+          </div>
+        )}
+
         <div>
           <h1 className="text-xl font-bold text-slate-900">仪表盘</h1>
           <p className="text-sm text-slate-500 mt-1">MV Studio 平台实时概览</p>

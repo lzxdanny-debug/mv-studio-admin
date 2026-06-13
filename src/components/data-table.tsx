@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QueryState } from './query-state';
+import { PaginationBar } from './pagination-bar';
 
 export interface DataTableColumn<T> {
   key: string;
@@ -28,6 +28,8 @@ interface DataTableProps<T> {
   pageSize?: number;
   total?: number;
   onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
 }
 
 export function DataTable<T>({
@@ -43,10 +45,10 @@ export function DataTable<T>({
   pageSize = 20,
   total,
   onPageChange,
+  onPageSizeChange,
+  pageSizeOptions,
 }: DataTableProps<T>) {
   const isEmpty = !isLoading && !isError && (!rows || rows.length === 0);
-  const totalPages = total !== undefined ? Math.max(1, Math.ceil(total / pageSize)) : undefined;
-
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
       <QueryState
@@ -106,29 +108,15 @@ export function DataTable<T>({
         </div>
       </QueryState>
 
-      {totalPages !== undefined && totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
-          <p className="text-xs text-slate-500">
-            共 <span className="font-medium text-slate-700">{total}</span> 条，第{' '}
-            <span className="font-medium text-slate-700">{page}</span> / {totalPages} 页
-          </p>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onPageChange?.(Math.max(1, page - 1))}
-              disabled={page <= 1}
-              className="p-1.5 rounded-lg text-slate-500 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onPageChange?.(Math.min(totalPages, page + 1))}
-              disabled={page >= totalPages}
-              className="p-1.5 rounded-lg text-slate-500 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+      {total !== undefined && onPageChange && (
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={pageSizeOptions}
+        />
       )}
     </div>
   );

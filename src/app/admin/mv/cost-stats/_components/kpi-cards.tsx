@@ -7,7 +7,7 @@ import {
   formatPercent,
   formatUsd,
 } from '../_lib/types';
-import { DEFAULT_CNY_PER_USD, MOUNTSEA_CREDITS_PER_CNY } from '@/lib/mountsea-pricing';
+import { DEFAULT_CNY_PER_USD, mountseaCreditUsdPerCredit } from '@/lib/mountsea-pricing';
 
 /**
  * 4 张 KPI 卡（成本统计页顶栏）：
@@ -24,7 +24,7 @@ interface KpiCardsProps {
   payload: CostStatsPayload;
 }
 
-const USD_PER_MOUNTSEA_CREDIT = 1 / MOUNTSEA_CREDITS_PER_CNY / DEFAULT_CNY_PER_USD;
+const USD_PER_MOUNTSEA_CREDIT = mountseaCreditUsdPerCredit(DEFAULT_CNY_PER_USD);
 const USD_PER_CLOUDFLARE_NEURON = 0;
 
 export function KpiCards({ payload }: KpiCardsProps) {

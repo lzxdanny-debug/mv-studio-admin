@@ -19,8 +19,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { PaginationBar } from '@/components/pagination-bar';
 import { useConfirm } from '@/components/ui/dialog-provider';
 
 // ──────────────────────────────────────────────────────────────────────
@@ -181,11 +183,11 @@ export default function AiProvidersPage() {
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Cloud className="h-5 w-5 text-purple-600" />
+            <h1 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Cloud className="h-4 w-4 text-purple-600" />
               AI Provider 凭证
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               管理 Cloudflare / Fal / Mountsea 三家 AI Provider 的 API 凭证。
               凭证 AES-256-GCM 加密存储，DB 缺失时自动回落到 env 变量作为兜底。
             </p>
@@ -206,7 +208,7 @@ export default function AiProvidersPage() {
           isEmpty={false}
           height="h-64"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+          <div className="space-y-4">
             {(['cloudflare', 'fal', 'mountsea'] as const).map((p) => {
               const view = data?.find((c) => c.provider === p);
               return view ? (
@@ -214,7 +216,7 @@ export default function AiProvidersPage() {
               ) : (
                 <div
                   key={p}
-                  className="bg-white border border-slate-200 rounded-2xl p-5 text-sm text-slate-400"
+                  className="bg-white border border-slate-200 rounded-2xl p-5 text-xs text-slate-400"
                 >
                   {p} 加载失败
                 </div>
@@ -361,12 +363,12 @@ function ProviderCard({ view }: { view: CredentialView }) {
           <Icon className={cn('h-4 w-4', meta.iconColor)} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-slate-800">{meta.title}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs font-semibold text-slate-800">{meta.title}</p>
             <SourceBadge source={view.source} />
             <HealthBadge palette={health} status={view.lastHealthStatus} configured={view.configured} />
           </div>
-          <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{meta.desc}</p>
+          <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{meta.desc}</p>
         </div>
         <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
           <input
@@ -389,7 +391,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
           if (editing) {
             return (
               <div key={f.key}>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
+                <label className="block text-[10px] font-medium text-slate-600 mb-1">
                   {f.label}
                   {f.hint && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">· {f.hint}</span>}
                 </label>
@@ -399,14 +401,14 @@ function ProviderCard({ view }: { view: CredentialView }) {
                   placeholder={masked ? `留空则不修改（当前 ${masked}）` : f.placeholder}
                   value={form[f.key] ?? ''}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50 font-mono"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50 font-mono"
                 />
               </div>
             );
           }
           return (
-            <div key={f.key} className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 w-24 flex-shrink-0">{f.label}</span>
+            <div key={f.key} className="flex items-center gap-2 py-0.5">
+              <span className="text-[10px] font-medium text-slate-500 w-24 flex-shrink-0">{f.label}</span>
               <span className="flex-1 text-xs font-mono text-slate-700 truncate">
                 {display}
               </span>
@@ -437,18 +439,18 @@ function ProviderCard({ view }: { view: CredentialView }) {
         {meta.hasBaseUrl && (
           editing ? (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Base URL</label>
+              <label className="block text-[10px] font-medium text-slate-600 mb-1">Base URL</label>
               <input
                 type="text"
                 placeholder={meta.baseUrlPlaceholder}
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50 font-mono"
+                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50 font-mono"
               />
             </div>
           ) : view.baseUrl ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 w-24 flex-shrink-0">Base URL</span>
+            <div className="flex items-center gap-2 py-0.5">
+              <span className="text-[10px] font-medium text-slate-500 w-24 flex-shrink-0">Base URL</span>
               <span className="flex-1 text-xs font-mono text-slate-700 truncate">{view.baseUrl}</span>
             </div>
           ) : null
@@ -457,29 +459,33 @@ function ProviderCard({ view }: { view: CredentialView }) {
 
       {/* 状态/操作元信息 */}
       {!editing && view.updatedAt && (
-        <div className="text-[10px] text-slate-400 leading-relaxed pt-2 border-t border-slate-100">
-          上次更新：{view.updatedBy ?? '?'} · {new Date(view.updatedAt).toLocaleString('zh-CN')}
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-600 pt-3 border-t border-slate-100">
+          <div>
+            <span className="text-slate-500">上次更新：</span>
+            <span className="font-medium text-slate-700">{view.updatedBy ?? '—'}</span>
+            <span className="text-slate-500"> · </span>
+            <span>{new Date(view.updatedAt).toLocaleString('zh-CN')}</span>
+          </div>
           {view.lastHealthCheck && (
-            <>
-              <br />
-              上次健康检查：{new Date(view.lastHealthCheck).toLocaleString('zh-CN')}
+            <div>
+              <span className="text-slate-500">上次健康检查：</span>
+              <span>{new Date(view.lastHealthCheck).toLocaleString('zh-CN')}</span>
               {view.lastErrorMessage && (
-                <> · <span className="text-red-500">{view.lastErrorMessage.slice(0, 80)}</span></>
+                <span className="text-red-600 ml-1">{view.lastErrorMessage.slice(0, 80)}</span>
               )}
-            </>
+            </div>
           )}
           {meta.consoleUrl && (
-            <>
-              <br />
+            <div className="sm:col-span-2">
               <a
                 href={meta.consoleUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-purple-600 hover:underline"
+                className="text-purple-600 hover:underline font-medium"
               >
                 获取/查看凭证 ↗
               </a>
-            </>
+            </div>
           )}
         </div>
       )}
@@ -488,7 +494,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
       {testResult && (
         <div
           className={cn(
-            'rounded-xl px-3 py-2 text-xs border flex items-start gap-2',
+            'rounded-xl px-3 py-2 text-[10px] border flex items-start gap-2',
             testResult.success
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-amber-200 bg-amber-50 text-amber-700',
@@ -502,7 +508,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
           <div className="flex-1 min-w-0">
             <p className="font-medium">{testResult.summary}</p>
             {testResult.errorMessage && (
-              <p className="text-[11px] mt-0.5 break-all">{testResult.errorMessage}</p>
+              <p className="text-[10px] mt-0.5 break-all">{testResult.errorMessage}</p>
             )}
           </div>
         </div>
@@ -510,7 +516,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
 
       {/* 编辑期消息 */}
       {msg && (
-        <p className={cn('text-xs font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
+        <p className={cn('text-[10px] font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
           {msg.text}
         </p>
       )}
@@ -523,7 +529,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
               type="button"
               onClick={() => save.mutate()}
               disabled={save.isPending}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-medium"
             >
               <KeyRound className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
               {save.isPending ? '保存中…' : '保存凭证'}
@@ -532,7 +538,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
               type="button"
               onClick={cancelEdit}
               disabled={save.isPending}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-xs font-medium text-slate-700"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-xs font-medium text-slate-700"
             >
               取消
             </button>
@@ -542,7 +548,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
             <button
               type="button"
               onClick={enterEdit}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium"
             >
               <KeyRound className="h-3.5 w-3.5" />
               {view.configured ? '编辑凭证' : '配置凭证'}
@@ -551,7 +557,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
               type="button"
               onClick={() => testMu.mutate()}
               disabled={!view.configured || testMu.isPending}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-xs font-medium text-slate-700"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-xs font-medium text-slate-700"
             >
               <Activity className={cn('h-3.5 w-3.5', testMu.isPending && 'animate-spin')} />
               {testMu.isPending ? '测试中…' : '测试连通性'}
@@ -570,7 +576,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                   if (ok) toggleActive.mutate(false);
                 }}
                 disabled={!view.isActive || toggleActive.isPending}
-                className="ml-auto inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 bg-white hover:bg-red-50 disabled:opacity-50 text-xs font-medium text-red-600"
+                className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 bg-white hover:bg-red-50 disabled:opacity-50 text-xs font-medium text-red-600"
               >
                 禁用
               </button>
@@ -644,14 +650,23 @@ function HealthBadge({
 function AuditLogsSection() {
   const [providerFilter, setProviderFilter] = useState<'' | AiProvider>('');
   const [open, setOpen] = useState(false);
+  const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
 
-  const { data, isLoading } = useQuery<{ rows: AuditLog[]; total: number }>({
-    queryKey: ['admin', 'ai-provider-audit-logs', providerFilter],
+  const { data, isLoading } = useQuery<{
+    items: AuditLog[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }>({
+    queryKey: ['admin', 'ai-provider-audit-logs', providerFilter, page],
     queryFn: () => {
-      const q = providerFilter ? `?provider=${providerFilter}` : '';
-      return apiClient.get(`/admin/ai-providers/audit-logs${q}`) as Promise<{
-        rows: AuditLog[];
+      const qs = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+      if (providerFilter) qs.set('provider', providerFilter);
+      return apiClient.get(`/admin/ai-providers/audit-logs?${qs}`) as Promise<{
+        items: AuditLog[];
         total: number;
+        page: number;
+        pageSize: number;
       }>;
     },
     enabled: open,
@@ -676,7 +691,7 @@ function AuditLogsSection() {
         <div className="px-5 pb-5 space-y-3">
           <div className="flex gap-2 text-xs">
             <button
-              onClick={() => setProviderFilter('')}
+              onClick={() => { setProviderFilter(''); setPage(1); }}
               className={cn(
                 'px-2 py-1 rounded-lg border',
                 providerFilter === ''
@@ -689,7 +704,7 @@ function AuditLogsSection() {
             {(['cloudflare', 'fal', 'mountsea'] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => setProviderFilter(p)}
+                onClick={() => { setProviderFilter(p); setPage(1); }}
                 className={cn(
                   'px-2 py-1 rounded-lg border',
                   providerFilter === p
@@ -707,9 +722,10 @@ function AuditLogsSection() {
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
               加载中…
             </div>
-          ) : !data || data.rows.length === 0 ? (
+          ) : !data || data.items.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-8">暂无审计记录</p>
           ) : (
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -724,7 +740,7 @@ function AuditLogsSection() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((log) => (
+                  {data.items.map((log) => (
                     <tr key={log.id} className="border-b border-slate-50 last:border-0">
                       <td className="py-2 pr-3 text-slate-600 whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleString('zh-CN')}
@@ -755,6 +771,14 @@ function AuditLogsSection() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <PaginationBar
+              page={page}
+              pageSize={pageSize}
+              total={data.total}
+              onPageChange={setPage}
+              onPageSizeChange={onPageSizeChange}
+            />
             </div>
           )}
         </div>

@@ -57,7 +57,6 @@ pnpm dev
 /admin/mv/projects/[id]      MV 项目详情（基础信息 / 镜头 / 规划 / 成片历史）
 /admin/mv/styles             风格库（含预览图与重生触发）
 /admin/tools/lrc             LRC 任务（内存态）
-/admin/tools/quick-video     快速视频任务状态查询
 /admin/users                 用户列表
 /admin/users/[id]            用户详情（积分流水、最近 MV、反馈）
 /admin/feedback              用户反馈

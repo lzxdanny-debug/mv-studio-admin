@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ArrowLeft, Disc3, DollarSign, ExternalLink, Loader2 } from 'lucide-react';
@@ -16,6 +16,8 @@ import {
   mountseaCreditsToCny,
 } from '@/lib/mountsea-pricing';
 import { useAlert } from '@/components/ui/dialog-provider';
+import { useAdminAuthStore } from '@/stores/admin-auth.store';
+import { canAccessTab, firstAllowedTab } from '@/lib/admin-permissions';
 
 /** 与 mv-studio-api CREDIT_COSTS 保持一致（100 积分 = ¥1） */
 const MUSIC_CREATE_CREDITS: Record<string, number> = {
@@ -115,7 +117,25 @@ export default function AdminMusicTaskDetailPage({
   const { id } = use(params);
   const alert = useAlert();
   const queryClient = useQueryClient();
+  const permissions = useAdminAuthStore((s) => s.permissions);
+  const canReconcile = useAdminAuthStore((s) =>
+    s.hasPermission('billing.cost.view') && s.hasPermission('project.manage'),
+  );
   const [tab, setTab] = useState<'overview' | 'costs'>('costs');
+  const visibleTabs = TABS.filter((t) =>
+    canAccessTab(permissions, 'music.task.detail', t.key),
+  );
+
+  useEffect(() => {
+    if (!visibleTabs.length) return;
+    if (!visibleTabs.some((t) => t.key === tab)) {
+      const first = firstAllowedTab(permissions, 'music.task.detail') as
+        | 'overview'
+        | 'costs'
+        | null;
+      if (first) setTab(first);
+    }
+  }, [visibleTabs, tab, permissions]);
 
   const { data: detail, isLoading, isError, error } = useQuery<DetailResponse>({
     queryKey: ['admin', 'music', 'task', id],
@@ -197,7 +217,7 @@ export default function AdminMusicTaskDetailPage({
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
-      <div className="p-6 space-y-4 max-w-5xl">
+      <div className="p-6 space-y-4 w-full">
         <Link
           href="/admin/music/tasks"
           className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
@@ -259,7 +279,7 @@ export default function AdminMusicTaskDetailPage({
               </div>
 
               <div className="flex gap-1 border-b border-slate-200">
-                {TABS.map((t) => (
+                {visibleTabs.map((t) => (
                   <button
                     key={t.key}
                     onClick={() => setTab(t.key)}
@@ -329,6 +349,7 @@ export default function AdminMusicTaskDetailPage({
                         '暂无成本记录'
                       )}
                     </div>
+                    {canReconcile && (
                     <button
                       onClick={() => reconcileMutation.mutate()}
                       disabled={reconcileMutation.isPending}
@@ -341,6 +362,7 @@ export default function AdminMusicTaskDetailPage({
                       )}
                       立即对账
                     </button>
+                    )}
                   </div>
 
                   {costsLoading ? (

@@ -1,0 +1,265 @@
+'use client';
+
+import { use } from 'react';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
+import apiClient from '@/lib/api';
+import { cn, formatDate } from '@/lib/utils';
+import { QueryState } from '@/components/query-state';
+import {
+  usd,
+  TYPE_LABEL,
+  PAYMENT_STATUS_META,
+  REFUND_STATUS_META,
+  METHOD_LABEL,
+  RISK_META,
+} from '../../_lib/format';
+
+interface RefundRow {
+  id: string;
+  providerRefundId: string | null;
+  amountCents: number;
+  currency: string;
+  creditsReversed: number;
+  reason: string | null;
+  status: string;
+  createdAt: string;
+}
+
+interface PaymentDetail {
+  id: string;
+  user: {
+    id: string;
+    email: string | null;
+    displayName: string | null;
+    stripeCustomerId: string | null;
+  };
+  type: string;
+  status: string;
+  amountCents: number;
+  refundedCents: number;
+  netCents: number;
+  currency: string;
+  creditAmount: number | null;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
+  packageCode: string | null;
+  planCode: string | null;
+  country: string | null;
+  paymentMethod: string | null;
+  riskLevel: string | null;
+  provider: string;
+  providerPaymentId: string | null;
+  providerSessionId: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  refunds: RefundRow[];
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
+      <span className="text-xs text-slate-500 flex-shrink-0">{label}</span>
+      <span className="text-sm text-slate-800 text-right break-all">{children}</span>
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900 mb-2">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+const mono = 'font-mono text-xs text-slate-600';
+
+export default function PaymentDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+
+  const { data, isLoading, isError, error } = useQuery<PaymentDetail>({
+    queryKey: ['admin', 'billing', 'payment', id],
+    queryFn: () => apiClient.get(`/admin/billing/payments/${id}`) as any,
+  });
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-slate-100">
+      <div className="p-6 space-y-5 max-w-[1100px]">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/billing/payments"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回充值记录
+          </Link>
+          <h1 className="text-lg font-bold text-slate-900">支付详情</h1>
+        </div>
+
+        <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-96">
+          {data && (
+            <div className="space-y-4">
+              {/* 头部摘要 */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-wrap items-center gap-x-8 gap-y-3">
+                <div>
+                  <p className="text-xs text-slate-500">金额</p>
+                  <p className="text-2xl font-bold text-slate-900">{usd(data.amountCents)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">实得（净）</p>
+                  <p className="text-2xl font-bold text-emerald-700">{usd(data.netCents)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">类型</p>
+                  <p className="text-sm font-medium text-slate-800 mt-1">
+                    {TYPE_LABEL[data.type] ?? data.type}
+                    {(data.packageCode || data.planCode) && (
+                      <span className="text-slate-400 ml-1">{data.packageCode ?? data.planCode}</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">状态</p>
+                  <span
+                    className={cn(
+                      'inline-flex mt-1 px-2 py-0.5 rounded-md text-xs border',
+                      PAYMENT_STATUS_META[data.status]?.cls ?? 'bg-slate-100 text-slate-600',
+                    )}
+                  >
+                    {PAYMENT_STATUS_META[data.status]?.label ?? data.status}
+                  </span>
+                </div>
+                <div className="ml-auto text-right">
+                  <p className="text-xs text-slate-500">支付时间</p>
+                  <p className="text-sm text-slate-700 mt-1">
+                    {data.paidAt ? formatDate(data.paidAt) : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 用户 + 金额 */}
+                <Card title="用户与积分">
+                  <Row label="用户">
+                    <Link
+                      href={`/admin/users/${data.user.id}`}
+                      className="text-purple-700 hover:underline"
+                    >
+                      {data.user.displayName || data.user.email || data.user.id.slice(0, 8)}
+                    </Link>
+                  </Row>
+                  <Row label="邮箱">{data.user.email ?? '—'}</Row>
+                  <Row label="发放积分">
+                    {data.creditAmount != null ? (
+                      <span className="text-amber-600 font-medium">+{data.creditAmount}</span>
+                    ) : (
+                      '—'
+                    )}
+                  </Row>
+                  <Row label="充值前余额">{data.balanceBefore ?? '—'}</Row>
+                  <Row label="充值后余额">{data.balanceAfter ?? '—'}</Row>
+                </Card>
+
+                {/* 风控/渠道 */}
+                <Card title="渠道与风控">
+                  <Row label="支付方式">
+                    {data.paymentMethod
+                      ? METHOD_LABEL[data.paymentMethod] ?? data.paymentMethod
+                      : '—'}
+                  </Row>
+                  <Row label="国家">{data.country ? data.country.toUpperCase() : '—'}</Row>
+                  <Row label="风险等级">
+                    {data.riskLevel ? (
+                      <span className={RISK_META[data.riskLevel]?.cls ?? 'text-slate-600'}>
+                        {RISK_META[data.riskLevel]?.label ?? data.riskLevel}
+                      </span>
+                    ) : (
+                      '—'
+                    )}
+                  </Row>
+                  <Row label="已退金额">
+                    {data.refundedCents > 0 ? (
+                      <span className="text-red-600">-{usd(data.refundedCents)}</span>
+                    ) : (
+                      '—'
+                    )}
+                  </Row>
+                </Card>
+              </div>
+
+              {/* Stripe IDs */}
+              <Card title="Stripe 标识">
+                <Row label="Provider">{data.provider}</Row>
+                <Row label="Customer ID">
+                  <span className={mono}>{data.user.stripeCustomerId ?? '—'}</span>
+                </Row>
+                <Row label="Payment / Invoice ID">
+                  <span className={mono}>{data.providerPaymentId ?? '—'}</span>
+                </Row>
+                <Row label="Checkout Session ID">
+                  <span className={mono}>{data.providerSessionId ?? '—'}</span>
+                </Row>
+                {data.providerPaymentId && (
+                  <a
+                    href={`https://dashboard.stripe.com/payments/${data.providerPaymentId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-purple-600 hover:underline mt-2"
+                  >
+                    在 Stripe 后台查看 <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </Card>
+
+              {/* 退款明细 */}
+              <Card title={`退款明细（${data.refunds.length}）`}>
+                {data.refunds.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-2">无退款记录</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.refunds.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-50 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-mono text-xs text-slate-500 truncate">
+                            {r.providerRefundId ?? r.id}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {formatDate(r.createdAt)}
+                            {r.reason && ` · ${r.reason}`}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-red-600 font-medium">-{usd(r.amountCents)}</p>
+                          <p className="text-[11px] text-slate-400">回收 {r.creditsReversed} 积分</p>
+                        </div>
+                        <span
+                          className={cn(
+                            'inline-flex px-2 py-0.5 rounded-md text-xs border flex-shrink-0',
+                            REFUND_STATUS_META[r.status]?.cls ?? 'bg-slate-100 text-slate-600',
+                          )}
+                        >
+                          {REFUND_STATUS_META[r.status]?.label ?? r.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
+        </QueryState>
+      </div>
+    </div>
+  );
+}

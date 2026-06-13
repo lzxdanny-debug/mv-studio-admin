@@ -1,8 +1,17 @@
-/** Mountsea 计价：100 credits = 1 CNY */
+/** Mountsea 计价：100 credits = 1 CNY，即 1 credit = ¥0.01 */
 export const MOUNTSEA_CREDITS_PER_CNY = 100;
+
+/** 1 Mountsea 内部积分的人民币成本 */
+export const MOUNTSEA_CNY_PER_CREDIT = 1 / MOUNTSEA_CREDITS_PER_CNY;
 
 /** 无实时汇率时的兜底（≈ 7.2 CNY/USD） */
 export const DEFAULT_CNY_PER_USD = 7.2;
+
+/** 1 Mountsea 内部积分折算美元（按 CNY/USD 汇率） */
+export function mountseaCreditUsdPerCredit(cnyPerUsd = DEFAULT_CNY_PER_USD): number {
+  if (!Number.isFinite(cnyPerUsd) || cnyPerUsd <= 0) return 0;
+  return MOUNTSEA_CNY_PER_CREDIT / cnyPerUsd;
+}
 
 export function mountseaCreditsToCny(credits: number): number {
   if (!Number.isFinite(credits) || credits <= 0) return 0;
