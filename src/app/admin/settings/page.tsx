@@ -83,7 +83,7 @@ export default function AdminSettingsPage() {
       <div className="p-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <SettingsIcon className="h-5 w-5 text-purple-600" />
+            <SettingsIcon className="h-5 w-5 text-teal-600" />
             系统设置
           </h1>
           <p className="text-sm text-slate-500 mt-1">配置 MV Studio 运行时依赖</p>
@@ -161,7 +161,7 @@ export default function AdminSettingsPage() {
                       placeholder="aiconsole-1387810185"
                       value={form.bucket}
                       onChange={(e) => setForm((f) => ({ ...f, bucket: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                     />
                   </div>
                   <div>
@@ -171,7 +171,7 @@ export default function AdminSettingsPage() {
                       placeholder="ap-hongkong"
                       value={form.region}
                       onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                     />
                   </div>
                 </div>
@@ -191,7 +191,7 @@ export default function AdminSettingsPage() {
                   <button
                     type="submit"
                     disabled={save.isPending}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
                   >
                     <SettingsIcon className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
                     {save.isPending ? '保存中…' : '保存配置'}

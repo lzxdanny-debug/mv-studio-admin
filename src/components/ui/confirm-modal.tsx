@@ -38,7 +38,7 @@ const CONFIRM_BUTTON_CLS: Record<ConfirmVariant, string> = {
   warning:
     'bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-200',
   default:
-    'bg-purple-600 hover:bg-purple-700 text-white shadow-sm',
+    'bg-teal-600 hover:bg-teal-700 text-white shadow-sm',
   success:
     'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-200',
   info: 'bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-200',
@@ -48,7 +48,7 @@ const CONFIRM_BUTTON_CLS: Record<ConfirmVariant, string> = {
 const ICON_CLS: Record<ConfirmVariant, string> = {
   danger: 'text-red-600 bg-red-50',
   warning: 'text-amber-600 bg-amber-50',
-  default: 'text-purple-600 bg-purple-50',
+  default: 'text-teal-600 bg-teal-50',
   success: 'text-emerald-600 bg-emerald-50',
   info: 'text-sky-600 bg-sky-50',
 };

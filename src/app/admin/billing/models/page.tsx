@@ -78,7 +78,7 @@ export default function ModelConfigPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Boxes className="h-5 w-5 text-purple-600" />
+            <Boxes className="h-5 w-5 text-teal-600" />
             模型配置
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -134,7 +134,7 @@ export default function ModelConfigPage() {
               <ChannelCard
                 title="Ultron 高质量"
                 badge="Ultron"
-                badgeClass="bg-violet-100 text-violet-700"
+                badgeClass="bg-teal-100 text-teal-700"
                 desc="Ultron 品质镜头：走 videoUltron 路由（高质量模型，主/备直配）。"
                 route={data?.engineRouting?.ultron}
               />
@@ -143,7 +143,7 @@ export default function ModelConfigPage() {
               如需调整引擎或模型，请前往
               <Link
                 href="/admin/ai-routing"
-                className="inline-flex items-center gap-0.5 mx-1 text-purple-600 hover:underline font-medium"
+                className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
               >
                 AI 路由配置 · 视频生成
                 <ExternalLink className="h-3 w-3" />

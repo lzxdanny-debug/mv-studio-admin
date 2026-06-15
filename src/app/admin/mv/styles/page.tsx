@@ -69,7 +69,7 @@ export default function AdminMvStylesPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Palette className="h-5 w-5 text-purple-600" />
+              <Palette className="h-5 w-5 text-teal-600" />
               MV 风格库
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -96,7 +96,7 @@ export default function AdminMvStylesPage() {
                 if (ok) generate.mutate(true);
               }}
               disabled={generate.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
             >
               <RefreshCw className={cn('h-3.5 w-3.5', generate.isPending && 'animate-spin')} />
               强制全量重生
@@ -216,7 +216,7 @@ function StyleCard({ style, onEdit }: { style: StyleDef; onEdit: () => void }) {
             if (ok) regenerate.mutate();
           }}
           disabled={regenerate.isPending}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
         >
           {regenerate.isPending ? (
             <Loader2 className="h-3 w-3 animate-spin" />

@@ -89,7 +89,7 @@ export default function AdminFeedbackPage() {
       <div className="p-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-purple-600" />
+            <MessageCircle className="h-5 w-5 text-teal-600" />
             用户反馈
           </h1>
           <p className="text-sm text-slate-500 mt-1">共 {data?.total ?? 0} 条反馈</p>
@@ -106,7 +106,7 @@ export default function AdminFeedbackPage() {
                 }}
                 className={
                   category === opt.value
-                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-600 text-white'
+                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-600 text-white'
                     : 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
                 }
               >
@@ -124,7 +124,7 @@ export default function AdminFeedbackPage() {
                 }}
                 className={
                   readFilter === opt.value
-                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-600 text-white'
+                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-600 text-white'
                     : 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
                 }
               >
@@ -148,7 +148,7 @@ export default function AdminFeedbackPage() {
                 key={fb.id}
                 className={cn(
                   'bg-white border rounded-2xl p-4 transition-all',
-                  fb.isRead ? 'border-slate-200' : 'border-purple-200 ring-1 ring-purple-100',
+                  fb.isRead ? 'border-slate-200' : 'border-teal-200 ring-1 ring-teal-100',
                 )}
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
@@ -216,7 +216,7 @@ export default function AdminFeedbackPage() {
                         href={fb.screenshotUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700"
+                        className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-700"
                       >
                         <ImageIcon className="h-3 w-3" />
                         查看截图

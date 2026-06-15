@@ -109,7 +109,7 @@ export default function AdminLrcTaskDetailPage({
         <div className="flex items-center gap-3">
           <Link
             href="/admin/tools/lrc"
-            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-purple-700"
+            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700"
           >
             <ArrowLeft className="h-4 w-4" />
             返回列表
@@ -128,7 +128,7 @@ export default function AdminLrcTaskDetailPage({
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-purple-600" />
+                    <FileText className="h-5 w-5 text-teal-600" />
                     {detail.project?.title || 'LRC 任务'}
                   </h1>
                   <p className="text-xs text-slate-400 font-mono mt-1">{detail.job.id}</p>
@@ -144,7 +144,7 @@ export default function AdminLrcTaskDetailPage({
                     className={cn(
                       'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                       tab === t.key
-                        ? 'border-purple-600 text-purple-700'
+                        ? 'border-teal-600 text-teal-700'
                         : 'border-transparent text-slate-500 hover:text-slate-700',
                     )}
                   >

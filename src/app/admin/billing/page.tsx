@@ -95,7 +95,7 @@ export default function BillingDashboardPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
+              <BarChart3 className="h-5 w-5 text-teal-600" />
               财务总览
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -111,7 +111,7 @@ export default function BillingDashboardPage() {
                   className={cn(
                     'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                     preset === p
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-teal-600 text-white'
                       : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
@@ -200,7 +200,7 @@ function KpiGrid({ data }: { data: Overview }) {
       value: usd(data.grossRevenueCents),
       sub: '支付完成全额，不扣退款',
       icon: TrendingUp,
-      tint: 'text-purple-600 bg-purple-50',
+      tint: 'text-teal-600 bg-teal-50',
     },
     {
       label: '净收入',
@@ -221,7 +221,7 @@ function KpiGrid({ data }: { data: Overview }) {
       value: usd(data.arppuCents),
       sub: '净收入 / 付费用户',
       icon: CreditCard,
-      tint: 'text-pink-600 bg-pink-50',
+      tint: 'text-rose-600 bg-rose-50',
     },
     {
       label: 'MRR',
@@ -396,7 +396,7 @@ function BreakdownList({
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-purple-500"
+                    className="h-full rounded-full bg-teal-500"
                     style={{ width: `${Math.max(2, ratio * 100)}%` }}
                   />
                 </div>

@@ -236,7 +236,7 @@ function PriceTable({
                       'inline-block px-2 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap',
                       r.frontendStep === 'pre'
                         ? 'bg-amber-50 text-amber-700'
-                        : 'bg-purple-50 text-purple-700',
+                        : 'bg-teal-50 text-teal-700',
                     )}
                   >
                     {badge}
@@ -258,7 +258,7 @@ function PriceTable({
                   <button
                     type="button"
                     onClick={() => setOpenHelp(openHelp === key ? null : key)}
-                    className="text-slate-400 hover:text-purple-600"
+                    className="text-slate-400 hover:text-teal-600"
                     title="说明"
                   >
                     <HelpCircle className="h-3.5 w-3.5" />
@@ -316,7 +316,7 @@ function PriceTable({
                           },
                         }))
                       }
-                      className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                      className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                     />
                     <p className="text-[10px] mt-0.5">
                       {r.overridden ? (
@@ -344,7 +344,7 @@ function PriceTable({
                               },
                             }))
                           }
-                          className="inline-flex items-center gap-1 text-xs text-purple-600 hover:underline"
+                          className="inline-flex items-center gap-1 text-xs text-teal-600 hover:underline"
                           title={r.derivedBasis ?? '点击采用推荐价'}
                         >
                           {r.derivedPrice}
@@ -378,7 +378,7 @@ function PriceTable({
                           [key]: { ...e, enabled: ev.target.checked },
                         }))
                       }
-                      className="accent-purple-600"
+                      className="accent-teal-600"
                     />
                   </td>
                 </>
@@ -486,7 +486,7 @@ function VideoPerSecondCard({
             会员系数，向上取整）。清晰度 / 品质档在
             <Link
               href="/admin/billing/video-pricing"
-              className="inline-flex items-center gap-0.5 mx-1 text-purple-600 hover:underline font-medium"
+              className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
             >
               视频价格
               <ExternalLink className="h-3 w-3" />
@@ -494,7 +494,7 @@ function VideoPerSecondCard({
             维护；当前引擎（标准=单图模式 / Ultron）全部在
             <Link
               href="/admin/ai-routing"
-              className="inline-flex items-center gap-0.5 mx-1 text-purple-600 hover:underline font-medium"
+              className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
             >
               AI 路由配置
               <ExternalLink className="h-3 w-3" />
@@ -514,7 +514,7 @@ function VideoPerSecondCard({
               saveCells.mutate();
             }}
             disabled={saveCells.isPending || !dirty}
-            className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-medium"
+            className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-xs font-medium"
           >
             {saveCells.isPending ? '保存中…' : '保存每秒价'}
           </button>
@@ -552,7 +552,7 @@ function VideoPerSecondCard({
                     rowSpan={rows.length}
                     className="px-3 py-2.5 align-top border-r border-slate-100"
                   >
-                    <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-medium bg-purple-50 text-purple-700 whitespace-nowrap">
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-medium bg-teal-50 text-teal-700 whitespace-nowrap">
                       第 9 步
                     </span>
                   </td>
@@ -562,7 +562,7 @@ function VideoPerSecondCard({
                     className={cn(
                       'px-1.5 py-0.5 rounded text-[11px] font-medium',
                       isUltron
-                        ? 'bg-violet-100 text-violet-700'
+                        ? 'bg-teal-100 text-teal-700'
                         : 'bg-slate-100 text-slate-600',
                     )}
                   >
@@ -597,7 +597,7 @@ function VideoPerSecondCard({
                     onChange={(e) =>
                       setDrafts((prev) => ({ ...prev, [k]: e.target.value }))
                     }
-                    className="w-20 px-2 py-1 text-sm font-medium text-right text-slate-800 border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-20 px-2 py-1 text-sm font-medium text-right text-slate-800 border border-slate-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"
                   />
                 </td>
               </tr>
@@ -723,14 +723,14 @@ export default function StepPricesPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Coins className="h-5 w-5 text-purple-600" />
+            <Coins className="h-5 w-5 text-teal-600" />
             步骤价格
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             每一行与前端流程一一对应（创作前 AI 推荐 + 10 个步骤）。当前价默认跟随
             <Link
               href="/admin/billing/pricing"
-              className="inline-flex items-center gap-0.5 mx-1 text-purple-600 hover:underline font-medium"
+              className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
             >
               定价策略 · 模型定价
               <ExternalLink className="h-3 w-3" />
@@ -740,7 +740,7 @@ export default function StepPricesPage() {
             不调用 AI 的步骤标注「不计费」；历史成本均值作为对照参考。「当前模型」读取
             <Link
               href="/admin/ai-routing"
-              className="inline-flex items-center gap-0.5 mx-1 text-purple-600 hover:underline font-medium"
+              className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
             >
               AI 路由配置
               <ExternalLink className="h-3 w-3" />
@@ -757,7 +757,7 @@ export default function StepPricesPage() {
               className={cn(
                 'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                 tab === t.key
-                  ? 'border-purple-600 text-purple-700'
+                  ? 'border-teal-600 text-teal-700'
                   : 'border-transparent text-slate-500 hover:text-slate-800',
               )}
             >
@@ -787,7 +787,7 @@ export default function StepPricesPage() {
                     recommend.mutate(tab);
                   }}
                   disabled={recommend.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 hover:bg-purple-50 disabled:opacity-50 text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal-200 text-teal-700 hover:bg-teal-50 disabled:opacity-50 text-xs font-medium"
                 >
                   <Wand2
                     className={cn(
@@ -865,7 +865,7 @@ export default function StepPricesPage() {
           <button
             onClick={handleSave}
             disabled={save.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
           >
             <Save className="h-3.5 w-3.5" />
             {save.isPending ? '保存中…' : '保存步骤价格'}

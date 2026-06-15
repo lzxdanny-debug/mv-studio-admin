@@ -51,8 +51,8 @@ const LINE_META: Record<
   CostLine['line'],
   { icon: typeof Film; tint: string; stroke: string }
 > = {
-  mv: { icon: Film, tint: 'text-purple-600 bg-purple-50', stroke: '#8b5cf6' },
-  music: { icon: Music, tint: 'text-pink-600 bg-pink-50', stroke: '#ec4899' },
+  mv: { icon: Film, tint: 'text-teal-600 bg-teal-50', stroke: '#8b5cf6' },
+  music: { icon: Music, tint: 'text-rose-600 bg-rose-50', stroke: '#ec4899' },
   lyrics: { icon: FileText, tint: 'text-cyan-600 bg-cyan-50', stroke: '#06b6d4' },
 };
 
@@ -88,7 +88,7 @@ export default function BillingCostPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <LineChart className="h-5 w-5 text-purple-600" />
+              <LineChart className="h-5 w-5 text-teal-600" />
               成本统计
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -104,7 +104,7 @@ export default function BillingCostPage() {
                   className={cn(
                     'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                     preset === p
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-teal-600 text-white'
                       : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
@@ -261,7 +261,7 @@ function ProviderBreakdown({ rows }: { rows: CostSummary['byProvider'] }) {
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-purple-500"
+                    className="h-full rounded-full bg-teal-500"
                     style={{ width: `${Math.max(2, ratio * 100)}%` }}
                   />
                 </div>

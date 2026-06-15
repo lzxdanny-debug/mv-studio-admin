@@ -152,7 +152,7 @@ export default function AdminRolesPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-purple-600" />
+              <ShieldCheck className="h-5 w-5 text-teal-600" />
               角色权限
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -161,7 +161,7 @@ export default function AdminRolesPage() {
           </div>
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-purple-600 text-white hover:bg-purple-700"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white hover:bg-teal-700"
           >
             <Plus className="h-4 w-4" />
             新建角色
@@ -199,7 +199,7 @@ export default function AdminRolesPage() {
                         className={cn(
                           'text-xs px-2 py-0.5 rounded-full border',
                           role.isSystem
-                            ? 'bg-purple-50 text-purple-700 border-purple-100'
+                            ? 'bg-teal-50 text-teal-700 border-teal-100'
                             : 'bg-slate-50 text-slate-600 border-slate-200',
                         )}
                       >
@@ -336,7 +336,7 @@ export default function AdminRolesPage() {
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending || !form.name.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-purple-600 text-white disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white disabled:opacity-50"
               >
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 保存

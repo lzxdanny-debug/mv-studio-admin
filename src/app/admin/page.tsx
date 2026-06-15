@@ -76,9 +76,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#94a3b8',
-  planning: '#a78bfa',
+  planning: '#14b8a6',
   reviewing: '#f59e0b',
-  generating: '#3b82f6',
+  generating: '#2563eb',
   composing: '#06b6d4',
   done: '#10b981',
   failed: '#ef4444',
@@ -121,36 +121,32 @@ function FinanceCard({
   value,
   sub,
   icon: Icon,
-  gradient,
+  tone,
 }: {
   href: string;
   label: string;
   value: string;
   sub: string;
   icon: React.ElementType;
-  gradient: string;
+  tone: string;
 }) {
   return (
     <Link
       href={href}
       className={cn(
-        'group relative overflow-hidden rounded-2xl p-5 flex items-center gap-4 text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all bg-gradient-to-br',
-        gradient,
+        'group rounded-2xl border border-slate-200 border-l-4 bg-white p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all',
+        tone,
       )}
     >
-      {/* 装饰光斑 */}
-      <div className="absolute -right-6 -top-8 w-28 h-28 rounded-full bg-white/10" />
-      <div className="absolute -right-2 bottom-0 w-20 h-20 rounded-full bg-white/5" />
-
-      <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center shrink-0">
-        <Icon className="h-6 w-6 text-white" />
+      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+        <Icon className="h-6 w-6 text-slate-700" />
       </div>
-      <div className="flex-1 min-w-0 relative">
-        <p className="text-xs font-medium text-white/80">{label}</p>
-        <p className="text-3xl font-bold tabular-nums mt-1">{value}</p>
-        <p className="text-xs text-white/70 mt-1">{sub}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <p className="text-3xl font-bold tabular-nums mt-1 text-slate-950">{value}</p>
+        <p className="text-xs text-slate-500 mt-1">{sub}</p>
       </div>
-      <ChevronRight className="h-5 w-5 text-white/60 group-hover:text-white group-hover:translate-x-0.5 transition-all relative" />
+      <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all" />
     </Link>
   );
 }
@@ -214,8 +210,8 @@ export default function AdminDashboard() {
           value: s.mvProjects.total.toLocaleString(),
           sub: `生成中 ${s.mvProjects.generating} · 合成中 ${s.mvProjects.composing}`,
           icon: Film,
-          color: 'text-purple-600',
-          iconBg: 'bg-purple-50',
+          color: 'text-teal-600',
+          iconBg: 'bg-teal-50',
         },
         {
           label: '已完成项目',
@@ -238,8 +234,8 @@ export default function AdminDashboard() {
           value: s.shots.total.toLocaleString(),
           sub: `成功率 ${shotSuccessRate}%`,
           icon: Clapperboard,
-          color: 'text-violet-600',
-          iconBg: 'bg-violet-50',
+          color: 'text-indigo-600',
+          iconBg: 'bg-indigo-50',
         },
         {
           label: '今日新建',
@@ -253,8 +249,8 @@ export default function AdminDashboard() {
           label: '今日新用户',
           value: s.today.newUsers,
           icon: Users,
-          color: 'text-pink-600',
-          iconBg: 'bg-pink-50',
+          color: 'text-rose-600',
+          iconBg: 'bg-rose-50',
         },
         {
           label: '未读反馈',
@@ -278,7 +274,7 @@ export default function AdminDashboard() {
   }));
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="flex-1 overflow-y-auto bg-[#f5f7fa]">
       <div className="p-6 space-y-6">
         {/* 今日财务速览 —— 置顶高亮 */}
         {s && (
@@ -289,7 +285,7 @@ export default function AdminDashboard() {
               value={`$${((s.today.rechargeCents ?? 0) / 100).toFixed(2)}`}
               sub="点击查看财务总览"
               icon={Wallet}
-              gradient="from-emerald-500 to-teal-600"
+              tone="border-l-teal-500"
             />
             <FinanceCard
               href="/admin/billing/cost"
@@ -297,7 +293,7 @@ export default function AdminDashboard() {
               value={`¥${(s.today.costCny ?? 0).toFixed(2)}`}
               sub="点击查看成本统计"
               icon={Coins}
-              gradient="from-amber-500 to-orange-600"
+              tone="border-l-amber-500"
             />
           </div>
         )}
@@ -324,7 +320,7 @@ export default function AdminDashboard() {
         <ChartCard title="近 14 天 MV 项目趋势">
           {trendsQuery.isLoading ? (
             <div className="h-64 flex items-center justify-center">
-              <Loader2 className="h-5 w-5 text-purple-500 animate-spin" />
+              <Loader2 className="h-5 w-5 text-teal-600 animate-spin" />
             </div>
           ) : dailyData.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-sm text-slate-400">
@@ -365,9 +361,9 @@ export default function AdminDashboard() {
                   type="monotone"
                   dataKey="created"
                   name="新建"
-                  stroke="#a78bfa"
+                  stroke="#14b8a6"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: '#a78bfa' }}
+                  dot={{ r: 3, fill: '#14b8a6' }}
                   activeDot={{ r: 5 }}
                 />
                 <Line
@@ -397,7 +393,7 @@ export default function AdminDashboard() {
           <ChartCard title="项目状态分布">
             {statusQuery.isLoading ? (
               <div className="h-48 flex items-center justify-center">
-                <Loader2 className="h-5 w-5 text-purple-500 animate-spin" />
+                <Loader2 className="h-5 w-5 text-teal-600 animate-spin" />
               </div>
             ) : statusData.length === 0 ? (
               <div className="h-48 flex items-center justify-center text-sm text-slate-400">

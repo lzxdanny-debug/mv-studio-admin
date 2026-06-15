@@ -189,7 +189,7 @@ export default function RefundReviewPage() {
       <div className="p-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Undo2 className="h-5 w-5 text-purple-600" />
+            <Undo2 className="h-5 w-5 text-teal-600" />
             退款审核
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -210,7 +210,7 @@ export default function RefundReviewPage() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
                 status === t.value
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-teal-600 text-white'
                   : 'text-slate-500 hover:text-slate-700',
               )}
             >
@@ -276,7 +276,7 @@ function RefundAnalytics() {
               onClick={() => setPreset(p)}
               className={cn(
                 'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                preset === p ? 'bg-purple-600 text-white' : 'text-slate-500 hover:text-slate-700',
+                preset === p ? 'bg-teal-600 text-white' : 'text-slate-500 hover:text-slate-700',
               )}
             >
               {RANGE_LABEL[p]}
@@ -507,7 +507,7 @@ function RefundDrawer({
             <InfoRow label="剩余未消费">{unconsumed}</InfoRow>
             <div className="pt-2 mt-1 border-t border-slate-100">
               <InfoRow label="系统建议退款额">
-                <span className="text-purple-600">{usd(row.suggestedAmountCents)}</span>
+                <span className="text-teal-600">{usd(row.suggestedAmountCents)}</span>
               </InfoRow>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
@@ -529,7 +529,7 @@ function RefundDrawer({
                     min="0"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full h-9 pl-7 pr-3 rounded-lg border border-slate-200 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                    className="w-full h-9 pl-7 pr-3 rounded-lg border border-slate-200 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-teal-500/30"
                   />
                 </div>
                 <p className="mt-1 text-[11px] text-slate-400">
@@ -543,7 +543,7 @@ function RefundDrawer({
                   onChange={(e) => setNote(e.target.value)}
                   rows={2}
                   placeholder="可选，记录审核理由"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
                 />
               </div>
             </>
@@ -573,7 +573,7 @@ function RefundDrawer({
             <button
               onClick={() => review.mutate({ action: 'approve' })}
               disabled={review.isPending || Number(amount) <= 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50"
             >
               {review.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

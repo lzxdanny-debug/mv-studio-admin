@@ -67,7 +67,7 @@ export function QueryState({
     return (
       <div className={`flex items-center justify-center ${height}`}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-7 h-7 border-2 border-slate-300 border-t-purple-500 rounded-full animate-spin" />
+          <div className="w-7 h-7 border-2 border-slate-300 border-t-teal-500 rounded-full animate-spin" />
           <p className="text-sm text-slate-400">加载中…</p>
         </div>
       </div>
@@ -89,7 +89,7 @@ export function QueryState({
           {isAuth ? (
             <button
               onClick={goToLogin}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium transition-colors"
             >
               <LogIn className="h-3.5 w-3.5" />
               重新登录

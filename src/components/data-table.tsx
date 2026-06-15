@@ -50,7 +50,7 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const isEmpty = !isLoading && !isError && (!rows || rows.length === 0);
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
       <QueryState
         isLoading={isLoading}
         isError={isError}
@@ -61,13 +61,13 @@ export function DataTable<T>({
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-100/80 border-b border-slate-200">
               <tr>
                 {columns.map((col) => (
                   <th
                     key={col.key}
                     className={cn(
-                      'px-4 py-3 text-xs font-medium text-slate-500 whitespace-nowrap',
+                      'px-4 py-3 text-xs font-semibold text-slate-500 whitespace-nowrap',
                       col.width,
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
@@ -84,7 +84,7 @@ export function DataTable<T>({
                 <tr
                   key={rowKey(row)}
                   className={cn(
-                    'hover:bg-slate-50 transition-colors',
+                    'hover:bg-teal-50/40 transition-colors',
                     onRowClick && 'cursor-pointer',
                   )}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}

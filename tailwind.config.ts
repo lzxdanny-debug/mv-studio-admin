@@ -8,6 +8,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      borderRadius: {
+        '2xl': '0.5rem',
+        xl: '0.5rem',
+        lg: '0.5rem',
+      },
       keyframes: {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },

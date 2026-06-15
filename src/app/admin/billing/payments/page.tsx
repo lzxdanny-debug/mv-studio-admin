@@ -101,7 +101,7 @@ export default function AdminPaymentsPage() {
           <Link
             href={`/admin/users/${row.userId}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-sm font-medium text-purple-700 hover:underline truncate block"
+            className="text-sm font-medium text-teal-700 hover:underline truncate block"
           >
             {row.userDisplayName || '—'}
           </Link>
@@ -184,7 +184,7 @@ export default function AdminPaymentsPage() {
       <div className="p-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-purple-600" />
+            <Receipt className="h-5 w-5 text-teal-600" />
             充值记录
           </h1>
           <p className="text-sm text-slate-500 mt-1">全站 Stripe 充值与会员订阅支付流水（点击行查看详情）</p>
@@ -211,7 +211,7 @@ export default function AdminPaymentsPage() {
                 }}
                 className={cn(
                   'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  rangePreset === p ? 'bg-purple-600 text-white' : 'text-slate-500 hover:text-slate-700',
+                  rangePreset === p ? 'bg-teal-600 text-white' : 'text-slate-500 hover:text-slate-700',
                 )}
               >
                 {p === 'all' ? '全部时间' : RANGE_LABEL[p]}

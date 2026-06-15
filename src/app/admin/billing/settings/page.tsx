@@ -9,7 +9,7 @@ export default function AdminBillingSettingsPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-purple-600" />
+            <CreditCard className="h-5 w-5 text-teal-600" />
             充值设置
           </h1>
           <p className="text-sm text-slate-500 mt-1">

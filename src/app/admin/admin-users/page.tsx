@@ -177,7 +177,7 @@ export default function AdminStaffPage() {
           {row.roles.map((r) => (
             <span
               key={r.id}
-              className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100"
+              className="text-[10px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-100"
             >
               {r.name}
             </span>
@@ -258,7 +258,7 @@ export default function AdminStaffPage() {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-purple-600" />
+              <KeyRound className="h-5 w-5 text-teal-600" />
               后台管理员
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -267,7 +267,7 @@ export default function AdminStaffPage() {
           </div>
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-purple-600 text-white hover:bg-purple-700"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white hover:bg-teal-700"
           >
             <Plus className="h-4 w-4" />
             添加管理员
@@ -388,7 +388,7 @@ export default function AdminStaffPage() {
                   form.roleIds.length === 0 ||
                   (!editing && (!form.email || !form.password))
                 }
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-purple-600 text-white disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white disabled:opacity-50"
               >
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 保存

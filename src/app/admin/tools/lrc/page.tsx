@@ -58,7 +58,7 @@ export default function AdminLrcTasksPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-purple-600" />
+              <FileText className="h-5 w-5 text-teal-600" />
               LRC 任务
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -129,7 +129,7 @@ export default function AdminLrcTasksPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/tools/lrc/${task.id}`}
-                        className="text-purple-700 hover:underline font-medium truncate block max-w-xs"
+                        className="text-teal-700 hover:underline font-medium truncate block max-w-xs"
                       >
                         {task.projectTitle || task.projectId.slice(0, 8)}
                       </Link>

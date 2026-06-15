@@ -55,7 +55,7 @@ export default function BillingProfitPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <TrendingUp className="h-5 w-5 text-teal-600" />
               利润分析
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -112,7 +112,7 @@ export default function BillingProfitPage() {
               className={cn(
                 'rounded-2xl p-5 shadow-sm border text-white',
                 grossProfitCny >= 0
-                  ? 'bg-gradient-to-br from-purple-600 to-indigo-600 border-purple-400/30'
+                  ? 'bg-gradient-to-br from-teal-600 to-indigo-600 border-teal-400/30'
                   : 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400/30',
               )}
             >

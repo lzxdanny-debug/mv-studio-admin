@@ -139,7 +139,7 @@ export function StripeConfigSection() {
                   type="text"
                   value={form.successUrl}
                   onChange={(e) => setForm((f) => ({ ...f, successUrl: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -148,7 +148,7 @@ export function StripeConfigSection() {
                   type="text"
                   value={form.cancelUrl}
                   onChange={(e) => setForm((f) => ({ ...f, cancelUrl: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                 />
               </div>
               <div>
@@ -158,7 +158,7 @@ export function StripeConfigSection() {
                   value={form.currency}
                   onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
                   placeholder="usd"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                 />
               </div>
             </div>
@@ -182,7 +182,7 @@ export function StripeConfigSection() {
               <button
                 type="submit"
                 disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存配置'}

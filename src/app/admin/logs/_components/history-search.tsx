@@ -170,7 +170,7 @@ export function HistorySearch({ files }: Props) {
               type="checkbox"
               checked={regex}
               onChange={(e) => setRegex(e.target.checked)}
-              className="accent-purple-600"
+              className="accent-teal-600"
             />
             正则
           </label>
@@ -178,7 +178,7 @@ export function HistorySearch({ files }: Props) {
           <button
             onClick={onSearch}
             disabled={search.isFetching || totalSize > SEARCH_TOTAL_HARD_LIMIT}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium"
             title={
               totalSize > SEARCH_TOTAL_HARD_LIMIT
                 ? '选中文件总大小超 2GB 硬上限，请缩小范围'
@@ -236,7 +236,7 @@ export function HistorySearch({ files }: Props) {
               type="checkbox"
               checked={includeArchived}
               onChange={(e) => toggleArchived(e.target.checked)}
-              className="accent-purple-600"
+              className="accent-teal-600"
             />
             包含 logrotate 历史归档（共 {files.filter((f) => !f.active).length} 个）
           </label>

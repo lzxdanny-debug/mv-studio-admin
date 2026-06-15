@@ -72,7 +72,7 @@ export default function AdminLogsPage() {
       <div className="px-6 pt-6 pb-3 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Terminal className="h-5 w-5 text-purple-600" />
+            <Terminal className="h-5 w-5 text-teal-600" />
             系统日志
           </h1>
           <p className="text-sm text-slate-500 mt-1">

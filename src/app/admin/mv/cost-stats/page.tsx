@@ -117,7 +117,7 @@ export default function CostStatsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <LineChart className="h-5 w-5 text-purple-600" />
+              <LineChart className="h-5 w-5 text-teal-600" />
               成本统计
             </h1>
             <p className="text-sm text-slate-500 mt-1">

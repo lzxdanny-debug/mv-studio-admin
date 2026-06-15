@@ -106,7 +106,7 @@ export function PackagesSection({ showHeader = true }: { showHeader?: boolean })
         <button
           type="button"
           onClick={() => setDraft({ ...EMPTY_PACKAGE })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium"
         >
           <Plus className="h-3.5 w-3.5" /> 新建套餐
         </button>
@@ -209,10 +209,10 @@ function PackageRow({
   };
 
   const cellInput =
-    'w-full px-2 py-1 text-sm border border-transparent hover:border-slate-200 focus:border-purple-400 rounded focus:outline-none bg-transparent';
+    'w-full px-2 py-1 text-sm border border-transparent hover:border-slate-200 focus:border-teal-400 rounded focus:outline-none bg-transparent';
 
   return (
-    <tr className={cn(isNew && 'bg-purple-50/40')}>
+    <tr className={cn(isNew && 'bg-teal-50/40')}>
       <td className="px-3 py-1.5">
         <input
           className={cellInput}
@@ -257,7 +257,7 @@ function PackageRow({
           type="checkbox"
           checked={local.isActive ?? true}
           onChange={(e) => patch({ isActive: e.target.checked })}
-          className="accent-purple-600"
+          className="accent-teal-600"
         />
       </td>
       <td className="px-3 py-1.5">
@@ -283,7 +283,7 @@ function PackageRow({
                 type="button"
                 onClick={() => onSave(local)}
                 disabled={saving || !dirty}
-                className="p-1.5 rounded text-purple-600 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 rounded text-teal-600 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={dirty ? '保存' : '已保存'}
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}

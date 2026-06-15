@@ -90,11 +90,11 @@ export function PaginationBar({
   const btnBase =
     'min-w-[1.75rem] h-7 px-1.5 rounded-lg text-xs font-medium transition-colors';
   const btnIdle = 'text-slate-600 hover:bg-white border border-transparent';
-  const btnActive = 'bg-purple-600 text-white border border-purple-600 shadow-sm';
+  const btnActive = 'bg-teal-600 text-white border border-teal-600 shadow-sm';
   const btnDisabled = 'opacity-30 cursor-not-allowed';
 
   const selectCls =
-    'h-7 pl-2 pr-6 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-400';
+    'h-7 pl-2 pr-6 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400';
 
   return (
     <div
@@ -204,7 +204,7 @@ export function PaginationBar({
                   }
                 }}
                 placeholder="页码"
-                className="w-14 h-7 px-2 text-xs text-center border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-14 h-7 px-2 text-xs text-center border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"
                 aria-label="跳转页码"
               />
               <button

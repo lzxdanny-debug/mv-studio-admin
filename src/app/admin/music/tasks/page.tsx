@@ -76,7 +76,7 @@ export default function AdminMusicTasksPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Disc3 className="h-5 w-5 text-violet-600" />
+              <Disc3 className="h-5 w-5 text-teal-600" />
               音乐任务
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -152,7 +152,7 @@ export default function AdminMusicTasksPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/music/tasks/${task.id}`}
-                        className="text-violet-700 hover:underline font-medium truncate block max-w-xs"
+                        className="text-teal-700 hover:underline font-medium truncate block max-w-xs"
                       >
                         {task.prompt || task.id.slice(0, 8)}
                       </Link>

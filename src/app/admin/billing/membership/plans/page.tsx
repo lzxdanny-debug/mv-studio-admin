@@ -9,7 +9,7 @@ export default function BillingMembershipPlansPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Crown className="h-5 w-5 text-purple-600" />
+            <Crown className="h-5 w-5 text-teal-600" />
             会员套餐
           </h1>
           <p className="text-sm text-slate-500 mt-1">

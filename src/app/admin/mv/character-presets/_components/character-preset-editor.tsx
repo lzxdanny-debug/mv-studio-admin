@@ -189,8 +189,8 @@ export function CharacterPresetEditor({
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
-              <ImageIcon className="h-3.5 w-3.5 text-purple-600" />
+            <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
+              <ImageIcon className="h-3.5 w-3.5 text-teal-600" />
             </div>
             <h2 className="text-base font-semibold text-slate-900">
               {mode === 'create' ? '新建默认角色图' : `编辑「${preset?.name}」`}
@@ -211,7 +211,7 @@ export function CharacterPresetEditor({
               onClick={() => setTab('ai')}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all',
-                tab === 'ai' ? 'bg-white shadow-sm text-purple-700' : 'text-slate-500',
+                tab === 'ai' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500',
               )}
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -221,7 +221,7 @@ export function CharacterPresetEditor({
               onClick={() => setTab('upload')}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all',
-                tab === 'upload' ? 'bg-white shadow-sm text-purple-700' : 'text-slate-500',
+                tab === 'upload' ? 'bg-white shadow-sm text-teal-700' : 'text-slate-500',
               )}
             >
               <Upload className="h-3.5 w-3.5" />
@@ -241,7 +241,7 @@ export function CharacterPresetEditor({
                 onChange={(e) => setName(e.target.value)}
                 maxLength={100}
                 placeholder='例如：Neon Diva'
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
               />
             </FieldRow>
 
@@ -249,7 +249,7 @@ export function CharacterPresetEditor({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400"
               >
                 {CATEGORY_OPTIONS.map((c) => (
                   <option key={c.value || 'none'} value={c.value}>
@@ -268,14 +268,14 @@ export function CharacterPresetEditor({
                     className={cn(
                       'px-3 py-2 rounded-xl border text-left text-xs transition-all',
                       subjectType === opt.value
-                        ? 'border-purple-400 bg-purple-50'
+                        ? 'border-teal-400 bg-teal-50'
                         : 'border-slate-200 hover:border-slate-300',
                     )}
                   >
                     <div
                       className={cn(
                         'font-medium',
-                        subjectType === opt.value ? 'text-purple-700' : 'text-slate-700',
+                        subjectType === opt.value ? 'text-teal-700' : 'text-slate-700',
                       )}
                     >
                       {opt.label}
@@ -300,7 +300,7 @@ export function CharacterPresetEditor({
                   rows={6}
                   maxLength={2000}
                   placeholder="A confident female pop star with neon pink hair, glowing makeup, futuristic stage outfit, looking at camera, studio lighting, high detail, 1:1 portrait"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 font-mono leading-relaxed"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 font-mono leading-relaxed"
                 />
               </FieldRow>
               <div className="text-[11px] text-slate-400 leading-relaxed">
@@ -346,7 +346,7 @@ export function CharacterPresetEditor({
             <button
               onClick={() => createAI.mutate()}
               disabled={!aiSubmittable || isBusy}
-              className="px-4 py-1.5 rounded-xl text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 flex items-center gap-1.5"
             >
               {createAI.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               创建（AI 生成）
@@ -357,7 +357,7 @@ export function CharacterPresetEditor({
             <button
               onClick={() => createUpload.mutate()}
               disabled={!uploadSubmittable || isBusy}
-              className="px-4 py-1.5 rounded-xl text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 flex items-center gap-1.5"
             >
               {createUpload.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               创建（直传）
@@ -378,7 +378,7 @@ export function CharacterPresetEditor({
                 onClick={() => updateMetaAndRegenerate.mutate()}
                 disabled={!aiSubmittable || isBusy || !preset?.prompt}
                 title={!preset?.prompt ? '该预设是直传创建，无法 AI 重生；请用「替换图片」' : undefined}
-                className="px-4 py-1.5 rounded-xl text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 flex items-center gap-1.5"
               >
                 {updateMetaAndRegenerate.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 保存并重新生成
@@ -390,7 +390,7 @@ export function CharacterPresetEditor({
             <button
               onClick={() => replaceImage.mutate()}
               disabled={!uploadSubmittable || isBusy}
-              className="px-4 py-1.5 rounded-xl text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 flex items-center gap-1.5"
             >
               {replaceImage.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               替换图片
@@ -442,7 +442,7 @@ function FilePicker({
   return (
     <div className="flex items-start gap-3">
       <label className="flex-1 cursor-pointer">
-        <div className="border-2 border-dashed border-slate-200 hover:border-purple-300 rounded-xl px-4 py-6 text-center transition-colors">
+        <div className="border-2 border-dashed border-slate-200 hover:border-teal-300 rounded-xl px-4 py-6 text-center transition-colors">
           <Upload className="h-5 w-5 text-slate-400 mx-auto mb-1.5" />
           <p className="text-xs text-slate-600">
             {file ? file.name : '点击选择文件'}

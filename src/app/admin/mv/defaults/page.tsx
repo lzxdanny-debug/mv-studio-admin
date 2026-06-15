@@ -37,7 +37,7 @@ export default function AdminMvDefaultsPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-purple-600" />
+            <SlidersHorizontal className="h-5 w-5 text-teal-600" />
             MV 默认配置
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -196,7 +196,7 @@ function MvSubtitleDefaultSection() {
               checked={draft.enabled}
               onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
             />
-            <div className="w-9 h-5 bg-slate-300 peer-checked:bg-purple-600 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+            <div className="w-9 h-5 bg-slate-300 peer-checked:bg-teal-600 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
           </label>
         </div>
 
@@ -232,7 +232,7 @@ function MvSubtitleDefaultSection() {
                   className={cn(
                     'rounded-xl border p-2 text-left transition',
                     active
-                      ? 'border-purple-500 bg-purple-50 ring-1 ring-purple-300'
+                      ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-300'
                       : 'border-slate-200 hover:border-slate-300 bg-white',
                   )}
                 >
@@ -265,7 +265,7 @@ function MvSubtitleDefaultSection() {
                   className={cn(
                     'rounded-lg border px-2 py-1.5 text-xs transition',
                     active
-                      ? 'border-purple-500 bg-purple-50 text-purple-700 font-medium'
+                      ? 'border-teal-500 bg-teal-50 text-teal-700 font-medium'
                       : 'border-slate-200 hover:border-slate-300 text-slate-600',
                   )}
                 >
@@ -293,7 +293,7 @@ function MvSubtitleDefaultSection() {
             onChange={(e) =>
               setDraft({ ...draft, fontSizePct: parseFloat(parseFloat(e.target.value).toFixed(1)) })
             }
-            className="w-full accent-purple-600"
+            className="w-full accent-teal-600"
           />
           <div className="flex justify-between text-[10px] text-slate-300 mt-0.5">
             <span>2.5</span>
@@ -320,7 +320,7 @@ function MvSubtitleDefaultSection() {
             type="button"
             onClick={() => save.mutate(draft)}
             disabled={!dirty || save.isPending}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
           >
             <Sparkles className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
             {save.isPending ? '保存中…' : dirty ? '保存默认配置' : '已保存'}
@@ -338,7 +338,7 @@ function MvSubtitleDefaultSection() {
             }}
             disabled={push.isPending || dirty}
             title={dirty ? '请先保存当前修改' : '推送给 subtitle_config=null 的项目'}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium text-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium text-slate-700 transition-colors"
           >
             <Upload className={cn('h-3.5 w-3.5', push.isPending && 'animate-spin')} />
             {push.isPending ? '推送中…' : '推送到未设置项目'}
@@ -529,7 +529,7 @@ function MvWatermarkSection() {
               checked={draft.enabled}
               onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
             />
-            <div className="w-9 h-5 bg-slate-300 peer-checked:bg-purple-600 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
+            <div className="w-9 h-5 bg-slate-300 peer-checked:bg-teal-600 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4" />
           </label>
         </div>
 
@@ -588,7 +588,7 @@ function MvWatermarkSection() {
                 className={cn(
                   'rounded-lg border px-2 py-1.5 text-xs transition',
                   draft.position === p.v
-                    ? 'border-purple-500 bg-purple-50 text-purple-700 font-medium'
+                    ? 'border-teal-500 bg-teal-50 text-teal-700 font-medium'
                     : 'border-slate-200 hover:border-slate-300 text-slate-600',
                 )}
               >
@@ -611,7 +611,7 @@ function MvWatermarkSection() {
               step={0.05}
               value={draft.opacity}
               onChange={(e) => setDraft({ ...draft, opacity: parseFloat(e.target.value) })}
-              className="w-full accent-purple-600"
+              className="w-full accent-teal-600"
             />
           </div>
           <div>
@@ -626,7 +626,7 @@ function MvWatermarkSection() {
               step={0.01}
               value={draft.scale}
               onChange={(e) => setDraft({ ...draft, scale: parseFloat(e.target.value) })}
-              className="w-full accent-purple-600"
+              className="w-full accent-teal-600"
             />
           </div>
         </div>
@@ -668,7 +668,7 @@ function MvWatermarkSection() {
             type="button"
             onClick={() => save.mutate(draft)}
             disabled={!dirty || save.isPending}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
           >
             <Sparkles className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
             {save.isPending ? '保存中…' : dirty ? '保存配置' : '已保存'}
@@ -875,7 +875,7 @@ function AudioCompressionSection() {
             type="button"
             onClick={() => save.mutate(draft)}
             disabled={!dirty || save.isPending}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
           >
             <Sparkles className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
             {save.isPending ? '保存中…' : dirty ? '保存配置' : '已保存'}
@@ -907,7 +907,7 @@ function ScenarioField({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white font-mono tabular-nums"
+        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white font-mono tabular-nums"
       />
       {hint && (
         <p className="text-[10px] text-slate-400 mt-1">{hint}</p>

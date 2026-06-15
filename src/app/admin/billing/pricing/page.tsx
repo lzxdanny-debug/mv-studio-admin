@@ -72,7 +72,7 @@ function Switch({
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
       className={cn(
-        'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2',
+        'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2',
         checked ? 'bg-emerald-500' : 'bg-slate-300',
         disabled && 'opacity-50 cursor-not-allowed',
       )}
@@ -177,7 +177,7 @@ export default function PricingConfigPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-purple-600" />
+            <SlidersHorizontal className="h-5 w-5 text-teal-600" />
             定价策略
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -280,7 +280,7 @@ export default function PricingConfigPage() {
                       <button
                         type="button"
                         onClick={() => setOpenHelp(openHelp === p.key ? null : p.key)}
-                        className="text-slate-400 hover:text-purple-600 flex-shrink-0"
+                        className="text-slate-400 hover:text-teal-600 flex-shrink-0"
                         title="查看说明"
                       >
                         <HelpCircle className="h-3.5 w-3.5" />
@@ -316,7 +316,7 @@ export default function PricingConfigPage() {
                       onChange={(e) =>
                         setForm((f) => ({ ...f, [p.key]: Number(e.target.value) }))
                       }
-                      className="flex-1 min-w-0 px-3 py-1.5 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
+                      className="flex-1 min-w-0 px-3 py-1.5 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
                     />
                     {p.unit && (
                       <span className="text-xs text-slate-400 w-10 flex-shrink-0">
@@ -390,7 +390,7 @@ export default function PricingConfigPage() {
                 save.mutate(payload);
               }}
               disabled={save.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
             >
               <Save className="h-3.5 w-3.5" />
               {save.isPending ? '保存中…' : '保存定价参数'}

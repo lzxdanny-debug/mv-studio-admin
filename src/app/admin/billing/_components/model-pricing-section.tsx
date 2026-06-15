@@ -125,7 +125,7 @@ export function ModelPricingSection() {
       <div className="flex items-start justify-between gap-4 mb-1">
         <div>
           <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-            <Boxes className="h-4 w-4 text-purple-600" />
+            <Boxes className="h-4 w-4 text-teal-600" />
             模型定价（单次调用）
           </h2>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -154,7 +154,7 @@ export function ModelPricingSection() {
               className={cn(
                 'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                 tab === c.channel
-                  ? 'border-purple-600 text-purple-700'
+                  ? 'border-teal-600 text-teal-700'
                   : 'border-transparent text-slate-500 hover:text-slate-800',
               )}
             >
@@ -238,7 +238,7 @@ export function ModelPricingSection() {
                               },
                             }))
                           }
-                          className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50"
+                          className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
                         />
                       </td>
                       <td className="px-3 py-2.5 text-right align-top">
@@ -256,7 +256,7 @@ export function ModelPricingSection() {
                               },
                             }))
                           }
-                          className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-emerald-50/60"
+                          className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-emerald-50/60"
                         />
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs text-slate-500 align-top">
@@ -272,7 +272,7 @@ export function ModelPricingSection() {
                               [key]: { ...e, enabled: ev.target.checked },
                             }))
                           }
-                          className="accent-purple-600"
+                          className="accent-teal-600"
                         />
                       </td>
                     </tr>
@@ -300,7 +300,7 @@ export function ModelPricingSection() {
             type="button"
             onClick={handleSave}
             disabled={save.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
           >
             <Save className="h-3.5 w-3.5" />
             {save.isPending ? '保存中…' : '保存模型定价'}

@@ -131,8 +131,8 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     provider: 'fal',
     title: 'Fal.ai',
     icon: Sparkles,
-    iconWrap: 'bg-pink-50',
-    iconColor: 'text-pink-600',
+    iconWrap: 'bg-rose-50',
+    iconColor: 'text-rose-600',
     desc:
       'nano-banana / veo3 / seedance / kling / wan —— 视频生成强项，多模型聚合。文本走 any-llm 代理。',
     consoleUrl: 'https://fal.ai/dashboard/keys',
@@ -151,8 +151,8 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     provider: 'mountsea',
     title: 'Mountsea',
     icon: ServerCog,
-    iconWrap: 'bg-purple-50',
-    iconColor: 'text-purple-600',
+    iconWrap: 'bg-teal-50',
+    iconColor: 'text-teal-600',
     desc: '现网主力。Gemini Audio（LRC 转写 / 音乐分析）锁死该 provider。',
     consoleUrl: 'https://api.mountsea.ai',
     secretFields: [
@@ -208,7 +208,7 @@ export default function AiProvidersPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Cloud className="h-4 w-4 text-purple-600" />
+              <Cloud className="h-4 w-4 text-teal-600" />
               AI Provider 凭证
             </h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -425,7 +425,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                   placeholder={masked ? `留空则不修改（当前 ${masked}）` : f.placeholder}
                   value={form[f.key] ?? ''}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50 font-mono"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 font-mono"
                 />
               </div>
             );
@@ -469,7 +469,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                 placeholder={meta.baseUrlPlaceholder}
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50 font-mono"
+                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 font-mono"
               />
             </div>
           ) : view.baseUrl ? (
@@ -505,7 +505,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                 href={meta.consoleUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-purple-600 hover:underline font-medium"
+                className="text-teal-600 hover:underline font-medium"
               >
                 获取/查看凭证 ↗
               </a>
@@ -553,7 +553,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
               type="button"
               onClick={() => save.mutate()}
               disabled={save.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium"
             >
               <KeyRound className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
               {save.isPending ? '保存中…' : '保存凭证'}
@@ -572,7 +572,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
             <button
               type="button"
               onClick={enterEdit}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium"
             >
               <KeyRound className="h-3.5 w-3.5" />
               {view.configured ? '编辑凭证' : '配置凭证'}
@@ -629,7 +629,7 @@ function SourceBadge({ source }: { source: 'db' | 'env' | 'none' }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700">
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-teal-50 text-teal-700">
       <Database className="h-3 w-3" />
       DB
     </span>
@@ -719,7 +719,7 @@ function AuditLogsSection() {
               className={cn(
                 'px-2 py-1 rounded-lg border',
                 providerFilter === ''
-                  ? 'bg-purple-50 border-purple-300 text-purple-700'
+                  ? 'bg-teal-50 border-teal-300 text-teal-700'
                   : 'bg-white border-slate-200 text-slate-600',
               )}
             >
@@ -732,7 +732,7 @@ function AuditLogsSection() {
                 className={cn(
                   'px-2 py-1 rounded-lg border',
                   providerFilter === p
-                    ? 'bg-purple-50 border-purple-300 text-purple-700'
+                    ? 'bg-teal-50 border-teal-300 text-teal-700'
                     : 'bg-white border-slate-200 text-slate-600',
                 )}
               >
@@ -817,7 +817,7 @@ function ActionBadge({ action }: { action: string }) {
     updated: 'bg-blue-50 text-blue-700',
     rotated: 'bg-blue-50 text-blue-700',
     viewed: 'bg-slate-100 text-slate-600',
-    tested: 'bg-purple-50 text-purple-700',
+    tested: 'bg-teal-50 text-teal-700',
     enabled: 'bg-emerald-50 text-emerald-700',
     disabled: 'bg-amber-50 text-amber-700',
   };

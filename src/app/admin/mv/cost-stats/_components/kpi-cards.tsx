@@ -67,7 +67,7 @@ export function KpiCards({ payload }: KpiCardsProps) {
       />
 
       <KpiCard
-        icon={<DollarSign className="h-4 w-4 text-purple-500" />}
+        icon={<DollarSign className="h-4 w-4 text-teal-500" />}
         label="估算总成本"
         value={formatUsd(estTotalUsd)}
         helper={

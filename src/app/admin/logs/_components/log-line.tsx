@@ -72,7 +72,7 @@ export function LogLineRow({ file, lineNumber, parsed, highlight }: Props) {
         {style.label}
       </span>
       {parsed.context && (
-        <span className="flex-shrink-0 text-purple-600 truncate max-w-[160px]" title={parsed.context}>
+        <span className="flex-shrink-0 text-teal-600 truncate max-w-[160px]" title={parsed.context}>
           [{parsed.context}]
         </span>
       )}

@@ -31,7 +31,7 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
 };
 
 const PLAN_INPUT_CLS =
-  'w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-slate-50';
+  'w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50';
 
 /** 只提交可写字段，避免 id / createdAt 等污染 PATCH */
 function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitlement> {
@@ -134,7 +134,7 @@ export function PlansSection({
         )}
         <button
           onClick={() => setDraft({ ...EMPTY_PLAN })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium"
         >
           <Plus className="h-3.5 w-3.5" /> 新建计划
         </button>
@@ -233,7 +233,7 @@ function PlanCard({
   const showEntitlements = variant === 'full' || variant === 'entitlements';
 
   return (
-    <div className={cn('bg-white border rounded-2xl p-4', isNew ? 'border-purple-300' : 'border-slate-200')}>
+    <div className={cn('bg-white border rounded-2xl p-4', isNew ? 'border-teal-300' : 'border-slate-200')}>
       {variant === 'entitlements' && !isNew && (
         <div className="flex items-baseline gap-2 mb-3 pb-3 border-b border-slate-100">
           <span className="text-sm font-semibold text-slate-900">{local.name || '—'}</span>
@@ -397,7 +397,7 @@ function PlanCard({
           type="button"
           onClick={() => onSave(local)}
           disabled={saving || (!isNew && !dirty)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium"
         >
           {saving ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -422,7 +422,7 @@ function Toggle({
 }) {
   return (
     <label className="inline-flex items-center gap-1.5 cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-purple-600" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-teal-600" />
       {label}
     </label>
   );

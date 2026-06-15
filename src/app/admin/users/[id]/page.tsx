@@ -248,7 +248,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             <>
               <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-rose-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -359,7 +359,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         <li key={p.id} className="py-2 flex items-center justify-between gap-2">
                           <Link
                             href={`/admin/mv/projects/${p.id}`}
-                            className="text-sm text-slate-700 hover:text-purple-600 truncate min-w-0"
+                            className="text-sm text-slate-700 hover:text-teal-600 truncate min-w-0"
                           >
                             {p.title || '(未命名)'}
                           </Link>
@@ -434,7 +434,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         <li key={m.id} className="py-2 flex items-center justify-between gap-2">
                           <Link
                             href={`/admin/music/tasks/${m.id}`}
-                            className="text-sm text-slate-700 hover:text-purple-600 truncate min-w-0"
+                            className="text-sm text-slate-700 hover:text-teal-600 truncate min-w-0"
                           >
                             {m.title}
                           </Link>
@@ -475,7 +475,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         <li key={l.id} className="py-2 flex items-center justify-between gap-2">
                           <Link
                             href={`/admin/music/tasks/${l.id}`}
-                            className="text-sm text-slate-700 hover:text-purple-600 truncate min-w-0"
+                            className="text-sm text-slate-700 hover:text-teal-600 truncate min-w-0"
                           >
                             {l.title}
                           </Link>

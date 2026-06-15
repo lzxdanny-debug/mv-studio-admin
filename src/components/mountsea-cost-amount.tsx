@@ -15,7 +15,7 @@ function safeCredits(value: number | null | undefined): number {
 export function MountseaCostAmount({
   credits,
   align = 'right',
-  amountClassName = 'text-purple-700 font-medium',
+  amountClassName = 'text-teal-700 font-medium',
   cnyPerUsd = DEFAULT_CNY_PER_USD,
   showUsd = true,
 }: {

@@ -88,7 +88,7 @@ export function PermissionTabs<T extends string>({
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition',
               current.key === t.key
-                ? 'bg-purple-600 text-white'
+                ? 'bg-teal-600 text-white'
                 : 'text-slate-500 hover:bg-slate-100',
             )}
           >

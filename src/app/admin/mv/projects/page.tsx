@@ -186,13 +186,13 @@ export default function AdminMvProjectsPage() {
           <div className="flex items-center gap-1.5">
             <Link
               href={`/admin/mv/projects/${row.id}`}
-              className="font-medium text-slate-900 hover:text-purple-600 truncate"
+              className="font-medium text-slate-900 hover:text-teal-600 truncate"
             >
               {row.title || '(未命名)'}
             </Link>
             {row.importSource && (
               <span
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 flex-shrink-0"
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-teal-100 text-teal-700 flex-shrink-0"
                 title={
                   `从其它环境导入\n` +
                   `源用户：${row.importSource.sourceUserDisplayName ?? '—'}` +
@@ -272,7 +272,7 @@ export default function AdminMvProjectsPage() {
               void handleExport(row);
             }}
             disabled={isExporting}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-purple-600 hover:bg-purple-50 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-teal-600 hover:bg-teal-50 disabled:opacity-50 transition-colors"
             title="导出项目 JSON（含全部 shots/planning/assets）"
           >
             {isExporting ? (
@@ -293,7 +293,7 @@ export default function AdminMvProjectsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Film className="h-5 w-5 text-purple-600" />
+              <Film className="h-5 w-5 text-teal-600" />
               MV 项目
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -330,7 +330,7 @@ export default function AdminMvProjectsPage() {
               disabled={importing || !importEnabled}
               className={
                 importEnabled
-                  ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50'
+                  ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50'
                   : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-200 text-slate-500 cursor-not-allowed'
               }
               title={
@@ -369,7 +369,7 @@ export default function AdminMvProjectsPage() {
                 }}
                 className={
                   status === opt.value
-                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-600 text-white'
+                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-600 text-white'
                     : 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
                 }
               >

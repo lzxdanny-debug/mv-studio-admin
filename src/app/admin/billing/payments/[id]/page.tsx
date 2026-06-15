@@ -151,7 +151,7 @@ export default function PaymentDetailPage({
                   <Row label="用户">
                     <Link
                       href={`/admin/users/${data.user.id}`}
-                      className="text-purple-700 hover:underline"
+                      className="text-teal-700 hover:underline"
                     >
                       {data.user.displayName || data.user.email || data.user.id.slice(0, 8)}
                     </Link>
@@ -212,7 +212,7 @@ export default function PaymentDetailPage({
                     href={`https://dashboard.stripe.com/payments/${data.providerPaymentId}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-purple-600 hover:underline mt-2"
+                    className="inline-flex items-center gap-1 text-xs text-teal-600 hover:underline mt-2"
                   >
                     在 Stripe 后台查看 <ExternalLink className="h-3 w-3" />
                   </a>

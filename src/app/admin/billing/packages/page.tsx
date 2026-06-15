@@ -9,7 +9,7 @@ export default function BillingPackagesPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-purple-600" />
+            <ShoppingBag className="h-5 w-5 text-teal-600" />
             积分套餐
           </h1>
           <p className="text-sm text-slate-500 mt-1">
