@@ -11,6 +11,7 @@ import {
   Cloud,
   Sparkles,
   ServerCog,
+  Layers,
   ChevronRight,
   Pencil,
   Save,
@@ -30,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 
-type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea';
+type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea' | 'mountseaMs';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
@@ -88,6 +89,12 @@ const PROVIDER_META: Record<
     icon: ServerCog,
     iconWrap: 'bg-purple-50',
     iconColor: 'text-purple-600',
+  },
+  mountseaMs: {
+    label: 'Mountsea MS',
+    icon: Layers,
+    iconWrap: 'bg-teal-50',
+    iconColor: 'text-teal-600',
   },
 };
 

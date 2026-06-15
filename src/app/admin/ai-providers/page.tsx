@@ -17,6 +17,7 @@ import {
   Database,
   ServerCog,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
@@ -29,7 +30,9 @@ import { useConfirm } from '@/components/ui/dialog-provider';
 // 类型 —— 与后端 CredentialView / 字段定义一一对应
 // ──────────────────────────────────────────────────────────────────────
 
-type AiProvider = 'cloudflare' | 'fal' | 'mountsea';
+type AiProvider = 'cloudflare' | 'fal' | 'mountsea' | 'mountseaMs';
+
+const ALL_AI_PROVIDERS: AiProvider[] = ['cloudflare', 'fal', 'mountsea', 'mountseaMs'];
 
 interface CredentialView {
   provider: AiProvider;
@@ -163,6 +166,27 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     hasBaseUrl: true,
     baseUrlPlaceholder: 'https://api.mountsea.ai (默认)',
   },
+  mountseaMs: {
+    provider: 'mountseaMs',
+    title: 'Mountsea MS (/ms/v1)',
+    icon: Layers,
+    iconWrap: 'bg-teal-50',
+    iconColor: 'text-teal-600',
+    desc:
+      '新渠道：/ms/v1 marketplace（video + image endpoint slug）。与 legacy Mountsea 凭证独立，Router provider=mountseaMs。',
+    consoleUrl: 'https://docs.mountsea.ai/api-reference/mountsea-api/introduction',
+    secretFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key',
+        placeholder: 'Mountsea /ms/v1 API Key',
+        secret: true,
+        hint: '环境变量 MOUNTSEA_MS_API_KEY',
+      },
+    ],
+    hasBaseUrl: true,
+    baseUrlPlaceholder: 'https://api.mountsea.ai (默认)',
+  },
 };
 
 // ──────────────────────────────────────────────────────────────────────
@@ -188,7 +212,7 @@ export default function AiProvidersPage() {
               AI Provider 凭证
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              管理 Cloudflare / Fal / Mountsea 三家 AI Provider 的 API 凭证。
+              管理 Cloudflare / Fal / Mountsea / Mountsea MS 四家 AI Provider 的 API 凭证。
               凭证 AES-256-GCM 加密存储，DB 缺失时自动回落到 env 变量作为兜底。
             </p>
           </div>
@@ -209,7 +233,7 @@ export default function AiProvidersPage() {
           height="h-64"
         >
           <div className="space-y-4">
-            {(['cloudflare', 'fal', 'mountsea'] as const).map((p) => {
+            {ALL_AI_PROVIDERS.map((p) => {
               const view = data?.find((c) => c.provider === p);
               return view ? (
                 <ProviderCard key={p} view={view} />
@@ -701,7 +725,7 @@ function AuditLogsSection() {
             >
               全部
             </button>
-            {(['cloudflare', 'fal', 'mountsea'] as const).map((p) => (
+            {ALL_AI_PROVIDERS.map((p) => (
               <button
                 key={p}
                 onClick={() => { setProviderFilter(p); setPage(1); }}
@@ -712,7 +736,7 @@ function AuditLogsSection() {
                     : 'bg-white border-slate-200 text-slate-600',
                 )}
               >
-                {p}
+                {PROVIDER_META[p].title}
               </button>
             ))}
           </div>
