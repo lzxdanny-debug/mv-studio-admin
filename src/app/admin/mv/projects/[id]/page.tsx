@@ -918,6 +918,9 @@ function HistoryTab({
  */
 function CostsTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
+  const alert = useAlert();
+  const confirm = useConfirm();
+
   const { data, isLoading, isError, error } = useQuery<ProjectCosts>({
     queryKey: ['admin', 'mv', 'project', projectId, 'costs'],
     queryFn: () => apiClient.get(`/admin/mv/projects/${projectId}/costs`) as any,
@@ -934,18 +937,42 @@ function CostsTab({ projectId }: { projectId: string }) {
 
   const reconcileMutation = useMutation<ReconcileSummary>({
     mutationFn: () => apiClient.post(`/admin/mv/projects/${projectId}/reconcile`, {}) as any,
-    onSuccess: (summary) => {
-      const msg = `对账完成：成功 ${summary.reconciled}/${summary.total} ` +
-        `（mountsea ${summary.mountsea} · fal ${summary.fal} · cf ${summary.cloudflare}）`;
-      // 利用 alert 也行，这里用浏览器原生 + console
-      // 顺便把成本明细 cache 失效，让 UI 自动刷新
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'mv', 'project', projectId, 'costs'] });
-      window.alert(msg);
+    onSuccess: async (summary) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'mv', 'project', projectId, 'costs'] });
+      const allMatched = summary.total > 0 && summary.reconciled === summary.total;
+      await alert({
+        title: summary.total === 0 ? '暂无待对账记录' : allMatched ? '对账完成' : '对账完成（部分未匹配）',
+        description:
+          summary.total === 0
+            ? '本项目没有 reconciled_at 为空的成本记录。'
+            : `待对账记录：${summary.total} 条\n` +
+              `成功匹配：${summary.reconciled} 条（mountsea ${summary.mountsea} · fal ${summary.fal} · cf ${summary.cloudflare}）\n` +
+              `未匹配：${summary.unmatched} 条`,
+        variant: summary.total === 0 ? 'info' : allMatched ? 'success' : 'warning',
+      });
     },
-    onError: (err: any) => {
-      window.alert('对账失败：' + (err?.message ?? String(err)));
+    onError: async (err: any) => {
+      await alert({
+        title: '对账失败',
+        description: err?.message ?? String(err),
+        variant: 'danger',
+      });
     },
   });
+
+  const handleReconcileClick = async () => {
+    const pending = data?.reconStats.pendingSync ?? 0;
+    const ok = await confirm({
+      title: '立即对账',
+      description:
+        pending > 0
+          ? `将对本项目的 ${pending} 条待同步记录拉取上游真实账单并回填 reconciled_amount。`
+          : '将对本项目所有未对账记录拉取上游真实账单并回填 reconciled_amount。',
+      confirmText: '开始对账',
+    });
+    if (!ok) return;
+    reconcileMutation.mutate();
+  };
 
   const reconStats = useMemo(() => {
     if (!data) return null;
@@ -997,7 +1024,7 @@ function CostsTab({ projectId }: { projectId: string }) {
                   </span>
                   <button
                     type="button"
-                    onClick={() => reconcileMutation.mutate()}
+                    onClick={() => void handleReconcileClick()}
                     disabled={reconcileMutation.isPending}
                     className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-medium transition"
                   >
