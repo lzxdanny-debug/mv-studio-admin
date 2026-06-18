@@ -20,22 +20,32 @@ interface PricingParam {
   key: string;
   label: string;
   description: string;
-  type: 'number' | 'boolean';
-  default: number | boolean;
-  value: number | boolean;
+  type: 'number' | 'boolean' | 'string';
+  default: number | boolean | string;
+  value: number | boolean | string;
   source: 'db' | 'env' | 'default';
   min?: number;
   max?: number;
   step?: number;
   unit?: string;
+  options?: Array<{ value: string; label: string }>;
 }
 
 interface PricingConfigView {
   params: PricingParam[];
 }
 
+type FormValue = number | boolean | string;
+
+/** MV 定价模式相关参数（单独成区，不混入通用系数列表） */
+const MV_PRICING_KEYS = [
+  'mvPricingMode',
+  'mvDurationBaseCreditsPerSecond',
+  'mvDurationAiRecommendCredits',
+];
+
 function syncFormFromView(
-  setForm: Dispatch<SetStateAction<Record<string, number | boolean>>>,
+  setForm: Dispatch<SetStateAction<Record<string, FormValue>>>,
   view: PricingConfigView,
 ) {
   setForm(Object.fromEntries(view.params.map((p) => [p.key, p.value])));
@@ -91,7 +101,7 @@ function Switch({
 
 export default function PricingConfigPage() {
   const qc = useQueryClient();
-  const [form, setForm] = useState<Record<string, number | boolean>>({});
+  const [form, setForm] = useState<Record<string, FormValue>>({});
   const [openHelp, setOpenHelp] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -155,7 +165,7 @@ export default function PricingConfigPage() {
   }, [mountseaParam, cnyPerUsd, mountseaUsdFromRate, mountseaSynced, rateFetching]);
 
   const save = useMutation({
-    mutationFn: (payload: Record<string, number | boolean>) =>
+    mutationFn: (payload: Record<string, FormValue>) =>
       apiClient.patch('/admin/billing/pricing-config', payload) as Promise<PricingConfigView>,
     onSuccess: (res) => {
       setMsg({ ok: true, text: '计费全局参数已保存。' });
@@ -169,8 +179,20 @@ export default function PricingConfigPage() {
 
   const params = data?.params ?? [];
   const masterParam = params.find((p) => p.key === 'enabled');
-  const numberParams = params.filter((p) => p.type === 'number');
+  const numberParams = params.filter(
+    (p) => p.type === 'number' && !MV_PRICING_KEYS.includes(p.key),
+  );
   const billingEnabled = form.enabled === true;
+
+  const mvModeParam = params.find((p) => p.key === 'mvPricingMode');
+  const mvDurationBaseParam = params.find(
+    (p) => p.key === 'mvDurationBaseCreditsPerSecond',
+  );
+  const mvAiCreditsParam = params.find(
+    (p) => p.key === 'mvDurationAiRecommendCredits',
+  );
+  const mvMode = (form.mvPricingMode ?? mvModeParam?.value) as string;
+  const isPerDuration = mvMode === 'per_duration';
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
@@ -372,6 +394,135 @@ export default function PricingConfigPage() {
               })}
             </div>
           </div>
+
+          {/* MV 定价模式 */}
+          {mvModeParam && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 mt-6">
+              <div className="flex items-center gap-1.5 mb-1">
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  MV 定价模式
+                </h2>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenHelp(openHelp === 'mvPricingMode' ? null : 'mvPricingMode')
+                  }
+                  className="text-slate-400 hover:text-teal-600"
+                  title="查看说明"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {openHelp === 'mvPricingMode' && (
+                <p className="mb-3 text-xs leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 rounded-lg p-2.5 whitespace-pre-line">
+                  {mvModeParam.description}
+                </p>
+              )}
+
+              {/* 模式单选 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(mvModeParam.options ?? []).map((opt) => {
+                  const active = mvMode === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, mvPricingMode: opt.value }))}
+                      className={cn(
+                        'text-left rounded-xl border p-3.5 transition-colors',
+                        active
+                          ? 'border-teal-400 bg-teal-50/60 ring-1 ring-teal-200'
+                          : 'border-slate-200 bg-slate-50/60 hover:border-slate-300',
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'h-3.5 w-3.5 rounded-full border flex-shrink-0',
+                            active ? 'border-teal-500 bg-teal-500' : 'border-slate-300',
+                          )}
+                        />
+                        <span className="text-sm font-medium text-slate-700">
+                          {opt.label}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* per_duration 专属参数 */}
+              {isPerDuration && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {mvDurationBaseParam && (
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
+                      <p className="text-sm font-medium text-slate-700">
+                        {mvDurationBaseParam.label}
+                      </p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+                        总价 = 时长(秒) × 整片秒价 × 清晰度系数 × 品质系数 × 会员系数。清晰度 / 品质的「整片系数」在
+                        <span className="text-teal-600">「视频价格」</span>页配置。
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-2.5">
+                        <input
+                          type="number"
+                          step={mvDurationBaseParam.step ?? 1}
+                          min={mvDurationBaseParam.min}
+                          value={
+                            typeof form.mvDurationBaseCreditsPerSecond === 'number'
+                              ? (form.mvDurationBaseCreditsPerSecond as number)
+                              : Number(mvDurationBaseParam.value)
+                          }
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              mvDurationBaseCreditsPerSecond: Number(e.target.value),
+                            }))
+                          }
+                          className="flex-1 min-w-0 px-3 py-1.5 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
+                        />
+                        <span className="text-xs text-slate-400 w-14 flex-shrink-0">
+                          {mvDurationBaseParam.unit}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {mvAiCreditsParam && (
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
+                      <p className="text-sm font-medium text-slate-700">
+                        {mvAiCreditsParam.label}
+                      </p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+                        设为 0 = 免费：前端推荐按钮不展示积分、点击不扣费。
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-2.5">
+                        <input
+                          type="number"
+                          step={mvAiCreditsParam.step ?? 1}
+                          min={mvAiCreditsParam.min ?? 0}
+                          value={
+                            typeof form.mvDurationAiRecommendCredits === 'number'
+                              ? (form.mvDurationAiRecommendCredits as number)
+                              : Number(mvAiCreditsParam.value)
+                          }
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              mvDurationAiRecommendCredits: Number(e.target.value),
+                            }))
+                          }
+                          className="flex-1 min-w-0 px-3 py-1.5 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white"
+                        />
+                        <span className="text-xs text-slate-400 w-14 flex-shrink-0">
+                          {mvAiCreditsParam.unit}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {msg && (
             <p className={cn('text-xs font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>

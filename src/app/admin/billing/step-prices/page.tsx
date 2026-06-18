@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, Save, Wand2, HelpCircle, ExternalLink } from 'lucide-react';
+import { Coins, Save, Wand2, HelpCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -645,6 +645,16 @@ export default function StepPricesPage() {
     queryKey: ['admin', 'billing', 'model-config'],
     queryFn: () => apiClient.get('/admin/billing/model-config') as any,
   });
+  // 当前 MV 定价模式：整片按时长时，下面这些「分步价」对 MV 维度不再生效
+  const { data: pricingConfig } = useQuery<{
+    params: Array<{ key: string; value: number | boolean | string }>;
+  }>({
+    queryKey: ['admin', 'billing', 'pricing-config'],
+    queryFn: () => apiClient.get('/admin/billing/pricing-config') as any,
+  });
+  const isPerDuration =
+    pricingConfig?.params?.find((p) => p.key === 'mvPricingMode')?.value ===
+    'per_duration';
 
   const save = useMutation({
     mutationFn: (items: unknown[]) =>
@@ -748,6 +758,27 @@ export default function StepPricesPage() {
             与模型配置，修改路由后刷新本页即可看到最新模型。
           </p>
         </div>
+
+        {isPerDuration && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
+            <div className="leading-relaxed">
+              当前 MV 定价为
+              <Link
+                href="/admin/billing/pricing"
+                className="inline-flex items-center gap-0.5 mx-1 font-semibold text-amber-900 underline decoration-amber-400 hover:decoration-amber-700"
+              >
+                整片按时长
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+              模式：MV 维度的各分步价格<strong className="font-semibold">不再生效</strong>，整片（规划 /
+              分镜 / 视频 / 合成）统一在「项目创建时」按「时长 × 每秒价」一次性扣费。此页 MV
+              分步价仅在切回「按步骤」模式后才会启用；
+              <strong className="font-semibold">「AI 风格推荐」例外</strong>
+              —— 它发生在创建之前，仍按定价策略里配置的积分单独扣费。music / lyrics 等非 MV 维度不受影响。
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-1 border-b border-slate-200">
           {DIM_TABS.map((t) => (

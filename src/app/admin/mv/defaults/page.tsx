@@ -14,6 +14,7 @@ import {
   Music2,
   Droplets,
   ImageIcon,
+  Layers,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -41,12 +42,13 @@ export default function AdminMvDefaultsPage() {
             MV 默认配置
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            合成阶段的系统级默认参数：字幕样式、成片水印、音频喂 Gemini 前的预处理。所有项目新建时自动套用，已有项目可手动推送。
+            合成阶段的系统级默认参数：字幕样式、成片水印、音频喂 Gemini 前的预处理、生成并发。所有项目新建时自动套用，已有项目可手动推送。
           </p>
         </div>
 
         <MvSubtitleDefaultSection />
         <MvWatermarkSection />
+        <GenerationConcurrencySection />
         <AudioCompressionSection />
       </div>
     </div>
@@ -657,6 +659,135 @@ function MvWatermarkSection() {
             type="button"
             onClick={() => {
               if (data?.config) setDraft(data.config);
+              setMsg(null);
+            }}
+            disabled={!dirty || save.isPending}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-xs font-medium text-slate-600 transition-colors"
+          >
+            撤销修改
+          </button>
+          <button
+            type="button"
+            onClick={() => save.mutate(draft)}
+            disabled={!dirty || save.isPending}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium transition-colors"
+          >
+            <Sparkles className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
+            {save.isPending ? '保存中…' : dirty ? '保存配置' : '已保存'}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MV 生成并发（故事板 / 视频片段）
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface GenerationConcurrencyResp {
+  saved: { storyboard: string; video: string };
+  effective: { storyboard: number; video: number; globalVideo: number };
+}
+
+function GenerationConcurrencySection() {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState<{ storyboard: string; video: string } | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const { data, isLoading } = useQuery<GenerationConcurrencyResp>({
+    queryKey: ['admin', 'settings', 'mv-generation-concurrency'],
+    queryFn: () =>
+      apiClient.get('/admin/settings/mv/generation-concurrency') as Promise<GenerationConcurrencyResp>,
+  });
+
+  useEffect(() => {
+    if (data?.saved && draft === null) {
+      setDraft(data.saved);
+    }
+  }, [data, draft]);
+
+  const save = useMutation({
+    mutationFn: (payload: { storyboard: string; video: string }) =>
+      apiClient.patch('/admin/settings/mv/generation-concurrency', payload) as any,
+    onSuccess: (resp: GenerationConcurrencyResp) => {
+      setMsg({ ok: true, text: '生成并发已保存，下一次故事板/视频批量任务即生效。' });
+      qc.setQueryData(['admin', 'settings', 'mv-generation-concurrency'], resp);
+      if (resp?.saved) setDraft(resp.saved);
+    },
+    onError: (e: any) =>
+      setMsg({ ok: false, text: e?.response?.data?.message ?? '保存失败，请检查输入' }),
+  });
+
+  if (isLoading || !draft || !data) {
+    return (
+      <section>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+          生成并发
+        </h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-center justify-center text-slate-400 text-sm h-32">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          加载中…
+        </div>
+      </section>
+    );
+  }
+
+  const dirty = JSON.stringify(draft) !== JSON.stringify(data.saved);
+
+  return (
+    <section>
+      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+        生成并发
+      </h2>
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <Layers className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-800">故事板 & 视频片段并行数</p>
+            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+              控制单个 MV 项目 Step 8（分镜图）与 Step 9（视频片段）同时发起的上游任务数。
+              不区分 Veo / Wan / Seedance 等模型。留空则走 <code className="px-1 rounded bg-slate-100">.env</code> 或默认 5。
+              跨项目视频总并发按公式自动推导（约为单项目值 +3）。
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ScenarioField
+            label="故事板并发（单项目）"
+            placeholder={`${data.effective.storyboard}`}
+            value={draft.storyboard}
+            onChange={(v) => setDraft({ ...draft, storyboard: v })}
+            hint="建议 3~8，过高易触发图像上游限流"
+          />
+          <ScenarioField
+            label="视频片段并发（单项目）"
+            placeholder={`${data.effective.video}`}
+            value={draft.video}
+            onChange={(v) => setDraft({ ...draft, video: v })}
+            hint="建议 3~8，跨项目总并发约 max(n+3, ⌈n×1.6⌉)"
+          />
+        </div>
+
+        <p className="text-[11px] text-slate-500 rounded-xl bg-slate-50 px-3 py-2.5">
+          当前生效：
+          <span className="font-mono tabular-nums ml-1">
+            故事板 {data.effective.storyboard} 路 · 视频 {data.effective.video} 路 · 跨项目视频上限 {data.effective.globalVideo} 路
+          </span>
+        </p>
+
+        {msg && (
+          <p className={cn('text-xs font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
+            {msg.text}
+          </p>
+        )}
+
+        <div className="flex justify-end pt-1 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(data.saved);
               setMsg(null);
             }}
             disabled={!dirty || save.isPending}

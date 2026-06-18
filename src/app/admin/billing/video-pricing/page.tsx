@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Film, Save, Plus, Trash2, HelpCircle, ExternalLink } from 'lucide-react';
+import { Film, Save, Plus, Trash2, HelpCircle, ExternalLink, AlertTriangle, Info } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -15,6 +15,7 @@ interface VideoResolution {
   width: number;
   height: number;
   priceFactor: number;
+  durationPriceFactor: number;
   minPlan: string;
   enabled: boolean;
   sortOrder: number;
@@ -26,6 +27,7 @@ interface QualityProfile {
   name: string;
   description: string;
   priceFactor: number;
+  durationPriceFactor: number;
   minPlan: string;
   providerHint: string;
   enabled: boolean;
@@ -55,6 +57,7 @@ const NEW_RES: VideoResolution = {
   width: 0,
   height: 0,
   priceFactor: 1,
+  durationPriceFactor: 1,
   minPlan: 'free',
   enabled: true,
   sortOrder: 99,
@@ -64,6 +67,7 @@ const NEW_QUALITY: QualityProfile = {
   name: '',
   description: '',
   priceFactor: 1,
+  durationPriceFactor: 1,
   minPlan: 'free',
   providerHint: '',
   enabled: true,
@@ -85,6 +89,17 @@ export default function VideoPricingPage() {
   useEffect(() => {
     if (data) setBaseDraft(String(data.matrix.base));
   }, [data]);
+
+  // 当前 MV 定价模式：决定本页哪部分设置生效
+  const { data: pricingConfig } = useQuery<{
+    params: Array<{ key: string; value: number | boolean | string }>;
+  }>({
+    queryKey: ['admin', 'billing', 'pricing-config'],
+    queryFn: () => apiClient.get('/admin/billing/pricing-config') as any,
+  });
+  const isPerDuration =
+    pricingConfig?.params?.find((p) => p.key === 'mvPricingMode')?.value ===
+    'per_duration';
 
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ['admin', 'billing', 'video-pricing'] });
@@ -154,6 +169,42 @@ export default function VideoPricingPage() {
           </p>
         </div>
 
+        {isPerDuration ? (
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
+            <div className="leading-relaxed">
+              当前 MV 定价为
+              <Link
+                href="/admin/billing/pricing"
+                className="inline-flex items-center gap-0.5 mx-1 font-semibold text-amber-900 underline decoration-amber-400 hover:decoration-amber-700"
+              >
+                整片按时长
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+              模式：本页的<strong className="font-semibold">「基础秒价 / 每秒价矩阵 / 清晰度·品质系数」</strong>
+              仅用于「按步骤」模式下的逐段视频计费，<strong className="font-semibold">当前不生效</strong>。整片计费只取每行的
+              <strong className="font-semibold">「整片系数」</strong>两列，公式为：整片基础秒价（在
+              <Link
+                href="/admin/billing/pricing"
+                className="inline-flex items-center gap-0.5 mx-1 font-semibold text-amber-900 underline decoration-amber-400 hover:decoration-amber-700"
+              >
+                定价策略
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+              配置）× 清晰度整片系数 × 品质整片系数 × 会员系数 × 时长。
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-slate-400" />
+            <div className="leading-relaxed">
+              当前为「按步骤」计费模式，本页设置全部生效。其中
+              <strong className="font-medium text-slate-600">「整片系数」</strong>
+              两列仅在切换为「整片按时长」模式后才会被使用，当前可忽略。
+            </div>
+          </div>
+        )}
+
         <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
           {/* 基础秒价（主控：保存后全量重算每秒价矩阵） */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-6 flex-wrap">
@@ -222,6 +273,7 @@ export default function VideoPricingPage() {
                   <th className="text-left px-3 py-2 font-medium">Code</th>
                   <th className="text-left px-3 py-2 font-medium">名称</th>
                   <th className="text-left px-3 py-2 font-medium">宽×高</th>
+                  <th className="text-right px-3 py-2 font-medium" title="仅「整片按时长」模式生效：整片基础秒价 × 此系数">整片系数</th>
                   <th className="text-left px-3 py-2 font-medium">最低会员</th>
                   <th className="text-center px-3 py-2 font-medium">启用</th>
                   <th className="text-right px-3 py-2 font-medium">排序</th>
@@ -276,6 +328,7 @@ export default function VideoPricingPage() {
                 <tr className="bg-slate-50 text-slate-400 text-[11px] uppercase tracking-wider">
                   <th className="text-left px-3 py-2 font-medium">Code</th>
                   <th className="text-left px-3 py-2 font-medium">名称</th>
+                  <th className="text-right px-3 py-2 font-medium" title="仅「整片按时长」模式生效：整片基础秒价 × 此系数">整片系数</th>
                   <th className="text-left px-3 py-2 font-medium">最低会员</th>
                   <th className="text-center px-3 py-2 font-medium">启用</th>
                   <th className="text-right px-3 py-2 font-medium">排序</th>
@@ -423,6 +476,9 @@ function ResolutionRow({
         </div>
       </td>
       <td className="px-3 py-2">
+        <input type="number" step={0.1} min={0} className={cn(INPUT, 'text-right w-20')} value={local.durationPriceFactor} onChange={(e) => patch({ durationPriceFactor: Number(e.target.value) })} />
+      </td>
+      <td className="px-3 py-2">
         <PlanSelect value={local.minPlan} onChange={(v) => patch({ minPlan: v })} />
       </td>
       <td className="px-3 py-2 text-center">
@@ -477,6 +533,9 @@ function QualityRow({
       </td>
       <td className="px-3 py-2">
         <input className={INPUT} value={local.name} placeholder="导演模式" onChange={(e) => patch({ name: e.target.value })} />
+      </td>
+      <td className="px-3 py-2">
+        <input type="number" step={0.1} min={0} className={cn(INPUT, 'text-right w-20')} value={local.durationPriceFactor} onChange={(e) => patch({ durationPriceFactor: Number(e.target.value) })} />
       </td>
       <td className="px-3 py-2">
         <PlanSelect value={local.minPlan} onChange={(v) => patch({ minPlan: v })} />
