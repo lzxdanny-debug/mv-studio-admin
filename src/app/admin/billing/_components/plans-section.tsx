@@ -8,6 +8,7 @@ import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
+import { DecimalFieldInput } from './decimal-factor-input';
 import type { PlanEntitlement } from './types';
 
 export type PlansSectionVariant = 'full' | 'pricing' | 'entitlements';
@@ -18,6 +19,7 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   monthlyPriceCents: 0,
   monthlyCredits: 0,
   creditPurchaseDiscount: 1,
+  subscriptionPurchaseDiscount: 1,
   maxConcurrentJobs: 1,
   queuePriority: 10,
   maxResolution: '720p',
@@ -41,6 +43,7 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     monthlyPriceCents: local.monthlyPriceCents,
     monthlyCredits: local.monthlyCredits,
     creditPurchaseDiscount: local.creditPurchaseDiscount,
+    subscriptionPurchaseDiscount: local.subscriptionPurchaseDiscount,
     maxConcurrentJobs: local.maxConcurrentJobs,
     queuePriority: local.queuePriority,
     maxResolution: local.maxResolution,
@@ -283,14 +286,26 @@ function PlanCard({
                 onChange={(e) => patch({ monthlyCredits: Number(e.target.value) })}
               />
             </Field>
-            <Field label="充值折扣 (1=原价)">
-              <input
-                type="number"
-                step="0.01"
+            <Field label="积分充值折扣（1=原价）">
+              <DecimalFieldInput
                 className={PLAN_INPUT_CLS}
                 value={local.creditPurchaseDiscount ?? 1}
-                onChange={(e) => patch({ creditPurchaseDiscount: Number(e.target.value) })}
+                min={0}
+                max={1}
+                onChange={(n) => patch({ creditPurchaseDiscount: n })}
               />
+            </Field>
+            <Field label="会员购买折扣（1=原价）">
+              <DecimalFieldInput
+                className={PLAN_INPUT_CLS}
+                value={local.subscriptionPurchaseDiscount ?? 1}
+                min={0}
+                max={1}
+                onChange={(n) => patch({ subscriptionPurchaseDiscount: n })}
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                开通该档会员订阅时的折扣；定价页仅展示付费档（creator / pro）
+              </p>
             </Field>
             {variant === 'pricing' && (
               <Field label="排序">
@@ -317,17 +332,25 @@ function PlanCard({
               />
               <p className="text-[10px] text-slate-400 mt-1">0 = C 端不展示；订阅续费仍按此值发放</p>
             </Field>
-            <Field label="充值折扣 (1=原价)">
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                max={1}
+            <Field label="积分充值折扣（1=原价）">
+              <DecimalFieldInput
                 className={PLAN_INPUT_CLS}
                 value={local.creditPurchaseDiscount ?? 1}
-                onChange={(e) => patch({ creditPurchaseDiscount: Number(e.target.value) })}
+                min={0}
+                max={1}
+                onChange={(n) => patch({ creditPurchaseDiscount: n })}
               />
               <p className="text-[10px] text-slate-400 mt-1">1 = 无折扣，不在 C 端展示</p>
+            </Field>
+            <Field label="会员购买折扣（1=原价）">
+              <DecimalFieldInput
+                className={PLAN_INPUT_CLS}
+                value={local.subscriptionPurchaseDiscount ?? 1}
+                min={0}
+                max={1}
+                onChange={(n) => patch({ subscriptionPurchaseDiscount: n })}
+              />
+              <p className="text-[10px] text-slate-400 mt-1">开通会员订阅时的折扣；定价页仅展示付费档</p>
             </Field>
             <Field label="最高分辨率">
               <input
@@ -353,12 +376,11 @@ function PlanCard({
               />
             </Field>
             <Field label="视频价格系数 (1=原价, 0.9=9折)">
-              <input
-                type="number"
-                step="0.01"
+              <DecimalFieldInput
                 className={PLAN_INPUT_CLS}
                 value={local.videoPriceCoefficient ?? 1}
-                onChange={(e) => patch({ videoPriceCoefficient: Number(e.target.value) })}
+                min={0}
+                onChange={(n) => patch({ videoPriceCoefficient: n })}
               />
             </Field>
           </>

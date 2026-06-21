@@ -30,6 +30,7 @@ export interface PlanEntitlement {
   monthlyPriceCents: number;
   monthlyCredits: number;
   creditPurchaseDiscount: number;
+  subscriptionPurchaseDiscount: number;
   maxConcurrentJobs: number;
   queuePriority: number;
   maxResolution: string;

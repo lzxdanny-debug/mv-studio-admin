@@ -36,7 +36,16 @@ const RES_LABEL: Record<string, string> = {
   '1080p': '超清 1080p',
 };
 
-type Edit = { listUsd: number; costUsd: number; enabled: boolean };
+const CHANNEL_ORDER = ['mountseaMs', 'cloudflare', 'fal', 'mountsea'] as const;
+
+const CHANNEL_DESCRIPTIONS: Record<string, string> = {
+  mountseaMs:
+    'Mountsea /ms/v1：按 endpoint slug 出图/出视频（如 google/veo-3.1/...）。与下方 Mountsea Hub 是不同 API、不同模型 ID。',
+  mountsea:
+    'Mountsea Hub：/v1 聊天、Hub 视频/图像名。文本、音频、部分视频走此通道；积分单价与 MS 共用上方「Mountsea 积分成本」。',
+  cloudflare: 'Cloudflare Workers AI / AI Gateway。',
+  fal: 'Fal.ai，按 USD 结算。',
+};
 
 function rowKey(r: { channel: string; modelId: string; resolution: string }) {
   return `${r.channel}|${r.modelId}|${r.resolution}`;
@@ -52,7 +61,7 @@ function discountText(listUsd: number, costUsd: number): string {
 
 export function ModelPricingSection() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<string>('cloudflare');
+  const [tab, setTab] = useState<string>('mountseaMs');
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -73,10 +82,17 @@ export function ModelPricingSection() {
         }
       }
       setEdits(map);
-      if (res.channels[0] && !res.channels.some((c) => c.channel === tab)) {
-        setTab(res.channels[0].channel);
+      const ordered = [...res.channels].sort((a, b) => {
+        const rank = (ch: string) => {
+          const i = CHANNEL_ORDER.indexOf(ch as (typeof CHANNEL_ORDER)[number]);
+          return i === -1 ? 99 : i;
+        };
+        return rank(a.channel) - rank(b.channel);
+      });
+      if (ordered[0] && !ordered.some((c) => c.channel === tab)) {
+        setTab(ordered[0].channel);
       }
-      return res;
+      return { ...res, channels: ordered };
     },
   });
 
@@ -130,10 +146,14 @@ export function ModelPricingSection() {
           </h2>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
             按渠道维护各模型的单次调用价格。
-            <span className="text-slate-700 font-medium">实际价格</span>
-            ＝渠道方单次任务标价（步骤价格按此 × 盈利系数 ÷ 积分单价派生当前价）；
-            <span className="text-slate-700 font-medium">成本价</span>
-            ＝拿到折扣后的真实成本（用于毛利/对账分析）。视频模型按清晰度分档。
+            <span className="text-slate-700 font-medium"> Mountsea MS</span>
+            与
+            <span className="text-slate-700 font-medium"> Mountsea Hub</span>
+            是两套 API、模型 ID 不同，需分别维护；二者若按 credits 扣费，成本折算共用上方「Mountsea 积分成本」。
+            <span className="text-slate-700 font-medium"> 实际价格</span>
+            ＝渠道单次标价；
+            <span className="text-slate-700 font-medium"> 成本价</span>
+            ＝折后真实成本（毛利/对账）。视频模型按清晰度分档。
           </p>
         </div>
       </div>
@@ -165,6 +185,12 @@ export function ModelPricingSection() {
             </button>
           ))}
         </div>
+
+        {CHANNEL_DESCRIPTIONS[tab] && (
+          <p className="mt-3 text-xs text-slate-500 leading-relaxed rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
+            {CHANNEL_DESCRIPTIONS[tab]}
+          </p>
+        )}
 
         <div className="overflow-x-auto mt-3">
           <table className="w-full text-sm">

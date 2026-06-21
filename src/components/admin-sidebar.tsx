@@ -230,14 +230,8 @@ const NAV_SECTIONS: NavSection[] = [
           },
           {
             href: '/admin/billing/video-pricing',
-            label: '视频价格',
+            label: '清晰度与品质',
             icon: Film,
-            permission: 'billing.manage',
-          },
-          {
-            href: '/admin/billing/step-prices',
-            label: '步骤价格',
-            icon: Coins,
             permission: 'billing.manage',
           },
           {

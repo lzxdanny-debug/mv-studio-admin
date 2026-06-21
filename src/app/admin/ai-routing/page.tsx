@@ -180,6 +180,12 @@ export default function AiRoutingPage() {
               为每个 AI 能力配置主备 provider 和模型。任何主 provider 失败时（除内容审核 / 凭证错误），
               路由器会自动 fallback 到备用。修改后立即生效，无须重启。
             </p>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed rounded-lg border border-slate-200 bg-white px-3 py-2 max-w-3xl">
+              <strong className="text-slate-700">Mountsea</strong>（Hub）走 /v1 聊天与 Hub 视频/图像名，负责
+              <strong className="text-slate-700"> 文本、音频、视觉理解</strong> 等能力。
+              <strong className="text-slate-700"> Mountsea MS</strong> 走 /ms/v1 按 endpoint slug 调用，仅开放给
+              <strong className="text-slate-700"> 图像 / 视频 / 对口型</strong>——因此「文本生成」等不会出现 MS 选项，这是 API 能力边界，不是遗漏。
+            </p>
           </div>
           <button
             onClick={refresh}

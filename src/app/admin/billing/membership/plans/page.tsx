@@ -13,7 +13,7 @@ export default function BillingMembershipPlansPage() {
             会员套餐
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            配置会员订阅价格、月度赠送积分与充值折扣。
+            配置会员订阅价格、月度赠送积分、积分充值折扣与会员购买折扣。
           </p>
         </div>
         <PlansSection variant="pricing" showHeader={false} />

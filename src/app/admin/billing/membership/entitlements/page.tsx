@@ -13,7 +13,7 @@ export default function BillingMembershipEntitlementsPage() {
             会员权益
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            配置各会员档位的功能权益、C 端定价展示项（月度赠送、充值折扣、并发等）。
+            配置各会员档位的功能权益、C 端定价展示项（月度赠送、积分充值折扣、会员购买折扣、并发等）。
           </p>
         </div>
         <PlansSection variant="entitlements" showHeader={false} />
