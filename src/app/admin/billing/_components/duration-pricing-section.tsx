@@ -6,7 +6,7 @@ import { Calculator, Film } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
-import type { PlanEntitlement } from './types';
+import type { PlanEntitlement, PricingConfigView } from './types';
 import { DecimalFactorInput } from './decimal-factor-input';
 
 interface VideoResolution {
@@ -35,17 +35,6 @@ interface QualityProfile {
 interface VideoPricingView {
   resolutions: VideoResolution[];
   qualityProfiles: QualityProfile[];
-}
-
-interface PricingConfigView {
-  params: Array<{
-    key: string;
-    label: string;
-    value: number | boolean | string;
-    min?: number;
-    step?: number;
-    unit?: string;
-  }>;
 }
 
 const INPUT =

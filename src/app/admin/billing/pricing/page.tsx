@@ -17,26 +17,9 @@ import { DurationPricingSection } from '../_components/duration-pricing-section'
 import { DurationPricingTop } from '../_components/duration-pricing-top';
 import { useConfirm } from '@/components/ui/dialog-provider';
 
+import type { PricingConfigView, PricingParam } from '../_components/types';
+
 // ─── 类型 ────────────────────────────────────────────────────────────────
-
-interface PricingParam {
-  key: string;
-  label: string;
-  description: string;
-  type: 'number' | 'boolean' | 'string';
-  default: number | boolean | string;
-  value: number | boolean | string;
-  source: 'db' | 'env' | 'default';
-  min?: number;
-  max?: number;
-  step?: number;
-  unit?: string;
-  options?: Array<{ value: string; label: string }>;
-}
-
-interface PricingConfigView {
-  params: PricingParam[];
-}
 
 type FormValue = number | boolean | string;
 

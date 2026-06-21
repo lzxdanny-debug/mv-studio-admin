@@ -5,14 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Film, Save, Sparkles } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
-
-interface PricingConfigView {
-  params: Array<{
-    key: string;
-    label: string;
-    value: number | boolean | string;
-  }>;
-}
+import type { PricingConfigView } from './types';
 
 interface DurationPricingTopProps {
   profitFactor: number;

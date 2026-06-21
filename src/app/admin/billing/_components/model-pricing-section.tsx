@@ -30,6 +30,12 @@ interface ModelPricesView {
   }>;
 }
 
+interface Edit {
+  listUsd: number;
+  costUsd: number;
+  enabled: boolean;
+}
+
 const RES_LABEL: Record<string, string> = {
   '': '—',
   '720p': '标清 720p',

@@ -1,3 +1,22 @@
+export interface PricingParam {
+  key: string;
+  label: string;
+  description: string;
+  type: 'number' | 'boolean' | 'string';
+  default: number | boolean | string;
+  value: number | boolean | string;
+  source: 'db' | 'env' | 'default';
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+  options?: Array<{ value: string; label: string }>;
+}
+
+export interface PricingConfigView {
+  params: PricingParam[];
+}
+
 export interface StripeConfigView {
   secretKeyMasked: string;
   secretKeyConfigured: boolean;
