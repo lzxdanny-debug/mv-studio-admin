@@ -42,6 +42,7 @@ export const TAB_PERMISSION_REGISTRY: Record<
     { key: 'shots', label: '镜头', permission: 'project.view' },
     { key: 'planning', label: '规划', permission: 'project.view' },
     { key: 'history', label: '成片历史', permission: 'project.view' },
+    { key: 'operations', label: '操作', permission: 'project.manage' },
   ],
   'music.task.detail': [
     { key: 'costs', label: '成本明细', permission: 'billing.cost.view' },

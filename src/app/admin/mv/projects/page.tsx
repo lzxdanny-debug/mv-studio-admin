@@ -13,6 +13,7 @@ import { SearchBar } from '@/components/search-bar';
 import { formatDate } from '@/lib/utils';
 import { exportMvProject, importMvProject } from '@/lib/mv-import-export';
 import { useAlert } from '@/components/ui/dialog-provider';
+import { AdminTagsEditor } from '@/components/admin-tags-editor';
 
 /**
  * 当一条 MV 是通过 admin 导入接口从其它环境带过来时，importSource 为非 null 对象。
@@ -40,6 +41,7 @@ interface MvProjectRow {
   resultUrl: string | null;
   errorMessage: string | null;
   importSource: ImportSource | null;
+  adminTags: string[] | null;
   createdAt: string;
   updatedAt: string;
   userDisplayName: string | null;
@@ -247,6 +249,19 @@ export default function AdminMvProjectsPage() {
             {row.aspectRatio} · {row.videoProvider}
           </p>
         </div>
+      ),
+    },
+    {
+      key: 'adminTags',
+      header: '运营标签',
+      width: 'w-36',
+      render: (row) => (
+        <AdminTagsEditor
+          id={row.id}
+          tags={row.adminTags}
+          kind="mv"
+          invalidateQueryKey={['admin', 'mv', 'projects']}
+        />
       ),
     },
     {

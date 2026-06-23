@@ -11,6 +11,7 @@ import { PaginationBar } from '@/components/pagination-bar';
 import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/utils';
 import { useAlert } from '@/components/ui/dialog-provider';
+import { AdminTagsEditor } from '@/components/admin-tags-editor';
 
 interface MusicTaskItem {
   id: string;
@@ -25,6 +26,7 @@ interface MusicTaskItem {
   completedAt: string | null;
   userDisplayName: string | null;
   userEmail: string | null;
+  adminTags: string[] | null;
 }
 
 interface ListResponse {
@@ -142,6 +144,7 @@ export default function AdminMusicTasksPage() {
                   <th className="px-4 py-3 text-left">用户</th>
                   <th className="px-4 py-3 text-left">模型</th>
                   <th className="px-4 py-3 text-left">状态</th>
+                  <th className="px-4 py-3 text-left">运营标签</th>
                   <th className="px-4 py-3 text-left">积分</th>
                   <th className="px-4 py-3 text-left">创建时间</th>
                 </tr>
@@ -165,6 +168,14 @@ export default function AdminMusicTasksPage() {
                     <td className="px-4 py-3 text-xs font-mono text-slate-600">{task.model}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={task.status} kind="generic" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminTagsEditor
+                        id={task.id}
+                        tags={task.adminTags}
+                        kind="music"
+                        invalidateQueryKey={['admin', 'music', 'tasks']}
+                      />
                     </td>
                     <td className="px-4 py-3 text-xs">{task.creditsCost}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">

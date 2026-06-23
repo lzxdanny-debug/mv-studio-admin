@@ -37,6 +37,7 @@ import {
 } from '@/lib/mountsea-pricing';
 import { exportMvProject } from '@/lib/mv-import-export';
 import { useConfirm, useAlert } from '@/components/ui/dialog-provider';
+import { OperationsTab } from './_components/operations-tab';
 
 interface MvProjectDetail {
   project: {
@@ -68,6 +69,8 @@ interface MvProjectDetail {
       originalCreatedAt: string;
       importedAt: string;
     } | null;
+    isPublic: boolean;
+    adminTags: string[] | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -123,7 +126,7 @@ const STEP_LABELS: Record<number, string> = {
   10: '最终合成',
 };
 
-type TabKey = 'costs' | 'assets' | 'shots' | 'planning' | 'history';
+type TabKey = 'costs' | 'assets' | 'shots' | 'planning' | 'history' | 'operations';
 
 function safeCostNumber(value: number | null | undefined): number {
   return Number.isFinite(value) ? (value as number) : 0;
@@ -349,6 +352,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
             'history',
             `成片历史 (${(data?.project?.compositionHistory?.length ?? 0) + (data?.project?.resultUrl ? 1 : 0)})`,
           ],
+          ['operations', '操作'],
         ] as [TabKey, string][]
       ).filter(([key]) => canAccessTab(permissions, 'mv.project.detail', key)),
     [permissions, data],
@@ -583,6 +587,13 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                       resultUrl={project.resultUrl}
                       resultName={project.resultName}
                       history={project.compositionHistory ?? []}
+                    />
+                  )}
+                  {tab === 'operations' && (
+                    <OperationsTab
+                      projectId={id}
+                      isPublic={project.isPublic ?? false}
+                      adminTags={project.adminTags}
                     />
                   )}
                 </div>
