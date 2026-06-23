@@ -14,6 +14,11 @@ import { formatDate } from '@/lib/utils';
 import { exportMvProject, importMvProject } from '@/lib/mv-import-export';
 import { useAlert } from '@/components/ui/dialog-provider';
 import { AdminTagsEditor } from '@/components/admin-tags-editor';
+import {
+  OperationsFilterBar,
+  operationsFilterToQueryParams,
+  type OperationsFilterKey,
+} from '@/components/operations-filter-bar';
 
 /**
  * 当一条 MV 是通过 admin 导入接口从其它环境带过来时，importSource 为非 null 对象。
@@ -77,18 +82,22 @@ export default function AdminMvProjectsPage() {
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [operationsFilter, setOperationsFilter] = useState<OperationsFilterKey>('');
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'mv', 'projects', { page, pageSize, status, search }],
+    queryKey: ['admin', 'mv', 'projects', { page, pageSize, status, search, operationsFilter }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
       if (status) params.set('status', status);
       if (search) params.set('search', search);
+      for (const [key, value] of Object.entries(operationsFilterToQueryParams(operationsFilter))) {
+        params.set(key, value);
+      }
       return apiClient.get(`/admin/mv/projects?${params.toString()}`) as any;
     },
     placeholderData: (prev) => prev,
@@ -393,6 +402,14 @@ export default function AdminMvProjectsPage() {
             ))}
           </div>
         </div>
+
+        <OperationsFilterBar
+          value={operationsFilter}
+          onChange={(next) => {
+            setPage(1);
+            setOperationsFilter(next);
+          }}
+        />
 
         <DataTable<MvProjectRow>
           columns={columns}

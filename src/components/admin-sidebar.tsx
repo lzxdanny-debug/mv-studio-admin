@@ -36,6 +36,7 @@ import {
   Layers,
   ShoppingBag,
   Sparkles,
+  Gift,
   Route,
   type LucideIcon,
 } from 'lucide-react';
@@ -210,6 +211,12 @@ const NAV_SECTIONS: NavSection[] = [
             permission: 'billing.manage',
           },
           {
+            href: '/admin/billing/bonus-config',
+            label: '赠送积分',
+            icon: Gift,
+            permission: 'billing.manage',
+          },
+          {
             href: '/admin/billing/packages',
             label: '积分套餐',
             icon: ShoppingBag,
@@ -219,12 +226,12 @@ const NAV_SECTIONS: NavSection[] = [
       },
       {
         key: 'billing-pricing',
-        label: '模型定价',
+        label: 'MV定价',
         icon: Coins,
         items: [
           {
             href: '/admin/billing/models',
-            label: '模型配置',
+            label: 'MV 模型配置',
             icon: Boxes,
             permission: 'billing.manage',
           },
@@ -238,6 +245,19 @@ const NAV_SECTIONS: NavSection[] = [
             href: '/admin/billing/pricing',
             label: '定价策略',
             icon: SlidersHorizontal,
+            permission: 'billing.manage',
+          },
+        ],
+      },
+      {
+        key: 'billing-music',
+        label: '音乐定价',
+        icon: Disc3,
+        items: [
+          {
+            href: '/admin/billing/music-pricing',
+            label: '音乐模型与定价',
+            icon: Disc3,
             permission: 'billing.manage',
           },
         ],
@@ -264,6 +284,12 @@ const NAV_SECTIONS: NavSection[] = [
             href: '/admin/billing/profit',
             label: '利润分析',
             icon: TrendingUp,
+            permission: 'billing.cost.view',
+          },
+          {
+            href: '/admin/billing/bonus',
+            label: '赠送积分',
+            icon: Gift,
             permission: 'billing.cost.view',
           },
         ],

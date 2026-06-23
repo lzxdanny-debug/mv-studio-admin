@@ -106,7 +106,7 @@ export function ModelPricingSection() {
     mutationFn: (items: unknown[]) =>
       apiClient.patch('/admin/billing/model-prices', { items }) as Promise<unknown>,
     onSuccess: () => {
-      setMsg({ ok: true, text: '模型定价已保存。' });
+      setMsg({ ok: true, text: 'MV 模型定价已保存。' });
       qc.invalidateQueries({ queryKey: ['admin', 'billing', 'model-prices'] });
       // 步骤价格的推荐值依赖模型定价，刷新它
       qc.invalidateQueries({ queryKey: ['admin', 'billing', 'step-prices'] });
@@ -148,7 +148,7 @@ export function ModelPricingSection() {
         <div>
           <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
             <Boxes className="h-4 w-4 text-teal-600" />
-            模型定价（单次调用）
+            MV 模型定价（单次调用）
           </h2>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
             按渠道维护各模型的单次调用价格。
@@ -335,7 +335,7 @@ export function ModelPricingSection() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
           >
             <Save className="h-3.5 w-3.5" />
-            {save.isPending ? '保存中…' : '保存模型定价'}
+            {save.isPending ? '保存中…' : '保存 MV 模型定价'}
           </button>
         </div>
       </QueryState>

@@ -18,6 +18,7 @@ import {
 import { useAlert } from '@/components/ui/dialog-provider';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import { canAccessTab, firstAllowedTab } from '@/lib/admin-permissions';
+import { OperationsTab } from '@/components/operations-tab';
 
 /** 与 mv-studio-api CREDIT_COSTS 保持一致（100 积分 = ¥1） */
 const MUSIC_CREATE_CREDITS: Record<string, number> = {
@@ -87,6 +88,8 @@ interface DetailResponse {
     externalTaskId: string | null;
     resultUrls: string[] | null;
     creditsCost: number;
+    isPublic: boolean;
+    adminTags: string[] | null;
     errorMessage: string | null;
     createdAt: string;
     completedAt: string | null;
@@ -107,6 +110,7 @@ const STEP_LABELS: Record<string, string> = {
 const TABS = [
   { key: 'costs' as const, label: '成本明细' },
   { key: 'overview' as const, label: '概览' },
+  { key: 'operations' as const, label: '运营' },
 ];
 
 export default function AdminMusicTaskDetailPage({
@@ -121,7 +125,7 @@ export default function AdminMusicTaskDetailPage({
   const canReconcile = useAdminAuthStore((s) =>
     s.hasPermission('billing.cost.view') && s.hasPermission('project.manage'),
   );
-  const [tab, setTab] = useState<'overview' | 'costs'>('costs');
+  const [tab, setTab] = useState<'overview' | 'costs' | 'operations'>('costs');
   const visibleTabs = TABS.filter((t) =>
     canAccessTab(permissions, 'music.task.detail', t.key),
   );
@@ -132,6 +136,7 @@ export default function AdminMusicTaskDetailPage({
       const first = firstAllowedTab(permissions, 'music.task.detail') as
         | 'overview'
         | 'costs'
+        | 'operations'
         | null;
       if (first) setTab(first);
     }
@@ -479,6 +484,17 @@ export default function AdminMusicTaskDetailPage({
                   <pre className="text-xs bg-slate-50 rounded-xl p-3 overflow-auto max-h-64">
                     {JSON.stringify(task.inputParams, null, 2)}
                   </pre>
+                </div>
+              )}
+
+              {tab === 'operations' && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                  <OperationsTab
+                    entityId={id}
+                    kind="music"
+                    isPublic={task.isPublic ?? false}
+                    adminTags={task.adminTags}
+                  />
                 </div>
               )}
             </>

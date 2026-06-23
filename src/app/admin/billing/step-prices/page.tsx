@@ -805,6 +805,15 @@ export default function StepPricesPage() {
           height="h-48"
         >
           <div className="space-y-4">
+            {tab === 'music' && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                「音乐生成」已迁移至{' '}
+                <Link href="/admin/billing/music-pricing" className="font-medium text-teal-700 underline">
+                  音乐定价
+                </Link>
+                ，按各模型差异化积分扣费；本页仅保留 AI 歌词步价编辑。
+              </div>
+            )}
             {/* 主步骤表 */}
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">

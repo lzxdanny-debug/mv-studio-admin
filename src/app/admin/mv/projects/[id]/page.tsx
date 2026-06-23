@@ -37,7 +37,7 @@ import {
 } from '@/lib/mountsea-pricing';
 import { exportMvProject } from '@/lib/mv-import-export';
 import { useConfirm, useAlert } from '@/components/ui/dialog-provider';
-import { OperationsTab } from './_components/operations-tab';
+import { OperationsTab } from '@/components/operations-tab';
 
 interface MvProjectDetail {
   project: {
@@ -591,7 +591,8 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                   )}
                   {tab === 'operations' && (
                     <OperationsTab
-                      projectId={id}
+                      entityId={id}
+                      kind="mv"
                       isPublic={project.isPublic ?? false}
                       adminTags={project.adminTags}
                     />

@@ -6,7 +6,8 @@ import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface OperationsTabProps {
-  projectId: string;
+  entityId: string;
+  kind: 'mv' | 'music';
   isPublic: boolean;
   adminTags: string[] | null | undefined;
 }
@@ -59,32 +60,53 @@ function ToggleRow({
   );
 }
 
-export function OperationsTab({ projectId, isPublic, adminTags }: OperationsTabProps) {
+export function OperationsTab({ entityId, kind, isPublic, adminTags }: OperationsTabProps) {
   const qc = useQueryClient();
   const tags = adminTags ?? [];
   const isHot = tags.includes('热门');
   const isRecommended = tags.includes('推荐');
 
+  const invalidateKeys =
+    kind === 'mv'
+      ? [
+          ['admin', 'mv', 'project', entityId],
+          ['admin', 'mv', 'projects'],
+        ]
+      : [
+          ['admin', 'music', 'task', entityId],
+          ['admin', 'music', 'tasks'],
+        ];
+
+  const patchPath =
+    kind === 'mv'
+      ? `/admin/mv/projects/${entityId}/operations`
+      : `/admin/music/tasks/${entityId}/operations`;
+
   const mutation = useMutation({
     mutationFn: (payload: { isPublic?: boolean; hot?: boolean; recommended?: boolean }) =>
-      apiClient.patch(`/admin/mv/projects/${projectId}/operations`, payload) as Promise<{
+      apiClient.patch(patchPath, payload) as Promise<{
         isPublic: boolean;
         adminTags: string[];
       }>,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'mv', 'project', projectId] });
-      qc.invalidateQueries({ queryKey: ['admin', 'mv', 'projects'] });
+      for (const key of invalidateKeys) {
+        qc.invalidateQueries({ queryKey: key });
+      }
     },
   });
 
   const pending = mutation.isPending;
+  const publicDescription =
+    kind === 'mv'
+      ? '开启后会在首页公开作品墙与用户公开画廊中展示（需已完成且有成片）'
+      : '开启后可在前台公开音乐画廊中展示（需已完成且有音频结果）';
 
   return (
     <div className="max-w-xl space-y-4">
       <div>
         <h3 className="text-sm font-semibold text-slate-900">运营设置</h3>
         <p className="mt-1 text-xs text-slate-500">
-          控制该 MV 是否在公开作品墙展示，以及前台卡片上的运营标签。
+          控制是否在公开画廊展示，以及前台卡片上的运营标签。
         </p>
       </div>
 
@@ -99,7 +121,7 @@ export function OperationsTab({ projectId, isPublic, adminTags }: OperationsTabP
         <ToggleRow
           icon={Globe}
           label="公开"
-          description="开启后会在首页公开作品墙与用户公开画廊中展示（需已完成且有成片）"
+          description={publicDescription}
           checked={isPublic}
           disabled={pending}
           onChange={(v) => mutation.mutate({ isPublic: v })}
@@ -136,7 +158,7 @@ export function OperationsTab({ projectId, isPublic, adminTags }: OperationsTabP
             ))}
           </div>
           <p className="mt-2 text-[10px] text-slate-400">
-            其他标签（精选、新品等）可在项目列表页的「运营标签」列设置。
+            其他标签（精选、新品等）可在列表页的「运营标签」列设置。
           </p>
         </div>
       )}

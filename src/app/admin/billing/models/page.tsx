@@ -79,7 +79,7 @@ export default function ModelConfigPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Boxes className="h-5 w-5 text-teal-600" />
-            模型配置
+            MV 模型配置
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             视频生成引擎已全部由「AI 路由配置」决定，本页仅只读展示各品质当前生效的实际渠道。

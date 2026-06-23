@@ -11,6 +11,17 @@ export const usdCompact = (cents: number | null | undefined): string => {
   return `$${Math.round(v)}`;
 };
 
+/** 美元（已是「元」单位，非分）→ $X.XX */
+export const usdAmount = (dollars: number | null | undefined): string =>
+  `$${(dollars ?? 0).toFixed(2)}`;
+
+/** 美元（元单位）→ 紧凑金额（图表轴用）：$1.2k / $980 */
+export const usdAmountCompact = (dollars: number | null | undefined): string => {
+  const v = dollars ?? 0;
+  if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(1)}k`;
+  return `$${Math.round(v)}`;
+};
+
 /** 元 → ¥X.XX */
 export const cny = (yuan: number | null | undefined): string =>
   `¥${(yuan ?? 0).toFixed(2)}`;

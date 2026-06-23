@@ -12,6 +12,11 @@ import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/utils';
 import { useAlert } from '@/components/ui/dialog-provider';
 import { AdminTagsEditor } from '@/components/admin-tags-editor';
+import {
+  OperationsFilterBar,
+  operationsFilterToQueryParams,
+  type OperationsFilterKey,
+} from '@/components/operations-filter-bar';
 
 interface MusicTaskItem {
   id: string;
@@ -26,6 +31,7 @@ interface MusicTaskItem {
   completedAt: string | null;
   userDisplayName: string | null;
   userEmail: string | null;
+  isPublic: boolean;
   adminTags: string[] | null;
 }
 
@@ -41,9 +47,10 @@ export default function AdminMusicTasksPage() {
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [operationsFilter, setOperationsFilter] = useState<OperationsFilterKey>('');
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ListResponse>({
-    queryKey: ['admin', 'music', 'tasks', page, pageSize, search, status],
+    queryKey: ['admin', 'music', 'tasks', page, pageSize, search, status, operationsFilter],
     queryFn: () =>
       apiClient.get('/admin/music/tasks', {
         params: {
@@ -51,6 +58,7 @@ export default function AdminMusicTasksPage() {
           pageSize,
           search: search || undefined,
           status: status || undefined,
+          ...operationsFilterToQueryParams(operationsFilter),
         },
       }) as any,
   });
@@ -127,6 +135,14 @@ export default function AdminMusicTasksPage() {
             <option value="failed">failed</option>
           </select>
         </div>
+
+        <OperationsFilterBar
+          value={operationsFilter}
+          onChange={(next) => {
+            setPage(1);
+            setOperationsFilter(next);
+          }}
+        />
 
         <QueryState
           isLoading={isLoading}

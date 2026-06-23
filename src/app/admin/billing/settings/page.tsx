@@ -13,7 +13,7 @@ export default function AdminBillingSettingsPage() {
             充值设置
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Stripe 密钥与 Checkout 回调地址（USD 计价，Stripe Checkout 托管页）。积分套餐、会员计划请到对应子页配置；计费系数与模型定价请到「定价策略」页。
+            Stripe 密钥与 Checkout 回调地址（USD 计价，Stripe Checkout 托管页）。积分套餐、会员计划请到对应子页配置；注册/签到赠送请到「赠送积分」；计费系数与模型定价请到「定价策略」页。
           </p>
         </div>
         <StripeConfigSection />

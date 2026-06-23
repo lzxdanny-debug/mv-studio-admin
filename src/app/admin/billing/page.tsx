@@ -23,6 +23,7 @@ import {
   Users,
   CreditCard,
   Repeat,
+  ArrowLeftRight,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,12 @@ interface RevenuePayload {
   byMethod: { method: string; revenueCents: number }[];
 }
 
+interface ExchangeRate {
+  rate: number;
+  updatedAt: string | null;
+  source: 'live' | 'cache' | 'default';
+}
+
 const PRESETS: RangePreset[] = ['today', '7d', '30d', '90d', '12m'];
 
 export default function BillingDashboardPage() {
@@ -86,6 +93,13 @@ export default function BillingDashboardPage() {
     placeholderData: (p) => p,
   });
 
+  const fx = useQuery<ExchangeRate>({
+    queryKey: ['admin', 'billing', 'exchange-rate'],
+    queryFn: () => apiClient.get('/admin/billing/exchange-rate') as any,
+    placeholderData: (p) => p,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const isFetching = overview.isFetching || revenue.isFetching;
 
   return (
@@ -103,6 +117,7 @@ export default function BillingDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <RateBadge fx={fx.data} />
             <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
               {PRESETS.map((p) => (
                 <button
@@ -123,6 +138,7 @@ export default function BillingDashboardPage() {
               onClick={() => {
                 overview.refetch();
                 revenue.refetch();
+                fx.refetch();
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
             >
@@ -189,6 +205,35 @@ export default function BillingDashboardPage() {
           国家 / 支付方式自计费重构上线起采集，历史订单显示「未知」。
         </p>
       </div>
+    </div>
+  );
+}
+
+function RateBadge({ fx }: { fx?: ExchangeRate }) {
+  if (!fx) return null;
+  const sourceMeta: Record<ExchangeRate['source'], { label: string; cls: string }> = {
+    live: { label: '实时', cls: 'text-emerald-600' },
+    cache: { label: '缓存', cls: 'text-amber-600' },
+    default: { label: '默认', cls: 'text-slate-400' },
+  };
+  const meta = sourceMeta[fx.source];
+  const when = fx.updatedAt
+    ? new Date(fx.updatedAt).toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-700"
+      title={`USD→CNY ${fx.source}${when ? ` · 更新于 ${when}` : ''}`}
+    >
+      <ArrowLeftRight className="h-3.5 w-3.5 text-teal-600" />
+      <span className="font-medium tabular-nums">1 USD = ¥{fx.rate.toFixed(4)}</span>
+      <span className={cn('font-medium', meta.cls)}>{meta.label}</span>
+      {when && <span className="text-slate-400">· {when}</span>}
     </div>
   );
 }

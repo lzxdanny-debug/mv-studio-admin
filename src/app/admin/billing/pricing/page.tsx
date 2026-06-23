@@ -34,11 +34,13 @@ const MV_DURATION_KEYS = [
   'mvDurationAiRecommendCredits',
 ];
 
-/** 不在「计费系数与阈值」中展示的数值参数 */
+/** 不在「计费系数与阈值」中展示的数值参数（含已迁移至「赠送积分」页） */
 const HIDDEN_NUMBER_PARAM_KEYS = [
   ...MV_DURATION_KEYS,
   'minChargeCredits',
   'videoBaseCreditsPerSecond',
+  'signupBonus',
+  'dailyCheckInBonus',
 ];
 
 function syncFormFromView(
@@ -481,7 +483,7 @@ export default function PricingConfigPage() {
           <DurationPricingSection profitFactor={profitFactor} />
         </QueryState>
 
-        {/* 模型定价 */}
+        {/* MV 模型定价 */}
         <ModelPricingSection />
       </div>
     </div>
