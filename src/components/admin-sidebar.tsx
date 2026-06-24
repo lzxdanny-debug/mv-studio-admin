@@ -38,6 +38,7 @@ import {
   Sparkles,
   Gift,
   Route,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -98,6 +99,25 @@ const NAV_SECTIONS: NavSection[] = [
         icon: FolderKanban,
         items: [
           { href: '/admin/mv/projects', label: 'MV 项目', icon: Film, permission: 'project.view' },
+        ],
+      },
+      {
+        key: 'mv-anomaly',
+        label: '异常管理',
+        icon: AlertTriangle,
+        items: [
+          {
+            href: '/admin/mv/anomalies/failed-shots',
+            label: '镜头视频失败',
+            icon: AlertTriangle,
+            permission: 'mv.anomaly.view',
+          },
+          {
+            href: '/admin/mv/anomalies/storyboards',
+            label: '故事板异常',
+            icon: AlertTriangle,
+            permission: 'mv.anomaly.view',
+          },
         ],
       },
       {

@@ -2,6 +2,7 @@
 export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string; exact?: boolean }> = [
   { prefix: '/admin', permission: 'dashboard.view', exact: true },
   { prefix: '/admin/mv/projects', permission: 'project.view' },
+  { prefix: '/admin/mv/anomalies', permission: 'mv.anomaly.view' },
   { prefix: '/admin/mv/styles', permission: 'asset.view' },
   { prefix: '/admin/mv/character-presets', permission: 'asset.view' },
   { prefix: '/admin/mv/defaults', permission: 'system.manage' },
