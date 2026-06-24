@@ -148,9 +148,9 @@ export function SendNotificationDialog({
   const { data: searchResults, isFetching: searching } = useQuery({
     queryKey: ['admin', 'users', 'search', userSearch],
     queryFn: async () => {
-      const res = await apiClient.get<{ items: UserSearchRow[] }>(
+      const res = (await apiClient.get(
         `/admin/users?search=${encodeURIComponent(userSearch)}&pageSize=10`,
-      );
+      )) as unknown as { items: UserSearchRow[] };
       return res.items ?? [];
     },
     enabled: open && userSearch.trim().length >= 2 && targetType !== 'filter' && targetType !== 'all_active',
@@ -158,7 +158,7 @@ export function SendNotificationDialog({
 
   const estimateMutation = useMutation({
     mutationFn: async (payload: SendNotificationPayload) =>
-      apiClient.post<{ count: number }>('/admin/notifications/estimate', payload),
+      apiClient.post('/admin/notifications/estimate', payload) as Promise<{ count: number }>,
     onSuccess: (data) => setEstimateCount(data.count),
     onError: (err: unknown) => {
       const message =
@@ -214,10 +214,10 @@ export function SendNotificationDialog({
     let count = estimateCount;
     if (count === null) {
       try {
-        const est = await apiClient.post<{ count: number }>(
+        const est = (await apiClient.post(
           '/admin/notifications/estimate',
           payload,
-        );
+        )) as { count: number };
         count = est.count;
         setEstimateCount(count);
       } catch {
@@ -228,7 +228,7 @@ export function SendNotificationDialog({
     const ok = await confirm({
       title: '确认发送',
       description: `将向 ${count ?? 0} 位用户发送站内消息「${payload.title}」，是否继续？`,
-      confirmLabel: '发送',
+      confirmText: '发送',
       variant: targetType === 'all_active' ? 'danger' : 'default',
     });
     if (!ok) return;

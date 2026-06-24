@@ -151,7 +151,7 @@ export default function AdminNotificationsPage() {
         targetType: campaignTargetType,
       },
     ],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams({
         page: String(campaignPg.page),
         pageSize: String(campaignPg.pageSize),
@@ -159,9 +159,9 @@ export default function AdminNotificationsPage() {
       if (campaignSearch) params.set('search', campaignSearch);
       if (campaignStatus) params.set('status', campaignStatus);
       if (campaignTargetType) params.set('targetType', campaignTargetType);
-      return apiClient.get<{ items: CampaignRow[]; total: number }>(
+      return (await apiClient.get(
         `/admin/notifications/campaigns?${params}`,
-      );
+      )) as { items: CampaignRow[]; total: number };
     },
     enabled: tab === 'campaigns' || tab === 'compose',
     refetchInterval: tab === 'campaigns' ? 10000 : false,
@@ -180,7 +180,7 @@ export default function AdminNotificationsPage() {
         isRead: recordIsRead,
       },
     ],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams({
         page: String(recordPg.page),
         pageSize: String(recordPg.pageSize),
@@ -188,17 +188,19 @@ export default function AdminNotificationsPage() {
       if (recordSearch) params.set('search', recordSearch);
       if (recordSource) params.set('source', recordSource);
       if (recordIsRead) params.set('isRead', recordIsRead);
-      return apiClient.get<{ items: NotificationRow[]; total: number }>(
+      return (await apiClient.get(
         `/admin/notifications?${params}`,
-      );
+      )) as { items: NotificationRow[]; total: number };
     },
     enabled: tab === 'records',
   });
 
   const campaignDetailQuery = useQuery({
     queryKey: ['admin', 'notifications', 'campaign', selectedCampaignId],
-    queryFn: () =>
-      apiClient.get<CampaignDetail>(`/admin/notifications/campaigns/${selectedCampaignId}`),
+    queryFn: async () =>
+      (await apiClient.get(
+        `/admin/notifications/campaigns/${selectedCampaignId}`,
+      )) as CampaignDetail,
     enabled: !!selectedCampaignId,
     refetchInterval: selectedCampaignId ? 5000 : false,
   });
@@ -349,7 +351,7 @@ export default function AdminNotificationsPage() {
               value={campaignSearch}
               onChange={setCampaignSearch}
               placeholder="搜索标题…"
-              className="w-64"
+              width="w-64"
             />
             <FilterPills
               options={STATUS_OPTIONS}
@@ -369,17 +371,19 @@ export default function AdminNotificationsPage() {
             />
           </div>
 
-          <DataTable
+          <DataTable<CampaignRow>
             columns={campaignColumns}
-            data={campaignsQuery.data?.items ?? []}
-            loading={campaignsQuery.isLoading}
-            error={campaignsQuery.error as Error | null}
+            rows={campaignsQuery.data?.items}
+            rowKey={(row) => row.id}
+            isLoading={campaignsQuery.isLoading}
+            isError={campaignsQuery.isError}
+            error={campaignsQuery.error}
             emptyMessage="暂无发送记录"
             page={campaignPg.page}
             pageSize={campaignPg.pageSize}
             total={campaignsQuery.data?.total ?? 0}
             onPageChange={campaignPg.setPage}
-            onPageSizeChange={campaignPg.setPageSize}
+            onPageSizeChange={campaignPg.onPageSizeChange}
           />
         </div>
       )}
@@ -391,7 +395,7 @@ export default function AdminNotificationsPage() {
               value={recordSearch}
               onChange={setRecordSearch}
               placeholder="搜索用户邮箱/昵称/标题…"
-              className="w-72"
+              width="w-72"
             />
             <FilterPills
               options={SOURCE_OPTIONS}
@@ -415,17 +419,19 @@ export default function AdminNotificationsPage() {
             />
           </div>
 
-          <DataTable
+          <DataTable<NotificationRow>
             columns={recordColumns}
-            data={recordsQuery.data?.items ?? []}
-            loading={recordsQuery.isLoading}
-            error={recordsQuery.error as Error | null}
+            rows={recordsQuery.data?.items}
+            rowKey={(row) => row.id}
+            isLoading={recordsQuery.isLoading}
+            isError={recordsQuery.isError}
+            error={recordsQuery.error}
             emptyMessage="暂无通知记录"
             page={recordPg.page}
             pageSize={recordPg.pageSize}
             total={recordsQuery.data?.total ?? 0}
             onPageChange={recordPg.setPage}
-            onPageSizeChange={recordPg.setPageSize}
+            onPageSizeChange={recordPg.onPageSizeChange}
           />
         </div>
       )}
