@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Crown,
   Shield,
+  ShieldAlert,
   Receipt,
   Undo2,
   Activity,
@@ -39,6 +40,8 @@ import {
   Gift,
   Route,
   AlertTriangle,
+  Mail,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -160,6 +163,18 @@ const NAV_SECTIONS: NavSection[] = [
         icon: Users,
         items: [
           { href: '/admin/users', label: 'C 端用户', icon: Users, permission: 'user.view' },
+          {
+            href: '/admin/users/notifications',
+            label: '消息管理',
+            icon: Bell,
+            permission: 'notification.view',
+          },
+          {
+            href: '/admin/users/email-logs',
+            label: '已发送邮件',
+            icon: Mail,
+            permission: 'user.email_log.view',
+          },
           {
             href: '/admin/feedback',
             label: '用户反馈',
@@ -387,6 +402,37 @@ const NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
+  {
+    key: 'risk',
+    title: '风控中心',
+    subgroups: [
+      {
+        key: 'risk-policy',
+        label: '风控策略',
+        icon: Shield,
+        items: [
+          {
+            href: '/admin/risk/config',
+            label: '封控参数',
+            icon: Shield,
+            permission: 'risk.view',
+          },
+          {
+            href: '/admin/risk/blocklist',
+            label: '封控黑名单',
+            icon: ShieldAlert,
+            permission: 'risk.view',
+          },
+          {
+            href: '/admin/risk/allowlist',
+            label: '信任白名单',
+            icon: ShieldCheck,
+            permission: 'risk.view',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 // ─── 工具函数 ────────────────────────────────────────────────────────────
@@ -413,8 +459,18 @@ function isLinkActive(pathname: string, href: string, exact = false): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
+/** 同组菜单中取最长匹配路径，避免 /admin/users 与 /admin/users/email-logs 同时高亮 */
+function pickActiveNavItem(pathname: string, items: NavLink[]): NavLink | undefined {
+  let best: NavLink | undefined;
+  for (const item of items) {
+    if (!isLinkActive(pathname, item.href, item.exact)) continue;
+    if (!best || item.href.length > best.href.length) best = item;
+  }
+  return best;
+}
+
 function subgroupHasActive(pathname: string, subgroup: NavSubgroup): boolean {
-  return subgroup.items.some((item) => isLinkActive(pathname, item.href, item.exact));
+  return !!pickActiveNavItem(pathname, subgroup.items);
 }
 
 function sectionHasActive(pathname: string, section: NavSection): boolean {
@@ -440,13 +496,19 @@ function NavLeaf({
   item,
   badges,
   depth = 2,
+  activeHref,
 }: {
   item: NavLink;
   badges: Record<string, number>;
   depth?: number;
+  /** 同组内最长匹配 href；传入时仅该项高亮 */
+  activeHref?: string;
 }) {
   const pathname = usePathname();
-  const active = isLinkActive(pathname, item.href, item.exact);
+  const active =
+    activeHref !== undefined
+      ? activeHref === item.href
+      : isLinkActive(pathname, item.href, item.exact);
   const badge = item.badgeKey ? badges[item.badgeKey] : 0;
   const Icon = item.icon;
 
@@ -500,6 +562,7 @@ function NavSubgroupBlock({
   if (!visibleItems.length) return null;
 
   const active = subgroupHasActive(pathname, subgroup);
+  const activeHref = pickActiveNavItem(pathname, visibleItems)?.href;
   const SubIcon = subgroup.icon;
 
   return (
@@ -534,7 +597,7 @@ function NavSubgroupBlock({
         <div className="overflow-hidden">
           <div className="pt-0.5 pb-1 space-y-0.5 border-l-2 border-slate-200 ml-5">
             {visibleItems.map((item) => (
-              <NavLeaf key={item.href} item={item} badges={badges} />
+              <NavLeaf key={item.href} item={item} badges={badges} activeHref={activeHref} />
             ))}
           </div>
         </div>

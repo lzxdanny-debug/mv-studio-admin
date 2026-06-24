@@ -25,6 +25,7 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   maxResolution: '720p',
   watermarkRequired: true,
   allowUltron: false,
+  allowSeedance: false,
   videoPriceCoefficient: 1,
   allowMultiCharacter: false,
   allowCommercialUse: false,
@@ -49,6 +50,7 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     maxResolution: local.maxResolution,
     watermarkRequired: local.watermarkRequired,
     allowUltron: local.allowUltron,
+    allowSeedance: local.allowSeedance,
     videoPriceCoefficient: local.videoPriceCoefficient,
     allowMultiCharacter: local.allowMultiCharacter,
     allowCommercialUse: local.allowCommercialUse,
@@ -392,6 +394,7 @@ function PlanCard({
           <>
             <Toggle label="无水印" checked={!local.watermarkRequired} onChange={(v) => patch({ watermarkRequired: !v })} />
             <Toggle label="Ultron 模式" checked={!!local.allowUltron} onChange={(v) => patch({ allowUltron: v })} />
+            <Toggle label="Seedance 引擎" checked={!!local.allowSeedance} onChange={(v) => patch({ allowSeedance: v })} />
             <Toggle label="多角色" checked={!!local.allowMultiCharacter} onChange={(v) => patch({ allowMultiCharacter: v })} />
             <Toggle label="商业授权" checked={!!local.allowCommercialUse} onChange={(v) => patch({ allowCommercialUse: v })} />
           </>

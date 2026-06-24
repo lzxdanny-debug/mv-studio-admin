@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Check, Coins, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, Check, Coins, Loader2, X } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { PaginationBar } from '@/components/pagination-bar';
 import { useAlert } from '@/components/ui/dialog-provider';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
+import { SendNotificationDialog } from '../notifications/_components/send-notification-dialog';
 
 const DETAIL_PAGE_SIZE_DEFAULT = 10;
 
@@ -91,6 +92,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const qc = useQueryClient();
   const alert = useAlert();
   const canAdjustCredits = useAdminAuthStore((s) => s.hasPermission('credit.adjust'));
+  const canSendNotification = useAdminAuthStore(
+    (s) => s.hasPermission('notification.send') || s.hasPermission('notification.broadcast'),
+  );
   const [mvPage, setMvPage] = useState(1);
   const [feedbackPage, setFeedbackPage] = useState(1);
   const [musicPage, setMusicPage] = useState(1);
@@ -99,6 +103,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [payPage, setPayPage] = useState(1);
   const [detailPageSize, setDetailPageSize] = useState(DETAIL_PAGE_SIZE_DEFAULT);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [sendNotificationOpen, setSendNotificationOpen] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
 
@@ -348,6 +353,16 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {canSendNotification && (
+                    <button
+                      type="button"
+                      onClick={() => setSendNotificationOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 transition-colors"
+                    >
+                      <Bell className="h-3.5 w-3.5" />
+                      发送消息
+                    </button>
+                  )}
                   {canAdjustCredits && (
                     <button
                       type="button"
@@ -831,6 +846,20 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
       )}
+
+      <SendNotificationDialog
+        open={sendNotificationOpen}
+        onClose={() => setSendNotificationOpen(false)}
+        presetUser={
+          user
+            ? {
+                id: user.id,
+                email: user.email,
+                displayName: user.displayName,
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }
