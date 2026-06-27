@@ -850,11 +850,29 @@ function CapabilityRow({
       setMsg({ ok: false, text: e?.message ?? '保存失败' }),
   });
 
-  // 候选 provider list（排除已选 primary 后给 secondary 选）
-  const secondaryCandidates = useMemo(
-    () => supportedProviders.filter((p) => p !== primary),
-    [supportedProviders, primary],
-  );
+  // 备 Provider 可选全部 supported（可与主相同，但需选不同 model）
+  const secondaryCandidates = useMemo(() => supportedProviders, [supportedProviders]);
+
+  const effectivePrimaryModel =
+    modelPrimary.trim() || (defaultModelsForCap[primary] ?? '');
+  const effectiveSecondaryModel =
+    modelSecondary.trim() ||
+    (secondary ? (defaultModelsForCap[secondary] ?? '') : '');
+
+  const handleSave = () => {
+    if (
+      secondary &&
+      secondary === primary &&
+      effectivePrimaryModel === effectiveSecondaryModel
+    ) {
+      setMsg({
+        ok: false,
+        text: '主备 Provider 相同时，请选择不同的模型（例如主 Veo、备 Seedance）',
+      });
+      return;
+    }
+    save.mutate();
+  };
 
   const onlyOneProvider = supportedProviders.length === 1;
 
@@ -949,7 +967,6 @@ function CapabilityRow({
               const p = e.target.value as RoutingProvider;
               setPrimary(p);
               setModelPrimary(''); // 切换 provider 重置模型选择
-              if (secondary === p) setSecondary(null);
             }}
             className="w-full px-2 py-2 text-sm border border-slate-200 rounded-lg bg-white"
           >
@@ -974,6 +991,11 @@ function CapabilityRow({
         {/* 备 Provider — 次级 */}
         <div className="space-y-2 rounded-xl bg-slate-50/80 p-3 border border-slate-200">
           <p className="text-[11px] font-medium text-slate-500">备 Provider（兜底）</p>
+          {secondary === primary && (
+            <p className="text-[10px] text-amber-600">
+              与主 Provider 相同时，请为备路指定不同模型
+            </p>
+          )}
           <select
             value={secondary ?? ''}
             onChange={(e) => {
@@ -1046,7 +1068,7 @@ function CapabilityRow({
         </button>
         <button
           type="button"
-          onClick={() => save.mutate()}
+          onClick={handleSave}
           disabled={save.isPending}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium"
         >
