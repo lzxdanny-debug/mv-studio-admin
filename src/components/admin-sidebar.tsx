@@ -35,6 +35,7 @@ import {
   ChevronDown,
   FolderKanban,
   Layers,
+  PersonStanding,
   ShoppingBag,
   Sparkles,
   Gift,
@@ -129,6 +130,12 @@ const NAV_SECTIONS: NavSection[] = [
         icon: Layers,
         items: [
           { href: '/admin/mv/styles', label: '风格库', icon: Palette, permission: 'asset.view' },
+          {
+            href: '/admin/mv/dance-styles',
+            label: '舞蹈风格库',
+            icon: PersonStanding,
+            permission: 'asset.view',
+          },
           {
             href: '/admin/mv/character-presets',
             label: '默认角色图',
