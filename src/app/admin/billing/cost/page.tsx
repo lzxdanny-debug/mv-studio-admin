@@ -59,6 +59,7 @@ interface BonusSummary {
 const BONUS_SOURCE_LABEL: Record<string, string> = {
   signup: '注册赠送',
   daily_check_in: '每日签到',
+  referral: '邀请奖励',
   other: '会员 / 手动 / 活动',
 };
 

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import type { PricingConfigView, PricingParam } from '../_components/types';
 
-const BONUS_PARAM_KEYS = ['signupBonus', 'dailyCheckInBonus'] as const;
+const BONUS_PARAM_KEYS = ['signupBonus', 'dailyCheckInBonus', 'referralInviteBonus'] as const;
 
 const SOURCE_LABEL: Record<PricingParam['source'], string> = {
   db: '已配置',
@@ -90,7 +90,7 @@ export default function BonusConfigPage() {
             赠送积分
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            配置注册一次性赠送与每日签到奖励。写入 bonus 流水，可在「成本统计 / 赠送积分」中查看营销成本。
+            配置注册一次性赠送、每日签到与邀请拉新奖励。写入 bonus 流水，可在「成本统计 / 赠送积分」中查看营销成本。
           </p>
         </div>
 

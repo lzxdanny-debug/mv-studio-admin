@@ -39,6 +39,7 @@ interface UserDetail {
     mountseaBound: boolean;
     lastLoginAt: string | null;
     lastLoginIp: string | null;
+    referralCode?: string;
     createdAt: string;
     updatedAt: string;
   };
@@ -64,6 +65,10 @@ interface UserDetail {
     cancelAtPeriodEnd: boolean;
     createdAt: string;
   } | null;
+  referral?: {
+    referralCount: number;
+    referralCreditsEarned: number;
+  };
 }
 
 const PAYMENT_STATUS_META: Record<string, { label: string; cls: string }> = {
@@ -101,6 +106,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [lyricsPage, setLyricsPage] = useState(1);
   const [txPage, setTxPage] = useState(1);
   const [payPage, setPayPage] = useState(1);
+  const [referralPage, setReferralPage] = useState(1);
   const [detailPageSize, setDetailPageSize] = useState(DETAIL_PAGE_SIZE_DEFAULT);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [sendNotificationOpen, setSendNotificationOpen] = useState(false);
@@ -115,6 +121,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     setLyricsPage(1);
     setTxPage(1);
     setPayPage(1);
+    setReferralPage(1);
   };
 
   const { data, isLoading, isError, error, refetch } = useQuery<UserDetail>({
@@ -226,6 +233,29 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       ) as any,
     enabled: !!data,
   });
+
+  const referralsQ = useQuery<{
+    data: Array<{
+      id: string;
+      inviteeUserId: string;
+      inviteeEmail: string | null;
+      inviteCode: string;
+      rewardCredits: number;
+      createdAt: string;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }>({
+    queryKey: ['admin', 'user', id, 'referrals', referralPage, detailPageSize],
+    queryFn: () =>
+      apiClient.get(
+        `/admin/users/${id}/referrals?page=${referralPage}&pageSize=${detailPageSize}`,
+      ) as any,
+    enabled: !!data,
+  });
+
+  const referralRows = referralsQ.data?.data ?? [];
 
   const statusMutation = useMutation({
     mutationFn: (status: UserStatus) =>
@@ -428,7 +458,68 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 <InfoCard label="歌词项目数" value={data.counts.lyricsTasks} />
                 <InfoCard label="积分流水" value={data.counts.transactions} />
                 <InfoCard label="反馈记录" value={data.counts.feedback} />
+                <InfoCard label="邀请人数" value={data.referral?.referralCount ?? 0} />
+                <InfoCard
+                  label="邀请获得积分"
+                  value={(data.referral?.referralCreditsEarned ?? 0).toLocaleString()}
+                />
               </div>
+
+              {(user.referralCode || (data.referral?.referralCount ?? 0) > 0) && (
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="p-5 pb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700">邀请拉新</h3>
+                      {user.referralCode && (
+                        <p className="text-xs text-slate-400 mt-1">
+                          邀请码 <span className="font-mono text-violet-700">{user.referralCode}</span>
+                        </p>
+                      )}
+                    </div>
+                    <Link
+                      href="/admin/billing/referrals"
+                      className="text-xs text-teal-700 hover:underline"
+                    >
+                      查看全部记录
+                    </Link>
+                  </div>
+                  {!referralRows.length ? (
+                    <p className="text-xs text-slate-400 py-4 text-center">暂无邀请记录</p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100 px-5">
+                      {referralRows.map((r) => (
+                        <li key={r.id} className="py-2 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <Link
+                              href={`/admin/users/${r.inviteeUserId}`}
+                              className="text-sm text-slate-700 hover:text-teal-600 truncate block"
+                            >
+                              {r.inviteeEmail || r.inviteeUserId.slice(0, 8)}
+                            </Link>
+                            <p className="text-[11px] text-slate-400 font-mono">{r.inviteCode}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-medium text-emerald-700 tabular-nums">
+                              +{r.rewardCredits.toLocaleString()}
+                            </p>
+                            <p className="text-[11px] text-slate-400">{formatDate(r.createdAt)}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {referralsQ.data && referralsQ.data.total > 0 && (
+                    <PaginationBar
+                      page={referralPage}
+                      pageSize={detailPageSize}
+                      total={referralsQ.data.total}
+                      onPageChange={setReferralPage}
+                      onPageSizeChange={onDetailPageSizeChange}
+                      pageSizeOptions={[10, 20, 50]}
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">

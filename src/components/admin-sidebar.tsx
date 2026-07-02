@@ -137,6 +137,12 @@ const NAV_SECTIONS: NavSection[] = [
             permission: 'asset.view',
           },
           {
+            href: '/admin/mv/beat-effects',
+            label: '节拍特效库',
+            icon: Activity,
+            permission: 'asset.view',
+          },
+          {
             href: '/admin/mv/character-presets',
             label: '默认角色图',
             icon: UserSquare,
@@ -332,6 +338,12 @@ const NAV_SECTIONS: NavSection[] = [
             href: '/admin/billing/bonus',
             label: '赠送积分',
             icon: Gift,
+            permission: 'billing.cost.view',
+          },
+          {
+            href: '/admin/billing/referrals',
+            label: '邀请拉新',
+            icon: Users,
             permission: 'billing.cost.view',
           },
         ],

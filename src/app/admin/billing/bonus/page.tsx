@@ -18,7 +18,7 @@ interface BonusRow {
   userDisplayName: string | null;
   amount: number;
   usd: number;
-  source: 'signup' | 'daily_check_in' | 'other';
+  source: 'signup' | 'daily_check_in' | 'referral' | 'other';
   referenceId: string | null;
   description: string;
   createdAt: string;
@@ -44,6 +44,7 @@ const PRESETS: Array<RangePreset | 'all'> = ['all', '7d', '30d', '90d'];
 const SOURCE_META: Record<BonusRow['source'], { label: string; cls: string }> = {
   signup: { label: '注册赠送', cls: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
   daily_check_in: { label: '每日签到', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+  referral: { label: '邀请奖励', cls: 'bg-violet-50 text-violet-700 border-violet-100' },
   other: { label: '会员 / 手动', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
 };
 
@@ -234,6 +235,7 @@ export default function AdminBonusPage() {
             <option value="">全部来源</option>
             <option value="signup">注册赠送</option>
             <option value="daily_check_in">每日签到</option>
+            <option value="referral">邀请奖励</option>
             <option value="other">会员 / 手动</option>
           </select>
         </div>
