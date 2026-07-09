@@ -249,7 +249,6 @@ export default function PricingConfigPage() {
     const payload: Record<string, FormValue> = Object.fromEntries(
       numberParams.map((p) => [p.key, form[p.key] ?? p.value]),
     );
-    payload.mvPricingMode = 'per_duration';
     save.mutate(payload);
   };
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Film, Save, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Film, Save, Sparkles, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { PricingConfigView } from './types';
@@ -15,40 +16,24 @@ interface DurationPricingTopProps {
   onConfigSaved?: (view: PricingConfigView) => void;
 }
 
-function effectiveAiRecommendCredits(
-  base: number,
-  profitFactor: number,
-  minCharge: number,
-): number {
-  if (base <= 0) return 0;
-  return Math.max(minCharge, Math.ceil(base * profitFactor));
-}
-
 export function DurationPricingTop({
   profitFactor,
-  minChargeCredits,
   baseCreditsPerSecond,
-  aiRecommendCredits,
   onConfigSaved,
 }: DurationPricingTopProps) {
   const qc = useQueryClient();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [baseDraft, setBaseDraft] = useState(String(baseCreditsPerSecond));
-  const [aiDraft, setAiDraft] = useState(String(aiRecommendCredits));
 
   useEffect(() => {
     setBaseDraft(String(baseCreditsPerSecond));
   }, [baseCreditsPerSecond]);
 
-  useEffect(() => {
-    setAiDraft(String(aiRecommendCredits));
-  }, [aiRecommendCredits]);
-
   const saveConfig = useMutation({
     mutationFn: (payload: Record<string, number | string>) =>
       apiClient.patch('/admin/billing/pricing-config', payload) as Promise<PricingConfigView>,
     onSuccess: (res) => {
-      setMsg({ ok: true, text: '整片定价参数已保存。' });
+      setMsg({ ok: true, text: '整片估算秒价已保存。' });
       qc.setQueryData(['admin', 'billing', 'pricing-config'], res);
       onConfigSaved?.(res);
       qc.invalidateQueries({ queryKey: ['admin', 'billing', 'step-prices'] });
@@ -57,12 +42,6 @@ export function DurationPricingTop({
   });
 
   const base = Math.max(0, Math.round(Number(baseDraft) || 0));
-  const aiBase = Math.max(0, Math.round(Number(aiDraft) || 0));
-  const aiEffective = effectiveAiRecommendCredits(
-    aiBase,
-    profitFactor,
-    minChargeCredits,
-  );
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -71,9 +50,10 @@ export function DurationPricingTop({
           <Film className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-slate-800">整片按时长 · 核心定价</h2>
+          <h2 className="text-sm font-semibold text-slate-800">创建估算 · 整片秒价</h2>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            MV 创建时按「时长 × 基础秒价 × 盈利系数 × 清晰度 × 品质 × 会员系数」一次性扣费；创建前的 AI 风格推荐单独计费。
+            用于创建页「~N 积分」展示与余额预检（创建时不实扣）。公式：时长 × 基础秒价 × 盈利系数 × 清晰度 × 品质 × 会员系数。
+            各步骤完成后按「步骤价格」实扣。
           </p>
         </div>
       </div>
@@ -97,7 +77,7 @@ export function DurationPricingTop({
           </div>
           {base > 0 && (
             <p className="mt-2 text-xs text-teal-700/90">
-              实际秒价 = {base} × {profitFactor} ={' '}
+              估算秒价 = {base} × {profitFactor} ={' '}
               <span className="font-semibold">{base * profitFactor}</span> 积分/秒
             </p>
           )}
@@ -108,7 +88,6 @@ export function DurationPricingTop({
               setMsg(null);
               saveConfig.mutate({
                 mvDurationBaseCreditsPerSecond: base,
-                mvPricingMode: 'per_duration',
               });
             }}
             className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-xs font-medium"
@@ -121,46 +100,19 @@ export function DurationPricingTop({
         <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-4">
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-4 w-4 text-violet-500" />
-            <p className="text-sm font-medium text-slate-700">AI 风格推荐（单独计费）</p>
+            <p className="text-sm font-medium text-slate-700">AI 风格推荐</p>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
-            基础积分（盈利系数前）；设为 0 = 免费
+          <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+            单价已迁移至
+            <Link
+              href="/admin/billing/step-prices"
+              className="inline-flex items-center gap-0.5 mx-1 text-violet-700 font-medium underline"
+            >
+              步骤价格 · AI 推荐方向
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+            。用户点击推荐时实扣；手动选风格不计入创建估算。
           </p>
-          <div className="flex items-center gap-2 mt-3">
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={aiDraft}
-              onChange={(e) => setAiDraft(e.target.value)}
-              className="flex-1 px-3 py-2 text-xl font-bold text-slate-900 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 text-right"
-            />
-            <span className="text-xs text-slate-400 flex-shrink-0">基础积分</span>
-          </div>
-          {aiBase > 0 && (
-            <p className="mt-2 text-xs text-violet-700/90">
-              实际扣费 ≈ ceil({aiBase} × {profitFactor}) ={' '}
-              <span className="font-semibold">{aiEffective}</span> 积分/次
-              {aiEffective === minChargeCredits && aiBase * profitFactor < minChargeCredits && (
-                <span className="text-slate-400 ml-1">（触达最低 {minChargeCredits}）</span>
-              )}
-            </p>
-          )}
-          <button
-            type="button"
-            disabled={saveConfig.isPending || aiDraft === String(aiRecommendCredits)}
-            onClick={() => {
-              setMsg(null);
-              saveConfig.mutate({
-                mvDurationAiRecommendCredits: aiBase,
-                mvPricingMode: 'per_duration',
-              });
-            }}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white text-xs font-medium"
-          >
-            <Save className="h-3.5 w-3.5" />
-            {saveConfig.isPending ? '保存中…' : '保存 AI 推荐价'}
-          </button>
         </div>
       </div>
 

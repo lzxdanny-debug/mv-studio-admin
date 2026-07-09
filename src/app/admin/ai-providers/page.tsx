@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { useConfirm } from '@/components/ui/dialog-provider';
+import { SecretInput } from '@/components/secret-input';
 
 // ──────────────────────────────────────────────────────────────────────
 // 类型 —— 与后端 CredentialView / 字段定义一一对应
@@ -200,7 +201,10 @@ export default function AiProvidersPage() {
     queryFn: () => apiClient.get('/admin/ai-providers') as Promise<CredentialView[]>,
   });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['admin', 'ai-providers'] });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'ai-providers'] });
+    qc.invalidateQueries({ queryKey: ['admin', 'ai-providers', 'fal-usage-key'] });
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-100">
@@ -481,6 +485,8 @@ function ProviderCard({ view }: { view: CredentialView }) {
         )}
       </div>
 
+      {view.provider === 'fal' && <FalUsageKeyPanel />}
+
       {/* 状态/操作元信息 */}
       {!editing && view.updatedAt && (
         <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-600 pt-3 border-t border-slate-100">
@@ -609,6 +615,125 @@ function ProviderCard({ view }: { view: CredentialView }) {
         )}
       </div>
     </section>
+  );
+}
+
+interface FalUsageKeyView {
+  usageApiKeyMasked: string;
+  usageApiKeyConfigured: boolean;
+  usageApiKeyFromEnv: boolean;
+  reconcileEnabled: boolean;
+}
+
+function FalUsageKeyPanel() {
+  const qc = useQueryClient();
+  const [usageApiKey, setUsageApiKey] = useState('');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const { data, isLoading } = useQuery<FalUsageKeyView>({
+    queryKey: ['admin', 'ai-providers', 'fal-usage-key'],
+    queryFn: () =>
+      apiClient.get('/admin/ai-providers/fal/usage-key') as Promise<FalUsageKeyView>,
+  });
+
+  const save = useMutation({
+    mutationFn: (payload: { usageApiKey: string }) =>
+      apiClient.patch('/admin/ai-providers/fal/usage-key', payload) as Promise<FalUsageKeyView>,
+    onSuccess: () => {
+      setMsg({ ok: true, text: '对账 API Key 已保存，下一次对账 cron 即生效。' });
+      setUsageApiKey('');
+      qc.invalidateQueries({ queryKey: ['admin', 'ai-providers', 'fal-usage-key'] });
+    },
+    onError: (e: any) =>
+      setMsg({ ok: false, text: e?.message || e?.error || '保存失败' }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="pt-3 border-t border-slate-100 text-[10px] text-slate-400">
+        加载对账配置…
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-3 border-t border-slate-100 space-y-2">
+      <div>
+        <p className="text-[10px] font-semibold text-slate-700">成本对账 API Key（ADMIN scope）</p>
+        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+          与上方「生成用 API Key」独立。在{' '}
+          <a
+            href="https://fal.ai/dashboard/keys"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-teal-600 hover:underline"
+          >
+            fal.ai/dashboard/keys
+          </a>{' '}
+          新建 Key 时选择 <strong>ADMIN</strong> scope，用于拉取 billing-events 真实账单。
+        </p>
+        {data && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {data.reconcileEnabled ? (
+              <>
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <span className="text-[10px] text-emerald-600 font-medium">
+                  对账已配置
+                  {data.usageApiKeyFromEnv && (
+                    <span className="ml-1 px-1 py-0.5 rounded bg-amber-50 text-amber-700">env</span>
+                  )}
+                </span>
+              </>
+            ) : (
+              <>
+                <XCircle className="h-3 w-3 text-amber-500" />
+                <span className="text-[10px] text-amber-600 font-medium">对账未配置，Fal 渠道无法回填真实账单</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-medium text-slate-600 mb-1">
+          FAL_USAGE_API_KEY
+        </label>
+        <SecretInput
+          configured={data?.usageApiKeyConfigured}
+          maskedPreview={data?.usageApiKeyMasked}
+          value={usageApiKey}
+          onChange={setUsageApiKey}
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:xxxxx"
+          showToggle
+          className="text-xs font-mono"
+        />
+      </div>
+
+      {msg && (
+        <p className={cn('text-[10px] font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
+          {msg.text}
+        </p>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            setMsg(null);
+            if (!usageApiKey.trim()) {
+              setMsg({ ok: false, text: '请填写 Usage API Key。' });
+              return;
+            }
+            save.mutate({ usageApiKey: usageApiKey.trim() });
+          }}
+          disabled={save.isPending || !usageApiKey.trim()}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-[10px] font-medium"
+        >
+          <KeyRound className={cn('h-3 w-3', save.isPending && 'animate-spin')} />
+          {save.isPending ? '保存中…' : '保存对账 Key'}
+        </button>
+      </div>
+    </div>
   );
 }
 

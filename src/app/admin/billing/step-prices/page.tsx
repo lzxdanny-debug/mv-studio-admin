@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, Save, Wand2, HelpCircle, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Coins, Save, Wand2, HelpCircle, ExternalLink, AlertTriangle, ChevronDown } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -40,13 +40,14 @@ interface StepPriceRow {
   derivedPrice: number | null;
   derivedBasis: string | null;
   overridden: boolean;
+  alwaysBillInPerDuration: boolean;
 }
 
 interface StepPricesView {
   dimensions: Array<{ dimension: string; rows: StepPriceRow[] }>;
 }
 
-// 视频按秒计费（与 /admin/billing/video-pricing、模型配置联动，只读展示）
+// 视频按秒计费（与 /admin/billing/video-pricing、模型配置联动，本页矩阵可编辑）
 interface VPResolution {
   code: string;
   name: string;
@@ -115,6 +116,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 function frontendStepBadge(step: string | null): string | null {
   if (!step) return null;
   if (step === 'pre') return '创作前';
+  if (step === 'agent') return 'Agent';
   return `第 ${step} 步`;
 }
 
@@ -395,7 +397,7 @@ function PriceTable({
   );
 }
 
-// ─── 视频按秒计费（只读，清晰度 × 品质）────────────────────────────────────
+// ─── 视频按秒计费（可编辑 · 清晰度 × 品质）────────────────────────────────────
 
 function VideoPerSecondCard({
   video,
@@ -689,13 +691,22 @@ export default function StepPricesPage() {
     [data, tab],
   );
 
-  // 视频片段生成改为按秒计费（独立只读卡片展示），从可编辑主表中剔除；
+  // 视频片段生成改为按秒计费（独立可编辑卡片），从主步骤表中剔除；
   // 第 10 步「最终合成」单独抽出，放到全部模块之后展示（与前端流程顺序对齐）。
   const mainRows = useMemo(
     () =>
       allRows.filter(
-        (r) => !r.isAddon && r.step !== 'video_gen' && r.step !== 'final_compose',
+        (r) =>
+          !r.isAddon
+          && r.step !== 'video_gen'
+          && r.step !== 'final_compose'
+          && !(r.alwaysBillInPerDuration ?? false),
       ),
+    [allRows],
+  );
+
+  const perDurationAddonRows = useMemo(
+    () => allRows.filter((r) => r.alwaysBillInPerDuration ?? false),
     [allRows],
   );
 
@@ -737,17 +748,15 @@ export default function StepPricesPage() {
             步骤价格
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            每一行与前端流程一一对应（创作前 AI 推荐 + 10 个步骤）。当前价默认跟随
+            与前端 MV 流程一一对应。默认按步实扣：创建页仅做时长估算预检（见
             <Link
               href="/admin/billing/pricing"
               className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
             >
-              定价策略 · 模型定价
+              定价策略 · 创建估算秒价
               <ExternalLink className="h-3 w-3" />
             </Link>
-            （实际价格 × 盈利系数 ÷ 积分单价），手改后冻结、改回派生值即恢复跟随；扣费按当前价 × 数量。
-            第 9 步「视频片段生成」改为按秒计费（清晰度 × 品质），在下方独立卡片只读展示。
-            不调用 AI 的步骤标注「不计费」；历史成本均值作为对照参考。「当前模型」读取
+            ），各步骤完成后按下方价格实扣。当前价默认跟随定价策略 · 模型定价（实际价格 × 盈利系数 ÷ 积分单价），手改后冻结。第 9 步视频按秒计费（清晰度 × 品质），在下方矩阵独立维护。「当前模型」读取
             <Link
               href="/admin/ai-routing"
               className="inline-flex items-center gap-0.5 mx-1 text-teal-600 hover:underline font-medium"
@@ -755,9 +764,18 @@ export default function StepPricesPage() {
               AI 路由配置
               <ExternalLink className="h-3 w-3" />
             </Link>
-            与模型配置，修改路由后刷新本页即可看到最新模型。
+            ，修改路由后刷新本页即可看到最新模型。
           </p>
         </div>
+
+        {tab === 'mv' && !isPerDuration && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+            <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-teal-600" />
+            <div className="leading-relaxed">
+              当前为<strong className="font-semibold">按步实扣</strong>模式：创建时仅做余额预检（时长估算），不实扣；各步骤完成后按下方表格实扣。AI 推荐、Agent 对话在「创建相关」区块单独计费。
+            </div>
+          </div>
+        )}
 
         {isPerDuration && (
           <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -768,14 +786,11 @@ export default function StepPricesPage() {
                 href="/admin/billing/pricing"
                 className="inline-flex items-center gap-0.5 mx-1 font-semibold text-amber-900 underline decoration-amber-400 hover:decoration-amber-700"
               >
-                整片按时长
+                整片按时长（遗留）
                 <ExternalLink className="h-3 w-3" />
               </Link>
-              模式：MV 维度的各分步价格<strong className="font-semibold">不再生效</strong>，整片（规划 /
-              分镜 / 视频 / 合成）统一在「项目创建时」按「时长 × 每秒价」一次性扣费。此页 MV
-              分步价仅在切回「按步骤」模式后才会启用；
-              <strong className="font-semibold">「AI 风格推荐」例外</strong>
-              —— 它发生在创建之前，仍按定价策略里配置的积分单独扣费。music / lyrics 等非 MV 维度不受影响。
+              模式：MV 主流程各步不再单独扣费。创建时仅做余额预检（时长估算），不实扣。
+              <strong className="font-semibold"> AI 推荐 / Agent 对话</strong> 仍按下方表格单独扣费。
             </div>
           </div>
         )}
@@ -814,13 +829,37 @@ export default function StepPricesPage() {
                 ，按各模型差异化积分扣费；本页仅保留 AI 歌词步价编辑。
               </div>
             )}
-            {/* 主步骤表 */}
+            {/* A. 创建相关（AI 推荐、Agent 对话 — 始终生效） */}
+            {tab === 'mv' && perDurationAddonRows.length > 0 && (
+              <div className="bg-white border border-teal-200 rounded-2xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-teal-100 bg-teal-50/60">
+                  <h2 className="text-sm font-semibold text-teal-900">A. 创建相关（始终生效）</h2>
+                  <p className="text-xs text-teal-800/80 mt-0.5 leading-relaxed">
+                    AI 推荐、Agent 对话等与主流程独立计费。AI 推荐单价在「AI 推荐方向」行编辑；遗留整片模式下 MV 主流程步价不扣费，但本区块仍生效。
+                  </p>
+                </div>
+                <PriceTable
+                  rows={perDurationAddonRows}
+                  edits={edits}
+                  setEdits={setEdits}
+                  openHelp={openHelp}
+                  setOpenHelp={setOpenHelp}
+                  showResolution={false}
+                  showRecommended={false}
+                />
+              </div>
+            )}
+            {/* B. MV 主流程 Step ②–⑧ */}
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <span className="text-xs text-slate-400">
-                  {tab === 'mv' ? 'MV 主流程' : `${DIM_TABS.find((t) => t.key === tab)?.label} 步骤`} · 共{' '}
-                  {mainRows.length} 项
-                </span>
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-700">
+                    {tab === 'mv' ? 'B. MV 主流程 Step ②–⑧' : `${DIM_TABS.find((t) => t.key === tab)?.label} 步骤`}
+                  </h2>
+                  <span className="text-xs text-slate-400">
+                    共 {mainRows.length} 项 · 每步完成后实扣
+                  </span>
+                </div>
                 <button
                   onClick={() => {
                     setMsg(null);
@@ -848,18 +887,18 @@ export default function StepPricesPage() {
               />
             </div>
 
-            {/* 视频片段生成（按秒计费 · 清晰度 × 品质，只读）*/}
+            {/* C. 视频按秒矩阵（Step ⑨） */}
             {tab === 'mv' && videoPricing && (
               <VideoPerSecondCard video={videoPricing} modelConfig={modelConfig} />
             )}
 
-            {/* 对口型附加表（MV 专属） */}
+            {/* D. 对口型附加（实扣已含在视频按秒价内，此处为运营参考/预留） */}
             {addonRows.length > 0 && (
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-100">
-                  <h2 className="text-sm font-semibold text-slate-700">对口型（附加计价）</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    对口型镜头单独计价，与主流程视频生成步骤分开维护。
+                  <h2 className="text-sm font-semibold text-slate-700">D. 对口型附加</h2>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    当前实扣已合并入 Step ⑨ 视频按秒价（对口型镜头不另扣本表单价）。本表仅供运营对照或后续独立计价扩展。
                   </p>
                 </div>
                 <PriceTable
@@ -874,9 +913,18 @@ export default function StepPricesPage() {
               </div>
             )}
 
-            {/* 第 10 步「最终合成」放在最后 */}
+            {/* E. 最终合成（不计费，折叠） */}
             {finalRows.length > 0 && (
-              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+              <details className="group bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                <summary className="cursor-pointer list-none px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-700 inline">E. 最终合成（不计费）</h2>
+                      <p className="text-xs text-slate-400 mt-0.5">Step ⑩ 合成导出，不产生积分扣费</p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+                  </div>
+                </summary>
                 <PriceTable
                   rows={finalRows}
                   edits={edits}
@@ -885,7 +933,7 @@ export default function StepPricesPage() {
                   setOpenHelp={setOpenHelp}
                   showResolution={tab === 'mv'}
                 />
-              </div>
+              </details>
             )}
           </div>
         </QueryState>

@@ -35,6 +35,7 @@ type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea' | 'mountseaMs';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
+  | 'textAgent'
   | 'visionAnalyze'
   | 'imageNanoBanana'
   | 'videoSingleRef'
@@ -115,7 +116,7 @@ const CAP_GROUPS: CapGroup[] = [
     key: 'text',
     title: '文本生成',
     icon: Type,
-    caps: ['textGpt', 'textGemini'],
+    caps: ['textGpt', 'textGemini', 'textAgent'],
     inline: true,
   },
   { key: 'vision', title: '视觉理解', icon: Eye, caps: ['visionAnalyze'] },
@@ -146,6 +147,7 @@ const VIDEO_TAB_LABEL: Partial<Record<AiCapability, string>> = {
 const INLINE_SUB_LABEL: Partial<Record<AiCapability, string>> = {
   textGpt: 'GPT',
   textGemini: 'Gemini',
+  textAgent: 'Agent 对话',
   audioTranscribe: '转写',
   audioAnalyze: '分析',
 };
