@@ -183,7 +183,7 @@ export default function RiskConfigPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="space-y-6 p-6">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900">

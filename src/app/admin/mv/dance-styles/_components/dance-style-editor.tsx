@@ -196,7 +196,7 @@ export function DanceStyleEditor({
             <button
               onClick={() => save.mutate()}
               disabled={save.isPending || resetAll.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               {save.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               保存
@@ -229,7 +229,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         className={cn(
-          'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none resize-y text-xs',
+          'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none resize-y text-xs',
           mono && 'font-mono',
         )}
       />

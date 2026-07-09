@@ -98,14 +98,14 @@ const PROVIDER_META: Record<
   mountsea: {
     label: 'Mountsea',
     icon: ServerCog,
-    iconWrap: 'bg-teal-50',
-    iconColor: 'text-teal-600',
+    iconWrap: 'bg-blue-50',
+    iconColor: 'text-blue-600',
   },
   mountseaMs: {
     label: 'Mountsea MS',
     icon: Layers,
-    iconWrap: 'bg-teal-50',
-    iconColor: 'text-teal-600',
+    iconWrap: 'bg-blue-50',
+    iconColor: 'text-blue-600',
   },
 };
 
@@ -180,12 +180,12 @@ export default function AiRoutingPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Cable className="h-5 w-5 text-teal-600" />
+              <Cable className="h-5 w-5 text-blue-600" />
               AI 路由配置
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -406,7 +406,7 @@ function RouterTelemetrySection({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
-            <Activity className="h-4 w-4 text-teal-600" />
+            <Activity className="h-4 w-4 text-blue-600" />
             调用埋点（Day 8）
           </h2>
           <p className="text-xs text-slate-500 mt-1">
@@ -718,11 +718,11 @@ function CapabilityGroup({
   const cardShell = (children: React.ReactNode) => (
     <section className="w-full">
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 bg-teal-100 border-b border-teal-200 flex items-center gap-2.5">
-          <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-white/90 border border-teal-200 shadow-sm">
-            <Icon className="h-4 w-4 text-teal-700" />
+        <div className="px-4 py-3 bg-blue-100 border-b border-blue-200 flex items-center gap-2.5">
+          <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-white/90 border border-blue-200 shadow-sm">
+            <Icon className="h-4 w-4 text-blue-700" />
           </span>
-          <h2 className="text-sm font-bold text-teal-950 tracking-wide">
+          <h2 className="text-sm font-bold text-blue-950 tracking-wide">
             {group.title}
           </h2>
         </div>
@@ -769,7 +769,7 @@ function CapabilityGroup({
               className={cn(
                 'flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-center',
                 activeCap === c
-                  ? 'bg-white text-teal-700 shadow-sm'
+                  ? 'bg-white text-blue-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700',
               )}
             >
@@ -940,7 +940,7 @@ function CapabilityRow({
           <button
             type="button"
             onClick={onEnterEdit}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50 text-[10px] font-medium text-slate-700 flex-shrink-0"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50 text-[10px] font-medium text-slate-700 flex-shrink-0"
           >
             <Pencil className="h-2.5 w-2.5" />
             编辑
@@ -973,8 +973,8 @@ function CapabilityRow({
       className={cn(
         'space-y-3',
         bare
-          ? 'rounded-xl border border-teal-200 bg-teal-50/40 p-3'
-          : 'bg-white border-2 border-teal-300 rounded-2xl p-4',
+          ? 'rounded-xl border border-blue-200 bg-blue-50/40 p-3'
+          : 'bg-white border-2 border-blue-300 rounded-2xl p-4',
       )}
     >
       <div className="flex items-center justify-between">
@@ -991,7 +991,7 @@ function CapabilityRow({
             className={cn(
               'space-y-2 rounded-xl p-3 border shadow-sm',
               index === 0
-                ? 'bg-white border-2 border-teal-200'
+                ? 'bg-white border-2 border-blue-200'
                 : 'bg-slate-50/80 border border-slate-200',
             )}
           >
@@ -1062,7 +1062,7 @@ function CapabilityRow({
             ])
           }
           disabled={chain.length >= 12}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 text-xs font-medium text-slate-600 hover:border-teal-300 hover:text-teal-700 disabled:opacity-40"
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 text-xs font-medium text-slate-600 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40"
         >
           <Plus className="h-3.5 w-3.5" />
           添加优先级路由
@@ -1115,7 +1115,7 @@ function CapabilityRow({
           type="button"
           onClick={handleSave}
           disabled={save.isPending}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium disabled:opacity-60"
         >
           {save.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           保存
@@ -1197,7 +1197,7 @@ function ProviderBlock({
       className={cn(
         'rounded-lg border px-2 py-1.5',
         prominent
-          ? 'border-teal-200 bg-white'
+          ? 'border-blue-200 bg-white'
           : 'border-slate-100 bg-slate-50/80',
       )}
     >

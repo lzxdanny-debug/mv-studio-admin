@@ -147,12 +147,12 @@ export default function AdminRolesPage() {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-teal-600" />
+              <ShieldCheck className="h-5 w-5 text-blue-600" />
               角色权限
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -161,7 +161,7 @@ export default function AdminRolesPage() {
           </div>
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white hover:bg-teal-700"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
             新建角色
@@ -199,7 +199,7 @@ export default function AdminRolesPage() {
                         className={cn(
                           'text-xs px-2 py-0.5 rounded-full border',
                           role.isSystem
-                            ? 'bg-teal-50 text-teal-700 border-teal-100'
+                            ? 'bg-blue-50 text-blue-700 border-blue-100'
                             : 'bg-slate-50 text-slate-600 border-slate-200',
                         )}
                       >
@@ -336,7 +336,7 @@ export default function AdminRolesPage() {
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending || !form.name.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white disabled:opacity-50"
               >
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 保存

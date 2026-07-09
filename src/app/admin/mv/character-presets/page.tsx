@@ -227,12 +227,12 @@ export default function AdminCharacterPresetsPage() {
   const regenerableCount = list.filter((p) => !!p.prompt && p.status !== 'pending').length;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <UserSquare className="h-5 w-5 text-teal-600" />
+              <UserSquare className="h-5 w-5 text-blue-600" />
               默认角色图库
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -294,7 +294,7 @@ export default function AdminCharacterPresetsPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
                 <Repeat
-                  className={cn('h-4 w-4 text-teal-500', regenerateAll.isPending && 'animate-spin')}
+                  className={cn('h-4 w-4 text-blue-500', regenerateAll.isPending && 'animate-spin')}
                 />
                 全部重新生成
               </button>
@@ -334,7 +334,7 @@ export default function AdminCharacterPresetsPage() {
             )}
             <button
               onClick={() => setEditor({ open: true, mode: 'create' })}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-teal-600 hover:bg-teal-700 text-white shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
             >
               <Plus className="h-4 w-4" />
               新建预设
@@ -351,7 +351,7 @@ export default function AdminCharacterPresetsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs transition-all',
                 activeCategory === c.value
-                  ? 'bg-teal-50 text-teal-700 font-medium'
+                  ? 'bg-blue-50 text-blue-700 font-medium'
                   : 'text-slate-500 hover:text-slate-800',
               )}
             >
@@ -460,7 +460,7 @@ function PresetCard({
             }}
           />
         ) : preset.status === 'pending' ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-teal-400 gap-1">
+          <div className="w-full h-full flex flex-col items-center justify-center text-blue-400 gap-1">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span className="text-[10px]">生成中…</span>
           </div>

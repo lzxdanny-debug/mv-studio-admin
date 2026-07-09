@@ -82,7 +82,7 @@ export default function AdminUsersPage() {
       header: '用户',
       render: (row) => (
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-rose-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {row.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={row.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -95,7 +95,7 @@ export default function AdminUsersPage() {
           <div className="min-w-0">
             <Link
               href={`/admin/users/${row.id}`}
-              className="font-medium text-slate-800 hover:text-teal-600 truncate block"
+              className="font-medium text-slate-800 hover:text-blue-600 truncate block"
             >
               {row.displayName}
             </Link>
@@ -236,11 +236,11 @@ export default function AdminUsersPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <UsersIcon className="h-5 w-5 text-teal-600" />
+            <UsersIcon className="h-5 w-5 text-blue-600" />
             C 端用户
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -268,7 +268,7 @@ export default function AdminUsersPage() {
                 }}
                 className={
                   status === opt.value
-                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-600 text-white'
+                    ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white'
                     : 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
                 }
               >

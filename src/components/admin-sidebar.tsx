@@ -32,6 +32,7 @@ import {
   Terminal,
   Settings,
   LogOut,
+  CalendarCheck,
   ChevronDown,
   FolderKanban,
   Layers,
@@ -245,6 +246,50 @@ const NAV_SECTIONS: NavSection[] = [
             label: 'Stripe 事件',
             icon: Activity,
             permission: 'billing.events.view',
+          },
+        ],
+      },
+      {
+        key: 'billing-credits',
+        label: '积分管理',
+        icon: Coins,
+        items: [
+          {
+            href: '/admin/billing/credits',
+            label: '积分总览',
+            icon: Coins,
+            exact: true,
+            permission: 'credit.view',
+          },
+          {
+            href: '/admin/billing/credits/purchase',
+            label: '充值',
+            icon: CreditCard,
+            permission: 'credit.view',
+          },
+          {
+            href: '/admin/billing/credits/signup',
+            label: '注册赠送',
+            icon: Gift,
+            permission: 'credit.view',
+          },
+          {
+            href: '/admin/billing/credits/daily-check-in',
+            label: '每日登录',
+            icon: CalendarCheck,
+            permission: 'credit.view',
+          },
+          {
+            href: '/admin/billing/credits/referral',
+            label: '邀请奖励',
+            icon: Users,
+            permission: 'credit.view',
+          },
+          {
+            href: '/admin/billing/credits/admin-adjust',
+            label: '手动调整',
+            icon: SlidersHorizontal,
+            permission: 'credit.view',
           },
         ],
       },
@@ -545,18 +590,18 @@ function NavLeaf({
         'group relative flex items-center gap-2.5 rounded-lg text-sm transition-all duration-150',
         depth === 2 ? 'ml-3 mr-1.5 pl-3 pr-2.5 py-2.5' : 'px-3 py-2.5',
         active
-          ? 'bg-teal-50 text-teal-900 font-semibold shadow-sm ring-1 ring-teal-100'
-          : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80',
+          ? 'bg-blue-50 text-blue-800 font-medium'
+          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50',
       )}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-teal-600" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-blue-600" />
       )}
       {Icon && (
         <Icon
           className={cn(
             'h-4 w-4 flex-shrink-0 transition-colors',
-            active ? 'text-teal-600' : 'text-slate-500 group-hover:text-slate-700',
+            active ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-700',
           )}
         />
       )}
@@ -598,11 +643,11 @@ function NavSubgroupBlock({
         onClick={onToggle}
         className={cn(
           'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors',
-          active ? 'text-teal-900' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80',
+          active ? 'text-blue-900' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100/80',
         )}
       >
         {SubIcon && (
-          <SubIcon className={cn('h-4 w-4 flex-shrink-0', active ? 'text-teal-600' : 'text-slate-500')} />
+          <SubIcon className={cn('h-4 w-4 flex-shrink-0', active ? 'text-blue-600' : 'text-slate-500')} />
         )}
         <span className="flex-1 text-[13px] font-semibold tracking-wide truncate">
           {subgroup.label}
@@ -755,10 +800,10 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-[252px] h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-sm">
+    <aside className="w-[252px] h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
       {/* Logo */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-slate-200 flex-shrink-0 bg-white">
-        <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-teal-100">
+        <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center flex-shrink-0">
           <Shield className="h-4 w-4 text-white" />
         </div>
         <div className="min-w-0">
@@ -785,7 +830,7 @@ export function AdminSidebar() {
       {/* User footer */}
       <div className="px-3 pb-4 flex-shrink-0 border-t border-slate-200/80 pt-3 bg-white/60">
         <div className="flex items-center gap-2.5 px-2 py-2 mb-1 rounded-lg bg-slate-50">
-          <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
             <span className="text-[11px] font-bold text-white">
               {adminUser?.displayName?.[0]?.toUpperCase() || 'A'}
             </span>

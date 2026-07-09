@@ -136,7 +136,7 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
                   value={form.callbackUrl}
                   onChange={(e) => setForm((f) => ({ ...f, callbackUrl: e.target.value }))}
                   placeholder="http://localhost:3000/api/auth/google/redirect"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -146,7 +146,7 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
                   value={form.successUrl}
                   onChange={(e) => setForm((f) => ({ ...f, successUrl: e.target.value }))}
                   placeholder="http://localhost:3000/auth/callback"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -156,7 +156,7 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
                   value={form.failureUrl}
                   onChange={(e) => setForm((f) => ({ ...f, failureUrl: e.target.value }))}
                   placeholder="http://localhost:3000/login?error=oauth_failed"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
               </div>
             </div>
@@ -171,7 +171,7 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
               <button
                 type="submit"
                 disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存配置'}

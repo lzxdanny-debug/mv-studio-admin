@@ -101,7 +101,7 @@ export function ConfigBackupSection() {
             type="button"
             onClick={() => exportMut.mutate()}
             disabled={exportMut.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
           >
             <Download className={cn('h-3.5 w-3.5', exportMut.isPending && 'animate-bounce')} />
             {exportMut.isPending ? '导出中…' : '导出配置'}
@@ -128,7 +128,7 @@ export function ConfigBackupSection() {
             onChange={(e) => setContent(e.target.value)}
             spellCheck={false}
             placeholder='粘贴导出的 JSONC，或点击"选择文件"载入。'
-            className="w-full h-56 px-3 py-2 text-xs font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 resize-y"
+            className="w-full h-56 px-3 py-2 text-xs font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 resize-y"
           />
         </div>
 

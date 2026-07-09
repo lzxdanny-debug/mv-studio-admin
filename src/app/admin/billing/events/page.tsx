@@ -103,11 +103,11 @@ export default function StripeEventsPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-teal-600" />
+            <Activity className="h-5 w-5 text-blue-600" />
             Stripe 事件
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -278,7 +278,7 @@ function EventDrawer({
           <button
             onClick={() => replay.mutate()}
             disabled={replay.isPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {replay.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

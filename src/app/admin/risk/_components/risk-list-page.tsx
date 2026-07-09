@@ -508,7 +508,7 @@ export function RiskListPage({ fixedListType }: { fixedListType: RiskListKind })
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="space-y-4 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

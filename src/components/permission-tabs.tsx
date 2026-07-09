@@ -76,7 +76,7 @@ export function PermissionTabs<T extends string>({
     <div className={className}>
       <div
         className={cn(
-          'flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-4',
+          'flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 mb-4',
           tabClassName,
         )}
       >
@@ -88,7 +88,7 @@ export function PermissionTabs<T extends string>({
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition',
               current.key === t.key
-                ? 'bg-teal-600 text-white'
+                ? 'bg-blue-600 text-white'
                 : 'text-slate-500 hover:bg-slate-100',
             )}
           >

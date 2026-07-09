@@ -46,7 +46,7 @@ export function DurationPricingTop({
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5">
       <div className="flex items-start gap-3 mb-4">
-        <div className="h-9 w-9 rounded-xl bg-teal-600 flex items-center justify-center flex-shrink-0">
+        <div className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
           <Film className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -59,7 +59,7 @@ export function DurationPricingTop({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-xl border border-teal-100 bg-teal-50/40 p-4">
+        <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
           <p className="text-sm font-medium text-slate-700">整片基础秒价</p>
           <p className="text-[11px] text-slate-400 mt-1">
             720p · 标准品质 · 普通会员的基准（积分/秒，盈利系数前）
@@ -71,12 +71,12 @@ export function DurationPricingTop({
               step={1}
               value={baseDraft}
               onChange={(e) => setBaseDraft(e.target.value)}
-              className="flex-1 px-3 py-2 text-2xl font-bold text-slate-900 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-400"
+              className="flex-1 px-3 py-2 text-2xl font-bold text-slate-900 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
             <span className="text-xs text-slate-400 flex-shrink-0">基础积分/秒</span>
           </div>
           {base > 0 && (
-            <p className="mt-2 text-xs text-teal-700/90">
+            <p className="mt-2 text-xs text-blue-700/90">
               估算秒价 = {base} × {profitFactor} ={' '}
               <span className="font-semibold">{base * profitFactor}</span> 积分/秒
             </p>
@@ -90,7 +90,7 @@ export function DurationPricingTop({
                 mvDurationBaseCreditsPerSecond: base,
               });
             }}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-xs font-medium"
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium"
           >
             <Save className="h-3.5 w-3.5" />
             {saveConfig.isPending ? '保存中…' : '保存基础秒价'}

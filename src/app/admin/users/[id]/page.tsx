@@ -321,7 +321,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <Link
           href="/admin/users"
@@ -342,7 +342,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             <>
               <div className="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-rose-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -397,7 +397,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     <button
                       type="button"
                       onClick={() => setAdjustOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-teal-50 hover:bg-teal-100 text-teal-700 border-teal-200 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 transition-colors"
                     >
                       <Coins className="h-3.5 w-3.5" />
                       调整积分
@@ -478,7 +478,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                     <Link
                       href="/admin/billing/referrals"
-                      className="text-xs text-teal-700 hover:underline"
+                      className="text-xs text-blue-700 hover:underline"
                     >
                       查看全部记录
                     </Link>
@@ -492,7 +492,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                           <div className="min-w-0">
                             <Link
                               href={`/admin/users/${r.inviteeUserId}`}
-                              className="text-sm text-slate-700 hover:text-teal-600 truncate block"
+                              className="text-sm text-slate-700 hover:text-blue-600 truncate block"
                             >
                               {r.inviteeEmail || r.inviteeUserId.slice(0, 8)}
                             </Link>
@@ -534,7 +534,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         <li key={p.id} className="py-2 flex items-center justify-between gap-2">
                           <Link
                             href={`/admin/mv/projects/${p.id}`}
-                            className="text-sm text-slate-700 hover:text-teal-600 truncate min-w-0"
+                            className="text-sm text-slate-700 hover:text-blue-600 truncate min-w-0"
                           >
                             {p.title || '(未命名)'}
                           </Link>
@@ -609,7 +609,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         <li key={m.id} className="py-2 flex items-center justify-between gap-2">
                           <Link
                             href={`/admin/music/tasks/${m.id}`}
-                            className="text-sm text-slate-700 hover:text-teal-600 truncate min-w-0"
+                            className="text-sm text-slate-700 hover:text-blue-600 truncate min-w-0"
                           >
                             {m.title}
                           </Link>
@@ -650,7 +650,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                         <li key={l.id} className="py-2 flex items-center justify-between gap-2">
                           <Link
                             href={`/admin/music/tasks/${l.id}`}
-                            className="text-sm text-slate-700 hover:text-teal-600 truncate min-w-0"
+                            className="text-sm text-slate-700 hover:text-blue-600 truncate min-w-0"
                           >
                             {l.title}
                           </Link>
@@ -883,7 +883,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   value={adjustAmount}
                   onChange={(e) => setAdjustAmount(e.target.value)}
                   placeholder="例如 1000 或 -500"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <p className="mt-1 text-[10px] text-slate-400">
                   正数增加（赠送流水），负数扣减（消耗流水）
@@ -904,7 +904,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
                   placeholder="例如：活动补偿 / 误发回收"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
             </div>
@@ -926,7 +926,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   deductExceedsBalance ||
                   adjustCreditsMutation.isPending
                 }
-                className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {adjustCreditsMutation.isPending && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -152,8 +152,8 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     provider: 'mountsea',
     title: 'Mountsea',
     icon: ServerCog,
-    iconWrap: 'bg-teal-50',
-    iconColor: 'text-teal-600',
+    iconWrap: 'bg-blue-50',
+    iconColor: 'text-blue-600',
     desc: '现网主力。Gemini Audio（LRC 转写 / 音乐分析）锁死该 provider。',
     consoleUrl: 'https://api.mountsea.ai',
     secretFields: [
@@ -171,8 +171,8 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     provider: 'mountseaMs',
     title: 'Mountsea MS (/ms/v1)',
     icon: Layers,
-    iconWrap: 'bg-teal-50',
-    iconColor: 'text-teal-600',
+    iconWrap: 'bg-blue-50',
+    iconColor: 'text-blue-600',
     desc:
       '新渠道：/ms/v1 marketplace（video + image endpoint slug）。与 legacy Mountsea 凭证独立，Router provider=mountseaMs。',
     consoleUrl: 'https://docs.mountsea.ai/api-reference/mountsea-api/introduction',
@@ -207,12 +207,12 @@ export default function AiProvidersPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Cloud className="h-4 w-4 text-teal-600" />
+              <Cloud className="h-4 w-4 text-blue-600" />
               AI Provider 凭证
             </h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -429,7 +429,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                   placeholder={masked ? `留空则不修改（当前 ${masked}）` : f.placeholder}
                   value={form[f.key] ?? ''}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
-                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 font-mono"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 font-mono"
                 />
               </div>
             );
@@ -473,7 +473,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                 placeholder={meta.baseUrlPlaceholder}
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 font-mono"
+                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 font-mono"
               />
             </div>
           ) : view.baseUrl ? (
@@ -511,7 +511,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
                 href={meta.consoleUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-teal-600 hover:underline font-medium"
+                className="text-blue-600 hover:underline font-medium"
               >
                 获取/查看凭证 ↗
               </a>
@@ -559,7 +559,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
               type="button"
               onClick={() => save.mutate()}
               disabled={save.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium"
             >
               <KeyRound className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
               {save.isPending ? '保存中…' : '保存凭证'}
@@ -578,7 +578,7 @@ function ProviderCard({ view }: { view: CredentialView }) {
             <button
               type="button"
               onClick={enterEdit}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
             >
               <KeyRound className="h-3.5 w-3.5" />
               {view.configured ? '编辑凭证' : '配置凭证'}
@@ -666,7 +666,7 @@ function FalUsageKeyPanel() {
             href="https://fal.ai/dashboard/keys"
             target="_blank"
             rel="noreferrer noopener"
-            className="text-teal-600 hover:underline"
+            className="text-blue-600 hover:underline"
           >
             fal.ai/dashboard/keys
           </a>{' '}
@@ -754,7 +754,7 @@ function SourceBadge({ source }: { source: 'db' | 'env' | 'none' }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-teal-50 text-teal-700">
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700">
       <Database className="h-3 w-3" />
       DB
     </span>
@@ -844,7 +844,7 @@ function AuditLogsSection() {
               className={cn(
                 'px-2 py-1 rounded-lg border',
                 providerFilter === ''
-                  ? 'bg-teal-50 border-teal-300 text-teal-700'
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
                   : 'bg-white border-slate-200 text-slate-600',
               )}
             >
@@ -857,7 +857,7 @@ function AuditLogsSection() {
                 className={cn(
                   'px-2 py-1 rounded-lg border',
                   providerFilter === p
-                    ? 'bg-teal-50 border-teal-300 text-teal-700'
+                    ? 'bg-blue-50 border-blue-300 text-blue-700'
                     : 'bg-white border-slate-200 text-slate-600',
                 )}
               >
@@ -942,7 +942,7 @@ function ActionBadge({ action }: { action: string }) {
     updated: 'bg-blue-50 text-blue-700',
     rotated: 'bg-blue-50 text-blue-700',
     viewed: 'bg-slate-100 text-slate-600',
-    tested: 'bg-teal-50 text-teal-700',
+    tested: 'bg-blue-50 text-blue-700',
     enabled: 'bg-emerald-50 text-emerald-700',
     disabled: 'bg-amber-50 text-amber-700',
   };

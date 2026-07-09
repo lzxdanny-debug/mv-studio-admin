@@ -292,7 +292,7 @@ export default function AdminNotificationsPage() {
   const detail = campaignDetailQuery.data;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

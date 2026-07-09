@@ -119,7 +119,7 @@ export function RangeFilter({
             })
           }
           disabled={loading}
-          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-teal-400 disabled:opacity-50"
+          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-blue-400 disabled:opacity-50"
         >
           {PROVIDER_OPTIONS.map((o) => (
             <option key={o.value ?? 'all'} value={o.value ?? ''}>
@@ -141,7 +141,7 @@ export function RangeFilter({
             })
           }
           disabled={loading}
-          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-teal-400 disabled:opacity-50"
+          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-blue-400 disabled:opacity-50"
         >
           {STEP_OPTIONS.map((o) => (
             <option key={o.value ?? 'all'} value={o.value ?? ''}>
@@ -158,19 +158,19 @@ export function RangeFilter({
             type="datetime-local"
             value={customFrom}
             onChange={(e) => setCustomFrom(e.target.value)}
-            className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-teal-400"
+            className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-blue-400"
           />
           <span className="text-xs text-slate-400">→</span>
           <input
             type="datetime-local"
             value={customTo}
             onChange={(e) => setCustomTo(e.target.value)}
-            className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-teal-400"
+            className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-blue-400"
           />
           <button
             onClick={handleCustomApply}
             disabled={loading}
-            className="px-3 py-1 rounded-lg text-xs font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50"
+            className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
           >
             应用
           </button>

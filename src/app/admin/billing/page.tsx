@@ -103,13 +103,13 @@ export default function BillingDashboardPage() {
   const isFetching = overview.isFetching || revenue.isFetching;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-5 max-w-[1600px]">
         {/* 顶部 */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-teal-600" />
+              <BarChart3 className="h-5 w-5 text-blue-600" />
               财务总览
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -126,7 +126,7 @@ export default function BillingDashboardPage() {
                   className={cn(
                     'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                     preset === p
-                      ? 'bg-teal-600 text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
@@ -230,7 +230,7 @@ function RateBadge({ fx }: { fx?: ExchangeRate }) {
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-700"
       title={`USD→CNY ${fx.source}${when ? ` · 更新于 ${when}` : ''}`}
     >
-      <ArrowLeftRight className="h-3.5 w-3.5 text-teal-600" />
+      <ArrowLeftRight className="h-3.5 w-3.5 text-blue-600" />
       <span className="font-medium tabular-nums">1 USD = ¥{fx.rate.toFixed(4)}</span>
       <span className={cn('font-medium', meta.cls)}>{meta.label}</span>
       {when && <span className="text-slate-400">· {when}</span>}
@@ -245,7 +245,7 @@ function KpiGrid({ data }: { data: Overview }) {
       value: usd(data.grossRevenueCents),
       sub: '支付完成全额，不扣退款',
       icon: TrendingUp,
-      tint: 'text-teal-600 bg-teal-50',
+      tint: 'text-blue-600 bg-blue-50',
     },
     {
       label: '净收入',
@@ -288,7 +288,7 @@ function KpiGrid({ data }: { data: Overview }) {
       {cards.map((c) => (
         <div
           key={c.label}
-          className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
+          className="admin-card p-4"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500">{c.label}</span>
@@ -312,7 +312,7 @@ function RevenueTrend({ payload }: { payload: RevenuePayload }) {
     count: p.count,
   }));
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-slate-900">收入趋势</h3>
         <span className="text-[11px] text-slate-400">
@@ -374,7 +374,7 @@ function ProductPie({ payload }: { payload: RevenuePayload }) {
   }));
   const total = data.reduce((a, b) => a + b.value, 0);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <h3 className="text-sm font-semibold text-slate-900 mb-3">产品收入占比</h3>
       {total === 0 ? (
         <div className="h-56 flex items-center justify-center text-xs text-slate-400">
@@ -425,7 +425,7 @@ function BreakdownList({
 }) {
   const total = rows.reduce((a, b) => a + b.cents, 0);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <h3 className="text-sm font-semibold text-slate-900 mb-3">{title}</h3>
       {total === 0 ? (
         <div className="h-56 flex items-center justify-center text-xs text-slate-400">暂无数据</div>
@@ -441,7 +441,7 @@ function BreakdownList({
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-teal-500"
+                    className="h-full rounded-full bg-blue-500"
                     style={{ width: `${Math.max(2, ratio * 100)}%` }}
                   />
                 </div>

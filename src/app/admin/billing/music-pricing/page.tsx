@@ -184,7 +184,7 @@ export default function MusicPricingPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold text-slate-800">
-            <Disc3 className="h-5 w-5 text-teal-600" />
+            <Disc3 className="h-5 w-5 text-blue-600" />
             音乐模型与定价
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -198,7 +198,7 @@ export default function MusicPricingPage() {
           className={cn(
             'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors',
             dirty && mountseaReady
-              ? 'bg-teal-600 hover:bg-teal-700'
+              ? 'bg-blue-600 hover:bg-blue-700'
               : 'cursor-not-allowed bg-slate-300',
           )}
         >
@@ -234,7 +234,7 @@ export default function MusicPricingPage() {
               </span>
               <Link
                 href="/admin/ai-providers"
-                className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
               >
                 前往 AI Provider 凭证
                 <ExternalLink className="h-3 w-3" />
@@ -434,7 +434,7 @@ export default function MusicPricingPage() {
                             type="button"
                             title={`推荐 ${m.recommendedCredits} cr`}
                             onClick={() => applyRecommended(m)}
-                            className="rounded p-1 text-teal-600 hover:bg-teal-50"
+                            className="rounded p-1 text-blue-600 hover:bg-blue-50"
                           >
                             <Wand2 className="h-3.5 w-3.5" />
                           </button>

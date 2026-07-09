@@ -66,12 +66,12 @@ export default function AdminMvDanceStylesPage() {
   });
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <PersonStanding className="h-5 w-5 text-teal-600" />
+              <PersonStanding className="h-5 w-5 text-blue-600" />
               舞蹈风格库
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -98,7 +98,7 @@ export default function AdminMvDanceStylesPage() {
                 if (ok) generate.mutate(true);
               }}
               disabled={generate.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               <RefreshCw className={cn('h-3.5 w-3.5', generate.isPending && 'animate-spin')} />
               强制全量重生
@@ -234,7 +234,7 @@ function DanceStyleCard({
             if (ok) regenerate.mutate();
           }}
           disabled={regenerate.isPending}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
         >
           {regenerate.isPending ? (
             <Loader2 className="h-3 w-3 animate-spin" />

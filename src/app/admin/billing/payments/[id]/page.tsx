@@ -69,7 +69,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <h3 className="text-sm font-semibold text-slate-900 mb-2">{title}</h3>
       {children}
     </div>
@@ -91,12 +91,12 @@ export default function PaymentDetailPage({
   });
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
-      <div className="p-6 space-y-5 max-w-[1100px]">
+    <div className="admin-page">
+      <div className="admin-page-inner">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/billing/payments"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
           >
             <ArrowLeft className="h-4 w-4" />
             返回充值记录
@@ -107,8 +107,7 @@ export default function PaymentDetailPage({
         <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-96">
           {data && (
             <div className="space-y-4">
-              {/* 头部摘要 */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="admin-card p-5 flex flex-wrap items-center gap-x-8 gap-y-3">
                 <div>
                   <p className="text-xs text-slate-500">金额</p>
                   <p className="text-2xl font-bold text-slate-900">{usd(data.amountCents)}</p>
@@ -146,12 +145,11 @@ export default function PaymentDetailPage({
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 用户 + 金额 */}
                 <Card title="用户与积分">
                   <Row label="用户">
                     <Link
                       href={`/admin/users/${data.user.id}`}
-                      className="text-teal-700 hover:underline"
+                      className="text-blue-700 hover:underline"
                     >
                       {data.user.displayName || data.user.email || data.user.id.slice(0, 8)}
                     </Link>
@@ -168,7 +166,6 @@ export default function PaymentDetailPage({
                   <Row label="充值后余额">{data.balanceAfter ?? '—'}</Row>
                 </Card>
 
-                {/* 风控/渠道 */}
                 <Card title="渠道与风控">
                   <Row label="支付方式">
                     {data.paymentMethod
@@ -195,7 +192,6 @@ export default function PaymentDetailPage({
                 </Card>
               </div>
 
-              {/* Stripe IDs */}
               <Card title="Stripe 标识">
                 <Row label="Provider">{data.provider}</Row>
                 <Row label="Customer ID">
@@ -212,14 +208,13 @@ export default function PaymentDetailPage({
                     href={`https://dashboard.stripe.com/payments/${data.providerPaymentId}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-teal-600 hover:underline mt-2"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-2"
                   >
                     在 Stripe 后台查看 <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
               </Card>
 
-              {/* 退款明细 */}
               <Card title={`退款明细（${data.refunds.length}）`}>
                 {data.refunds.length === 0 ? (
                   <p className="text-xs text-slate-400 py-2">无退款记录</p>
@@ -228,7 +223,7 @@ export default function PaymentDetailPage({
                     {data.refunds.map((r) => (
                       <div
                         key={r.id}
-                        className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-50 text-sm"
+                        className="flex items-center justify-between gap-3 p-2.5 rounded-md bg-slate-50 text-sm"
                       >
                         <div className="min-w-0">
                           <p className="font-mono text-xs text-slate-500 truncate">

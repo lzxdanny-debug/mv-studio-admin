@@ -135,7 +135,7 @@ function safeCostNumber(value: number | null | undefined): number {
 function MountseaAmount({
   credits,
   align = 'right',
-  usdClassName = 'text-teal-700 font-medium',
+  usdClassName = 'text-blue-700 font-medium',
   cnyPerUsd = DEFAULT_CNY_PER_USD,
 }: {
   credits: number;
@@ -422,7 +422,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
   const assets = data?.assets ?? [];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <Link
@@ -495,22 +495,22 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                 </div>
 
                 {project.importSource && (
-                  <div className="flex items-start gap-2 p-3 bg-teal-50 border border-teal-100 rounded-xl text-xs text-teal-700">
+                  <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
                     <Download className="h-4 w-4 flex-shrink-0 mt-0.5" />
                     <div className="min-w-0 space-y-0.5">
                       <p className="font-medium">该项目从其它环境导入，与本地真实数据区分</p>
-                      <p className="text-teal-600/80">
+                      <p className="text-blue-600/80">
                         源用户：{project.importSource.sourceUserDisplayName ?? '—'}
                         {project.importSource.sourceUserEmail && (
                           <span> ({project.importSource.sourceUserEmail})</span>
                         )}
                       </p>
-                      <p className="text-teal-600/80 break-all">
+                      <p className="text-blue-600/80 break-all">
                         源项目 ID：{project.importSource.sourceProjectId}
                       </p>
-                      <p className="text-teal-600/80">
+                      <p className="text-blue-600/80">
                         原创建：{formatDate(project.importSource.originalCreatedAt)}
-                        <span className="mx-1.5 text-teal-300">·</span>
+                        <span className="mx-1.5 text-blue-300">·</span>
                         导入于：{formatDate(project.importSource.importedAt)}
                       </p>
                     </div>
@@ -558,7 +558,7 @@ export default function AdminMvProjectDetailPage({ params }: { params: Promise<{
                       className={cn(
                         'px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
                         tab === key
-                          ? 'text-teal-600 border-teal-600'
+                          ? 'text-blue-600 border-blue-600'
                           : 'text-slate-500 border-transparent hover:text-slate-800',
                       )}
                     >
@@ -654,7 +654,7 @@ function AssetsTab({
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 shrink-0"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 shrink-0"
                 >
                   打开 <ExternalLink className="h-3 w-3" />
                 </a>
@@ -719,7 +719,7 @@ function AssetsTab({
                     href={asset.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-teal-600 hover:underline truncate block"
+                    className="text-[11px] text-blue-600 hover:underline truncate block"
                   >
                     查看原文件
                   </a>
@@ -770,7 +770,7 @@ function ShotsTab({
               <button
                 onClick={() => onRetry(shot.id, true)}
                 disabled={isMutating}
-                className="text-[11px] px-2 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 disabled:opacity-40"
+                className="text-[11px] px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 disabled:opacity-40"
               >
                 强制重生
               </button>
@@ -880,7 +880,7 @@ function HistoryTab({
               <p className="text-sm font-medium text-slate-800 truncate">
                 {item.name || (item.current ? '最新版本' : `历史版本 ${formatDate(item.createdAt)}`)}
                 {item.current && (
-                  <span className="ml-2 text-[10px] text-teal-600 font-semibold uppercase">
+                  <span className="ml-2 text-[10px] text-blue-600 font-semibold uppercase">
                     current
                   </span>
                 )}
@@ -1045,7 +1045,7 @@ function CostsTab({ projectId }: { projectId: string }) {
                 </div>
 
                 {reconStats.totalCostUsd > 0 && (
-                  <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 shadow-sm">
+                  <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-blue-50 px-5 py-4 shadow-sm">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800/70 mb-1">
                       成本 USD 合计
                     </p>
@@ -1128,7 +1128,7 @@ function CostHeaderCards({
       label: 'Mountsea',
       value: safeCostNumber(totals.mountsea_credits),
       suffix: 'credits',
-      color: 'from-teal-50 to-teal-100 text-teal-700 border-teal-200',
+      color: 'from-blue-50 to-blue-100 text-blue-700 border-blue-200',
       decimals: 2,
     },
     {
@@ -1268,7 +1268,7 @@ function CostBreakdownCard({
                   {safeCostNumber(b.mountsea_credits) > 0 ? (
                     <MountseaAmount
                       credits={safeCostNumber(b.mountsea_credits)}
-                      usdClassName="text-teal-600 font-medium text-xs"
+                      usdClassName="text-blue-600 font-medium text-xs"
                       cnyPerUsd={cnyPerUsd}
                     />
                   ) : (
@@ -1819,7 +1819,7 @@ function CostRecordsTable({
             value={searchQuery}
             onChange={(e) => filterChange(setSearchQuery, e.target.value)}
             placeholder="搜索 model / requestId / shot…"
-            className="h-7 px-2.5 rounded-md border border-slate-200 text-[11px] text-slate-700 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-teal-400"
+            className="h-7 px-2.5 rounded-md border border-slate-200 text-[11px] text-slate-700 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-blue-400"
           />
           <select
             value={providerFilter}
@@ -1861,7 +1861,7 @@ function CostRecordsTable({
               type="checkbox"
               checked={showFailedCosts}
               onChange={(e) => filterChange(setShowFailedCosts, e.target.checked)}
-              className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             显示失败计费
             {failureTotal > 0 && !showFailedCosts && (
@@ -1980,7 +1980,7 @@ function CostRecordsTable({
                       <span
                         className={cn(
                           'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mr-1.5 shrink-0',
-                          r.provider === 'mountsea' && 'bg-teal-50 text-teal-700',
+                          r.provider === 'mountsea' && 'bg-blue-50 text-blue-700',
                           r.provider === 'fal' && 'bg-emerald-50 text-emerald-700',
                           r.provider === 'cloudflare' && 'bg-amber-50 text-amber-700',
                         )}

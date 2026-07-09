@@ -236,7 +236,7 @@ export function BeatEffectEditor({
               <p className="text-xs text-slate-500 mt-0.5">
                 {template.title} · <code className="text-[11px]">{template.id}</code>
                 {template.isCustom && (
-                  <span className="ml-2 text-teal-600 font-medium">自定义</span>
+                  <span className="ml-2 text-blue-600 font-medium">自定义</span>
                 )}
               </p>
             )}
@@ -286,7 +286,7 @@ export function BeatEffectEditor({
               <input
                 value={styleTag}
                 onChange={(e) => setStyleTag(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none text-xs font-mono"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none text-xs font-mono"
               />
             </div>
           </div>
@@ -399,7 +399,7 @@ export function BeatEffectEditor({
             <button
               onClick={() => save.mutate()}
               disabled={save.isPending || resetAll.isPending || removeCustom.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               {save.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {isCreate ? '创建' : '保存'}
@@ -428,7 +428,7 @@ function Field({
 }) {
   const isSingleLine = rows === 1;
   const className = cn(
-    'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none text-xs',
+    'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none text-xs',
     mono && 'font-mono',
     !isSingleLine && 'resize-y',
   );
@@ -467,7 +467,7 @@ function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none text-xs bg-white"
+        className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none text-xs bg-white"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

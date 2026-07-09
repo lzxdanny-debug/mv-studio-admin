@@ -61,7 +61,7 @@ export function SecretInput({
           if (!value) setEditing(false);
         }}
         className={cn(
-          'w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 font-mono',
+          'w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 font-mono',
           showToggle && 'pr-9',
           showPreview && 'text-slate-500',
           className,

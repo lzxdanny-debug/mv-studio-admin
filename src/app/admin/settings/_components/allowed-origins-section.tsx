@@ -98,7 +98,7 @@ export function AllowedOriginsSection() {
                 onChange={(e) => setAllowedOrigins(e.target.value)}
                 placeholder="http://localhost:4002, https://mv.offoff.ai, https://admin.offoff.ai"
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50 resize-y min-h-[4.5rem]"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50 resize-y min-h-[4.5rem]"
               />
             </div>
 
@@ -112,7 +112,7 @@ export function AllowedOriginsSection() {
               <button
                 type="submit"
                 disabled={save.isPending || !allowedOrigins.trim()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存配置'}

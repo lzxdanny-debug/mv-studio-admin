@@ -61,12 +61,12 @@ export default function BillingProfitPage() {
   const marginRatio = netUsd > 0 ? grossProfitUsd / netUsd : 0;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-5 max-w-[1600px]">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-teal-600" />
+              <TrendingUp className="h-5 w-5 text-blue-600" />
               利润分析
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -94,7 +94,7 @@ export default function BillingProfitPage() {
           height="h-32"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="admin-card p-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">净收入</span>
                 <span className="p-1.5 rounded-lg text-emerald-600 bg-emerald-50">
@@ -107,7 +107,7 @@ export default function BillingProfitPage() {
               <p className="mt-0.5 text-[11px] text-slate-400">总收入扣除同期退款</p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="admin-card p-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">AI 成本</span>
                 <span className="p-1.5 rounded-lg text-amber-600 bg-amber-50">
@@ -118,7 +118,7 @@ export default function BillingProfitPage() {
               <p className="mt-0.5 text-[11px] text-slate-400">MV / 音乐 / 歌词 AI 调用合计</p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="admin-card p-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">赠送积分成本</span>
                 <span className="p-1.5 rounded-lg text-emerald-600 bg-emerald-50">
@@ -133,10 +133,10 @@ export default function BillingProfitPage() {
 
             <div
               className={cn(
-                'rounded-2xl p-5 shadow-sm border text-white',
+                'rounded-lg p-5 border text-white',
                 grossProfitUsd >= 0
-                  ? 'bg-gradient-to-br from-teal-600 to-indigo-600 border-teal-400/30'
-                  : 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400/30',
+                  ? 'bg-blue-600 border-blue-700'
+                  : 'bg-red-600 border-red-700',
               )}
             >
               <div className="flex items-center justify-between">

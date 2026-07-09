@@ -26,7 +26,7 @@ export function ProviderPie({ payload }: { payload: CostStatsPayload }) {
   );
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-slate-900">按渠道分布</h3>
         <span className="text-[11px] text-slate-400">按调用次数</span>

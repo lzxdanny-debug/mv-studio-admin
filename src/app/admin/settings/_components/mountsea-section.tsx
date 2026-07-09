@@ -97,7 +97,7 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
                 AI 生成用的 API Key 请在{' '}
                 <Link
                   href="/admin/ai-providers"
-                  className="text-teal-600 hover:text-teal-700 underline underline-offset-2"
+                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2"
                 >
                   AI 渠道凭证
                 </Link>{' '}
@@ -149,7 +149,7 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
               <p>{providerLabel(data.aiProviders.mountseaMs, 'Mountsea /ms/v1')}</p>
               <Link
                 href="/admin/ai-providers"
-                className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-700 mt-1"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 mt-1"
               >
                 前往配置 MOUNTSEA_API_KEY
                 <ExternalLink className="h-3 w-3" />
@@ -168,7 +168,7 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
                   value={form.userApiUrl}
                   onChange={(e) => setForm((f) => ({ ...f, userApiUrl: e.target.value }))}
                   placeholder="https://dk.mountsea.ai"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">对应 MOUNTSEA_USER_API_URL</p>
               </div>
@@ -181,7 +181,7 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
                   value={form.usageBaseUrl}
                   onChange={(e) => setForm((f) => ({ ...f, usageBaseUrl: e.target.value }))}
                   placeholder="https://dk.mountsea.ai"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   对应 MOUNTSEA_USAGE_BASE_URL，留空则与用户端同域
@@ -216,7 +216,7 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
               <button
                 type="submit"
                 disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存配置'}

@@ -28,14 +28,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [mounted, isAuthenticated, adminUser, router]);
 
   if (!mounted) {
-    return <div style={{ height: '100vh', backgroundColor: '#f5f7fa' }} />;
+    return <div style={{ height: '100vh', backgroundColor: '#f8fafc' }} />;
   }
 
   if (!isAuthenticated || !adminUser) {
     return (
-      <div className="h-screen bg-[#f5f7fa] flex items-center justify-center">
+      <div className="h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-slate-300 border-t-teal-600 rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
           <p className="text-sm text-slate-500">验证权限中...</p>
         </div>
       </div>
@@ -45,9 +45,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const routeAllowed = hasRoutePermission(pathname);
 
   return (
-    <div className="h-screen bg-[#f5f7fa] text-slate-900 flex overflow-hidden">
+    <div className="h-screen bg-slate-50 text-slate-900 flex overflow-hidden">
       <AdminSidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {routeAllowed ? children : <ForbiddenPanel />}
       </main>
     </div>

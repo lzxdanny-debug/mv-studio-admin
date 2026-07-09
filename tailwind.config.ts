@@ -8,10 +8,26 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        primary: {
+          DEFAULT: '#2563eb',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+      },
+      boxShadow: {
+        flat: 'none',
+      },
       borderRadius: {
-        '2xl': '0.5rem',
-        xl: '0.5rem',
-        lg: '0.5rem',
+        '2xl': '0.375rem',
+        xl: '0.375rem',
+        lg: '0.25rem',
       },
       keyframes: {
         shimmer: {

@@ -88,7 +88,7 @@ export default function AdminReferralsPage() {
           <Link
             href={`/admin/users/${row.inviterUserId}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-sm font-medium text-teal-700 hover:underline truncate block"
+            className="text-sm font-medium text-blue-700 hover:underline truncate block"
           >
             {row.inviterDisplayName || '—'}
           </Link>
@@ -143,7 +143,7 @@ export default function AdminReferralsPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -156,16 +156,16 @@ export default function AdminReferralsPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="rounded-2xl p-4 shadow-sm bg-gradient-to-br from-violet-500 to-purple-600 text-white border border-violet-400/30">
+          <div className="rounded-lg p-4 bg-violet-600 text-white border border-violet-700">
             <span className="text-xs font-medium text-violet-50/90">本页邀请成功数</span>
             <p className="mt-2 text-2xl font-bold tabular-nums">{data?.total ?? 0}</p>
             <p className="mt-0.5 text-xs text-violet-50/75">符合当前筛选条件</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+          <div className="admin-card p-4">
             <span className="text-xs text-slate-500">本页奖励积分</span>
             <p className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{totalCredits.toLocaleString()}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+          <div className="admin-card p-4">
             <span className="text-xs text-slate-500">本页折算成本</span>
             <p className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{usdAmount(totalUsd)}</p>
           </div>

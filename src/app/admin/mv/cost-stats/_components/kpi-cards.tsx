@@ -67,7 +67,7 @@ export function KpiCards({ payload }: KpiCardsProps) {
       />
 
       <KpiCard
-        icon={<DollarSign className="h-4 w-4 text-teal-500" />}
+        icon={<DollarSign className="h-4 w-4 text-blue-500" />}
         label="估算总成本"
         value={formatUsd(estTotalUsd)}
         helper={
@@ -137,7 +137,7 @@ interface KpiCardProps {
 function KpiCard({ icon, label, value, valueClassName, helper, helperTitle }: KpiCardProps) {
   return (
     <div
-      className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
+      className="admin-card p-4"
       title={helperTitle}
     >
       <div className="flex items-center gap-2 mb-2">

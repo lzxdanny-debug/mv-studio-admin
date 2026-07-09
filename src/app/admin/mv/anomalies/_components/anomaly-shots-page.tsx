@@ -163,7 +163,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -312,7 +312,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
                         <td className="px-4 py-3">
                           <Link
                             href={`/admin/mv/projects/${row.projectId}`}
-                            className="text-teal-700 hover:underline font-medium truncate block max-w-[180px]"
+                            className="text-blue-700 hover:underline font-medium truncate block max-w-[180px]"
                           >
                             {row.projectTitle || row.projectId.slice(0, 8)}
                           </Link>
@@ -386,7 +386,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
                                 href={row.videoUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-xs text-teal-600 hover:underline"
+                                className="text-xs text-blue-600 hover:underline"
                               >
                                 查看
                               </a>
@@ -401,7 +401,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
                         <td className="px-4 py-3">
                           <Link
                             href={`/admin/mv/projects/${row.projectId}`}
-                            className="inline-flex items-center gap-1 text-xs text-teal-700 hover:underline"
+                            className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline"
                           >
                             <ExternalLink className="h-3 w-3" />
                             项目详情

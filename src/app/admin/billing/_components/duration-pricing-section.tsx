@@ -38,7 +38,7 @@ interface VideoPricingView {
 }
 
 const INPUT =
-  'w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white';
+  'w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white';
 
 function estimateCredits(params: {
   seconds: number;
@@ -176,7 +176,7 @@ export function DurationPricingSection({ profitFactor }: { profitFactor: number 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5 mt-6">
       <div className="flex items-start gap-3 mb-5">
-        <div className="h-9 w-9 rounded-xl bg-teal-600 flex items-center justify-center flex-shrink-0">
+        <div className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
           <Film className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -185,7 +185,7 @@ export function DurationPricingSection({ profitFactor }: { profitFactor: number 
             MV 创建时按「时长 × 基础秒价 × 盈利系数 × 清晰度系数 × 品质系数 × 会员系数」一次性扣费。
             规划 / 故事板 / 视频各步不再单独计费；创建前的 AI 风格推荐可单独定价。
             需新增 4K 等输出规格时，请到
-            <a href="/admin/billing/video-pricing" className="text-teal-600 hover:underline mx-0.5">
+            <a href="/admin/billing/video-pricing" className="text-blue-600 hover:underline mx-0.5">
               清晰度与品质
             </a>
             页管理。
@@ -272,7 +272,7 @@ export function DurationPricingSection({ profitFactor }: { profitFactor: number 
         {/* 实时预估 */}
         <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Calculator className="h-4 w-4 text-teal-600" />
+            <Calculator className="h-4 w-4 text-blue-600" />
             <p className="text-sm font-semibold text-slate-700">价格预估器</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -336,7 +336,7 @@ export function DurationPricingSection({ profitFactor }: { profitFactor: number 
             </p>
             <p>
               总价 = ceil({estSeconds}s × {estimate.creditsPerSecond} × {estPlan?.videoPriceCoefficient ?? 1}) ={' '}
-              <span className="text-lg font-bold text-teal-700">{estimate.credits}</span> 积分
+              <span className="text-lg font-bold text-blue-700">{estimate.credits}</span> 积分
               {estimate.credits === minCharge && estSeconds > 0 && (
                 <span className="text-slate-400 ml-1">（触达最低收费 {minCharge}）</span>
               )}

@@ -69,7 +69,7 @@ const LINE_META: Record<
   CostLine['line'],
   { icon: typeof Film; tint: string; stroke: string }
 > = {
-  mv: { icon: Film, tint: 'text-teal-600 bg-teal-50', stroke: '#8b5cf6' },
+  mv: { icon: Film, tint: 'text-blue-600 bg-blue-50', stroke: '#8b5cf6' },
   music: { icon: Music, tint: 'text-rose-600 bg-rose-50', stroke: '#ec4899' },
   lyrics: { icon: FileText, tint: 'text-cyan-600 bg-cyan-50', stroke: '#06b6d4' },
 };
@@ -115,13 +115,13 @@ export default function BillingCostPage() {
         : '默认';
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-5 max-w-[1600px]">
         {/* 顶部 */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <LineChart className="h-5 w-5 text-teal-600" />
+              <LineChart className="h-5 w-5 text-blue-600" />
               成本统计
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -137,7 +137,7 @@ export default function BillingCostPage() {
                   className={cn(
                     'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                     preset === p
-                      ? 'bg-teal-600 text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'text-slate-500 hover:text-slate-700',
                   )}
                 >
@@ -188,7 +188,7 @@ export default function BillingCostPage() {
             <>
               {/* 总成本 + 三业务线 + 赠送积分 */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                <div className="rounded-2xl p-4 shadow-sm bg-gradient-to-br from-amber-500 to-orange-600 text-white border border-amber-400/30">
+                <div className="rounded-lg p-4 bg-amber-600 text-white border border-amber-700">
                   <span className="text-xs font-medium text-amber-50/90">总成本（含赠送）</span>
                   <p className="mt-2 text-2xl font-bold tabular-nums">{usdAmount(grandTotalUsd)}</p>
                   <p className="mt-0.5 text-xs text-amber-50/75">
@@ -201,7 +201,7 @@ export default function BillingCostPage() {
                   return (
                     <div
                       key={l.line}
-                      className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
+                      className="admin-card p-4"
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-500">{l.label} 成本</span>
@@ -218,7 +218,7 @@ export default function BillingCostPage() {
                     </div>
                   );
                 })}
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                <div className="admin-card p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-500">赠送积分成本</span>
                     <span className="p-1.5 rounded-lg text-emerald-600 bg-emerald-50">
@@ -236,12 +236,12 @@ export default function BillingCostPage() {
 
               {/* 赠送来源拆分 */}
               {b && b.bySource.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mt-4">
+                <div className="admin-card p-5 mt-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-slate-900">赠送积分来源</h3>
                     <Link
                       href="/admin/billing/bonus"
-                      className="text-xs text-teal-600 hover:underline inline-flex items-center gap-1"
+                      className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
                     >
                       查看明细 <ExternalLink className="h-3 w-3" />
                     </Link>
@@ -313,7 +313,7 @@ function CostTrend({
     赠送: Number((bonusByDate.get(t.date) ?? 0).toFixed(2)),
   }));
   return (
-    <div className={cn('bg-white rounded-2xl border border-slate-200 p-5 shadow-sm', className)}>
+    <div className={cn('admin-card p-5', className)}>
       <h3 className="text-sm font-semibold text-slate-900 mb-3">成本趋势（按天）</h3>
       {data.length === 0 ? (
         <div className="h-64 flex items-center justify-center text-xs text-slate-400">
@@ -350,7 +350,7 @@ function CostTrend({
 function ProviderBreakdown({ rows }: { rows: CostSummary['byProvider'] }) {
   const total = rows.reduce((a, b) => a + b.usd, 0);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <h3 className="text-sm font-semibold text-slate-900 mb-3">按渠道</h3>
       {total === 0 ? (
         <div className="h-56 flex items-center justify-center text-xs text-slate-400">暂无数据</div>
@@ -369,7 +369,7 @@ function ProviderBreakdown({ rows }: { rows: CostSummary['byProvider'] }) {
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-teal-500"
+                    className="h-full rounded-full bg-blue-500"
                     style={{ width: `${Math.max(2, ratio * 100)}%` }}
                   />
                 </div>

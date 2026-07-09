@@ -272,7 +272,7 @@ export function LiveTail({ files }: Props) {
             className={cn(
               'inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium',
               autoScroll
-                ? 'bg-teal-50 border-teal-200 text-teal-700'
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50',
             )}
             title="自动滚动到底"

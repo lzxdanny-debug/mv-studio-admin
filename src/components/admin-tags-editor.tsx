@@ -99,7 +99,7 @@ export function AdminTagsEditor({ id, tags, kind, invalidateQueryKey }: AdminTag
             ))}
           </div>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-400 group-hover:text-teal-600">
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400 group-hover:text-blue-600">
             <Tag className="h-3 w-3" />
             设置标签
           </span>
@@ -145,7 +145,7 @@ export function AdminTagsEditor({ id, tags, kind, invalidateQueryKey }: AdminTag
               type="button"
               disabled={mutation.isPending}
               onClick={() => mutation.mutate(selected)}
-              className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {mutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
               保存

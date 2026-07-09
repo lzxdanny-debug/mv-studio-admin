@@ -156,7 +156,7 @@ export function DecimalFactorInput({
           setDraft(String(next));
           onSave(next);
         }}
-        className="px-2 py-1 text-xs rounded bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white flex-shrink-0"
+        className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white flex-shrink-0"
       >
         保存
       </button>

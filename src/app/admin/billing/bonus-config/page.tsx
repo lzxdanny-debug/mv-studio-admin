@@ -82,11 +82,11 @@ export default function BonusConfigPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-6">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900">
-            <Gift className="h-5 w-5 text-teal-600" />
+            <Gift className="h-5 w-5 text-blue-600" />
             赠送积分
           </h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -115,7 +115,7 @@ export default function BonusConfigPage() {
                         <button
                           type="button"
                           onClick={() => setOpenHelp(openHelp === p.key ? null : p.key)}
-                          className="flex-shrink-0 text-slate-400 hover:text-teal-600"
+                          className="flex-shrink-0 text-slate-400 hover:text-blue-600"
                           title="查看说明"
                         >
                           <HelpCircle className="h-3.5 w-3.5" />
@@ -141,7 +141,7 @@ export default function BonusConfigPage() {
                         onChange={(e) =>
                           setForm((f) => ({ ...f, [p.key]: Number(e.target.value) }))
                         }
-                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                       />
                       {p.unit && (
                         <span className="w-14 flex-shrink-0 text-xs text-slate-400">
@@ -174,7 +174,7 @@ export default function BonusConfigPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={save.isPending || !dirty}
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存'}

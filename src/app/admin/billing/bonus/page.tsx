@@ -107,7 +107,7 @@ export default function AdminBonusPage() {
           <Link
             href={`/admin/users/${row.userId}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-sm font-medium text-teal-700 hover:underline truncate block"
+            className="text-sm font-medium text-blue-700 hover:underline truncate block"
           >
             {row.userDisplayName || '—'}
           </Link>
@@ -158,11 +158,11 @@ export default function AdminBonusPage() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Gift className="h-5 w-5 text-teal-600" />
+            <Gift className="h-5 w-5 text-blue-600" />
             赠送积分明细
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -172,7 +172,7 @@ export default function AdminBonusPage() {
 
         {/* 汇总卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-2xl p-4 shadow-sm bg-gradient-to-br from-emerald-500 to-teal-600 text-white border border-emerald-400/30">
+          <div className="rounded-lg p-4 bg-blue-600 text-white border border-blue-700">
             <span className="text-xs font-medium text-emerald-50/90">赠送成本合计</span>
             <p className="mt-2 text-2xl font-bold tabular-nums">{usdAmount(summary.data?.totalUsd ?? 0)}</p>
             <p className="mt-0.5 text-xs text-emerald-50/75">
@@ -185,7 +185,7 @@ export default function AdminBonusPage() {
               cls: '',
             };
             return (
-              <div key={s.source} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+              <div key={s.source} className="admin-card p-4">
                 <span className="text-xs text-slate-500">{meta.label}</span>
                 <p className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{usdAmount(s.usd)}</p>
                 <p className="mt-0.5 text-[11px] text-slate-400">
@@ -217,7 +217,7 @@ export default function AdminBonusPage() {
                 }}
                 className={cn(
                   'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  rangePreset === p ? 'bg-teal-600 text-white' : 'text-slate-500 hover:text-slate-700',
+                  rangePreset === p ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700',
                 )}
               >
                 {p === 'all' ? '全部时间' : RANGE_LABEL[p]}

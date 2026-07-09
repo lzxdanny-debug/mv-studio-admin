@@ -39,7 +39,7 @@ export function FailureBar({ payload }: { payload: CostStatsPayload }) {
     .reduce((acc, r) => acc + r.estCostWastedUsd, 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <div className="admin-card p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-red-500" />

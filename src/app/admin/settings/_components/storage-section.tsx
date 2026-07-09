@@ -136,7 +136,7 @@ export function StorageSection({ embedded = false }: { embedded?: boolean }) {
                   placeholder="aiconsole-1387810185"
                   value={form.bucket}
                   onChange={(e) => setForm((f) => ({ ...f, bucket: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
               </div>
               <div>
@@ -146,7 +146,7 @@ export function StorageSection({ embedded = false }: { embedded?: boolean }) {
                   placeholder="ap-hongkong"
                   value={form.region}
                   onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
               </div>
             </div>
@@ -161,7 +161,7 @@ export function StorageSection({ embedded = false }: { embedded?: boolean }) {
               <button
                 type="submit"
                 disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 <SettingsIcon className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
                 {save.isPending ? '保存中…' : '保存配置'}

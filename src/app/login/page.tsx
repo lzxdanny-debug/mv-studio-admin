@@ -89,14 +89,14 @@ export default function LoginPage() {
   };
 
   if (!mounted) {
-    return <div style={{ height: '100vh', backgroundColor: '#f5f7fa' }} />;
+    return <div style={{ height: '100vh', backgroundColor: '#f8fafc' }} />;
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-100">
+          <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center">
             <Shield className="h-6 w-6 text-white" />
           </div>
           <div className="text-center">
@@ -107,7 +107,7 @@ export default function LoginPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm"
+          className="admin-card p-6 space-y-4"
         >
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1.5">管理员邮箱</label>
@@ -118,7 +118,7 @@ export default function LoginPage() {
               placeholder="admin@example.com"
               required
               autoComplete="username"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
             />
           </div>
 
@@ -132,7 +132,7 @@ export default function LoginPage() {
                 placeholder="请输入密码"
                 required
                 autoComplete="current-password"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
               />
               <button
                 type="button"
@@ -152,7 +152,7 @@ export default function LoginPage() {
                 onClick={() => void loadCaptcha()}
                 disabled={captchaLoading}
                 title="点击换一张"
-                className="flex-shrink-0 h-12 w-[132px] rounded-xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center cursor-pointer hover:border-teal-300 hover:bg-teal-50/40 disabled:opacity-50 disabled:cursor-wait transition-colors"
+                className="flex-shrink-0 h-12 w-[132px] rounded-xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 disabled:opacity-50 disabled:cursor-wait transition-colors"
               >
                 {captcha?.imageDataUrl && !captchaLoading ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -175,7 +175,7 @@ export default function LoginPage() {
                 required
                 autoComplete="off"
                 maxLength={6}
-                className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all uppercase tracking-widest"
+                className="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all uppercase tracking-widest"
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || captchaLoading || !captcha}
-            className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-sm text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 rounded-md admin-btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '登录中...' : '登录'}
           </button>

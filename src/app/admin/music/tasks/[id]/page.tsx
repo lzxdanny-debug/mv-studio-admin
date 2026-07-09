@@ -221,7 +221,7 @@ export default function AdminMusicTaskDetailPage({
   const userChargeCredits = task ? musicCreateCreditsCost(task.model, task.creditsCost) : 0;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4 w-full">
         <Link
           href="/admin/music/tasks"
@@ -238,7 +238,7 @@ export default function AdminMusicTaskDetailPage({
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <Disc3 className="h-5 w-5 text-teal-600" />
+                      <Disc3 className="h-5 w-5 text-blue-600" />
                       {task.prompt || '音乐任务'}
                     </h1>
                     <p className="text-xs text-slate-400 font-mono mt-1">{task.id}</p>
@@ -274,7 +274,7 @@ export default function AdminMusicTaskDetailPage({
                       href={audioUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-teal-700 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline"
                     >
                       <ExternalLink className="h-3 w-3" />
                       打开
@@ -291,7 +291,7 @@ export default function AdminMusicTaskDetailPage({
                     className={cn(
                       'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                       tab === t.key
-                        ? 'border-teal-600 text-teal-700'
+                        ? 'border-blue-600 text-blue-700'
                         : 'border-transparent text-slate-500 hover:text-slate-700',
                     )}
                   >
@@ -317,7 +317,7 @@ export default function AdminMusicTaskDetailPage({
                   ))}
 
                   {reconStats && reconStats.displayCredits > 0 && (
-                    <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 shadow-sm">
+                    <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-blue-50 px-5 py-4 shadow-sm">
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800/70 mb-1">
                         音乐成本合计（人民币）
                       </p>
@@ -358,7 +358,7 @@ export default function AdminMusicTaskDetailPage({
                     <button
                       onClick={() => reconcileMutation.mutate()}
                       disabled={reconcileMutation.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                     >
                       {reconcileMutation.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -403,7 +403,7 @@ export default function AdminMusicTaskDetailPage({
                                 {STEP_LABELS[r.step] || r.step}
                               </td>
                               <td className="px-3 py-2 text-slate-600 min-w-0">
-                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mr-1.5 bg-teal-50 text-teal-700">
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mr-1.5 bg-blue-50 text-blue-700">
                                   {r.provider}
                                 </span>
                                 <span className="font-mono text-[11px]">{r.model}</span>
@@ -413,7 +413,7 @@ export default function AdminMusicTaskDetailPage({
                                   <MountseaCostAmount
                                     credits={r.costNativeAmount}
                                     cnyPerUsd={cnyPerUsd}
-                                    amountClassName="text-teal-700 font-medium text-[11px]"
+                                    amountClassName="text-blue-700 font-medium text-[11px]"
                                   />
                                 ) : (
                                   <span className="text-slate-300">—</span>

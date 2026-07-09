@@ -76,7 +76,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#94a3b8',
-  planning: '#14b8a6',
+  planning: '#3b82f6',
   reviewing: '#f59e0b',
   generating: '#2563eb',
   composing: '#06b6d4',
@@ -100,10 +100,10 @@ function StatCard({
   iconBg: string;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-2 hover:shadow-md hover:border-slate-300 transition-all">
+    <div className="admin-card p-4 flex flex-col gap-2 hover:border-slate-300 transition-colors">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-slate-500">{label}</span>
-        <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center', iconBg)}>
+        <div className={cn('w-8 h-8 rounded-md flex items-center justify-center', iconBg)}>
           <Icon className={cn('h-4 w-4', color)} />
         </div>
       </div>
@@ -134,7 +134,7 @@ function FinanceCard({
     <Link
       href={href}
       className={cn(
-        'group rounded-2xl border border-slate-200 border-l-4 bg-white p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all',
+        'group rounded-lg border border-slate-200 border-l-4 bg-white p-5 flex items-center gap-4 hover:border-slate-300 transition-colors',
         tone,
       )}
     >
@@ -146,14 +146,14 @@ function FinanceCard({
         <p className="text-3xl font-bold tabular-nums mt-1 text-slate-950">{value}</p>
         <p className="text-xs text-slate-500 mt-1">{sub}</p>
       </div>
-      <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all" />
+      <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
     </Link>
   );
 }
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5">
+    <div className="admin-card p-5">
       <h3 className="text-sm font-semibold text-slate-700 mb-4">{title}</h3>
       {children}
     </div>
@@ -210,8 +210,8 @@ export default function AdminDashboard() {
           value: s.mvProjects.total.toLocaleString(),
           sub: `生成中 ${s.mvProjects.generating} · 合成中 ${s.mvProjects.composing}`,
           icon: Film,
-          color: 'text-teal-600',
-          iconBg: 'bg-teal-50',
+          color: 'text-blue-600',
+          iconBg: 'bg-blue-50',
         },
         {
           label: '已完成项目',
@@ -274,7 +274,7 @@ export default function AdminDashboard() {
   }));
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f5f7fa]">
+    <div className="admin-page">
       <div className="p-6 space-y-6">
         {/* 今日财务速览 —— 置顶高亮 */}
         {s && (
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
               value={`$${((s.today.rechargeCents ?? 0) / 100).toFixed(2)}`}
               sub="点击查看财务总览"
               icon={Wallet}
-              tone="border-l-teal-500"
+              tone="border-l-blue-500"
             />
             <FinanceCard
               href="/admin/billing/cost"
@@ -320,7 +320,7 @@ export default function AdminDashboard() {
         <ChartCard title="近 14 天 MV 项目趋势">
           {trendsQuery.isLoading ? (
             <div className="h-64 flex items-center justify-center">
-              <Loader2 className="h-5 w-5 text-teal-600 animate-spin" />
+              <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
             </div>
           ) : dailyData.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-sm text-slate-400">
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
           <ChartCard title="项目状态分布">
             {statusQuery.isLoading ? (
               <div className="h-48 flex items-center justify-center">
-                <Loader2 className="h-5 w-5 text-teal-600 animate-spin" />
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
               </div>
             ) : statusData.length === 0 ? (
               <div className="h-48 flex items-center justify-center text-sm text-slate-400">

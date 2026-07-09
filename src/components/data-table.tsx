@@ -50,7 +50,7 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const isEmpty = !isLoading && !isError && (!rows || rows.length === 0);
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
       <QueryState
         isLoading={isLoading}
         isError={isError}
@@ -84,7 +84,7 @@ export function DataTable<T>({
                 <tr
                   key={rowKey(row)}
                   className={cn(
-                    'hover:bg-teal-50/40 transition-colors',
+                    'hover:bg-blue-50/40 transition-colors',
                     onRowClick && 'cursor-pointer',
                   )}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}

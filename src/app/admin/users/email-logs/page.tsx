@@ -132,7 +132,7 @@ function FilterPills({
           onClick={() => onChange(opt.value)}
           className={
             value === opt.value
-              ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-600 text-white'
+              ? 'px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white'
               : 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
           }
         >
@@ -278,7 +278,7 @@ export default function AdminEmailLogsPage() {
                 revealMutation.mutate(r.id);
               }}
               disabled={revealMutation.isPending}
-              className="p-1 rounded-md text-slate-400 hover:text-teal-600 hover:bg-teal-50"
+              className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50"
               title="Reveal 完整验证码"
             >
               <Eye className="h-3.5 w-3.5" />
@@ -356,7 +356,7 @@ export default function AdminEmailLogsPage() {
         r.user ? (
           <Link
             href={`/admin/users?search=${encodeURIComponent(r.user.email ?? r.email)}`}
-            className="text-xs text-teal-600 hover:underline"
+            className="text-xs text-blue-600 hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             {r.user.displayName || r.user.email}
@@ -462,12 +462,12 @@ export default function AdminEmailLogsPage() {
   const error = tab === 'detail' ? detailQuery.error : summaryQuery.error;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-teal-600" />
+              <Mail className="h-5 w-5 text-blue-600" />
               已发送邮件
             </h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -524,7 +524,7 @@ export default function AdminEmailLogsPage() {
                 }}
                 className={
                   tab === t.key
-                    ? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-600 text-white'
+                    ? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white'
                     : 'px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100'
                 }
               >

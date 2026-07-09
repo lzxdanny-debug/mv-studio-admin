@@ -161,7 +161,7 @@ export function StyleEditor({
             <textarea
               value={veoKeywords}
               onChange={(e) => setVeoKeywords(e.target.value)}
-              className="w-full min-h-[80px] text-xs font-mono px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none resize-y"
+              className="w-full min-h-[80px] text-xs font-mono px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none resize-y"
               placeholder="cinematic, vivid colors, ..."
             />
           </div>
@@ -175,7 +175,7 @@ export function StyleEditor({
             <textarea
               value={filmPreamble}
               onChange={(e) => setFilmPreamble(e.target.value)}
-              className="w-full min-h-[80px] text-xs font-mono px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none resize-y"
+              className="w-full min-h-[80px] text-xs font-mono px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none resize-y"
               placeholder="(masterpiece), best quality, shot on Kodak ..."
             />
           </div>
@@ -189,7 +189,7 @@ export function StyleEditor({
             <textarea
               value={descriptionZh}
               onChange={(e) => setDescriptionZh(e.target.value)}
-              className="w-full min-h-[60px] text-xs px-3 py-2 rounded-lg border border-slate-200 focus:border-teal-400 focus:ring-1 focus:ring-teal-200 outline-none resize-y"
+              className="w-full min-h-[60px] text-xs px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none resize-y"
               placeholder="风格说明…"
             />
           </div>
@@ -231,7 +231,7 @@ export function StyleEditor({
             <button
               onClick={() => save.mutate()}
               disabled={save.isPending || resetAll.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               {save.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               保存

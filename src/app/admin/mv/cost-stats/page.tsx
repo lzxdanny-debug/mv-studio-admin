@@ -111,13 +111,13 @@ export default function CostStatsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-100">
+    <div className="admin-page">
       <div className="p-6 space-y-4 max-w-[1600px]">
         {/* 顶部 ── 标题 + 操作按钮 ── */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <LineChart className="h-5 w-5 text-teal-600" />
+              <LineChart className="h-5 w-5 text-blue-600" />
               成本统计
             </h1>
             <p className="text-sm text-slate-500 mt-1">

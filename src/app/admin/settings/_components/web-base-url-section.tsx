@@ -88,7 +88,7 @@ export function WebBaseUrlSection() {
                 value={webBaseUrl}
                 onChange={(e) => setWebBaseUrl(e.target.value)}
                 placeholder="https://mv.offoff.ai"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 bg-slate-50"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
               />
             </div>
 
@@ -102,7 +102,7 @@ export function WebBaseUrlSection() {
               <button
                 type="submit"
                 disabled={save.isPending || !webBaseUrl.trim()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存配置'}

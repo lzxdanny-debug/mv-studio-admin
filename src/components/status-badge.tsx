@@ -11,7 +11,7 @@ const MV_PROJECT_STATUS: Record<
   { label: string; className: string }
 > = {
   pending: { label: '待开始', className: 'bg-slate-100 text-slate-600 border-slate-200' },
-  planning: { label: '规划中', className: 'bg-teal-50 text-teal-700 border-teal-200' },
+  planning: { label: '规划中', className: 'bg-blue-50 text-blue-700 border-blue-200' },
   reviewing: { label: '等待确认', className: 'bg-amber-50 text-amber-700 border-amber-200' },
   generating: { label: '生成中', className: 'bg-blue-50 text-blue-700 border-blue-200' },
   composing: { label: '合成中', className: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
@@ -23,7 +23,7 @@ const SHOT_STATUS: Record<string, { label: string; className: string }> = {
   pending: { label: '待生成', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   generating_storyboard: {
     label: '故事板生成中',
-    className: 'bg-teal-50 text-teal-700 border-teal-200',
+    className: 'bg-blue-50 text-blue-700 border-blue-200',
   },
   storyboard_ready: {
     label: '故事板就绪',

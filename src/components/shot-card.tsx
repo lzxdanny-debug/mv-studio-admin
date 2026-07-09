@@ -128,7 +128,7 @@ export function ShotCard({ shot, onClick, showProject, actions, className }: Sho
     <div
       className={cn(
         'group bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col',
-        onClick && 'cursor-pointer hover:border-teal-300 hover:shadow-sm transition-all',
+        onClick && 'cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all',
         className,
       )}
       onClick={onClick ? () => onClick(shot) : undefined}
