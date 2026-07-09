@@ -19,7 +19,11 @@ interface AdminAuthState {
   roles: string[];
   permissions: string[];
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    captcha: { captchaId: string; captchaCode: string },
+  ) => Promise<void>;
   logout: () => void;
   refreshSession: () => Promise<void>;
   hasPermission: (code: string) => boolean;
@@ -35,10 +39,12 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       permissions: [],
       isAuthenticated: false,
 
-      login: async (email, password) => {
+      login: async (email, password, captcha) => {
         const result = (await apiClient.post('/admin/auth/login', {
           email,
           password,
+          captchaId: captcha.captchaId,
+          captchaCode: captcha.captchaCode,
         })) as {
           adminUser: AdminUser;
           roles: string[];

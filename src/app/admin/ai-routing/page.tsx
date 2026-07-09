@@ -13,6 +13,10 @@ import {
   ServerCog,
   Layers,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Trash2,
   Pencil,
   Save,
   X,
@@ -47,10 +51,16 @@ type AiCapability =
 
 interface ResolvedRouting {
   capability: AiCapability;
+  chain: Array<{ provider: RoutingProvider; model: string }>;
   primary: { provider: RoutingProvider; model: string };
   secondary: { provider: RoutingProvider; model: string } | null;
   isActive: boolean;
   source: 'db' | 'code';
+}
+
+interface ChainEntryDraft {
+  provider: RoutingProvider;
+  model: string;
 }
 
 interface ListResp {
@@ -179,8 +189,8 @@ export default function AiRoutingPage() {
               AI 路由配置
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              为每个 AI 能力配置主备 provider 和模型。任何主 provider 失败时（除内容审核 / 凭证错误），
-              路由器会自动 fallback 到备用。修改后立即生效，无须重启。
+              为每个 AI 能力配置优先级路由链（可添加多条）。按顺序依次尝试，全部失败后提示联系管理人员。
+              修改后立即生效，无须重启。
             </p>
             <p className="text-xs text-slate-500 mt-2 leading-relaxed rounded-lg border border-slate-200 bg-white px-3 py-2 max-w-3xl">
               <strong className="text-slate-700">Mountsea</strong>（Hub）走 /v1 聊天与 Hub 视频/图像名，负责
@@ -824,20 +834,23 @@ function CapabilityRow({
   const defaultModelsForCap = meta.defaultModels[row.capability];
   const modelOptionsForCap = meta.modelOptions?.[row.capability] ?? {};
 
-  const [primary, setPrimary] = useState<RoutingProvider>(row.primary.provider);
-  const [secondary, setSecondary] = useState<RoutingProvider | null>(row.secondary?.provider ?? null);
-  const [modelPrimary, setModelPrimary] = useState('');   // 留空 = 默认
-  const [modelSecondary, setModelSecondary] = useState('');
+  const initialChain = (): ChainEntryDraft[] =>
+    (row.chain.length > 0 ? row.chain : [row.primary]).map((entry) => ({
+      provider: entry.provider,
+      model: '',
+    }));
+
+  const [chain, setChain] = useState<ChainEntryDraft[]>(initialChain);
   const [isActive, setIsActive] = useState(row.isActive);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const save = useMutation({
     mutationFn: () =>
       apiClient.put(`/admin/ai-routing/${row.capability}`, {
-        primaryProvider: primary,
-        secondaryProvider: secondary,
-        modelPrimary: modelPrimary.trim() || null,
-        modelSecondary: modelSecondary.trim() || null,
+        chain: chain.map((entry) => ({
+          provider: entry.provider,
+          model: entry.model.trim() || null,
+        })),
         isActive,
       }) as Promise<ResolvedRouting>,
     onSuccess: () => {
@@ -852,33 +865,46 @@ function CapabilityRow({
       setMsg({ ok: false, text: e?.message ?? '保存失败' }),
   });
 
-  // 备 Provider 可选全部 supported（可与主相同，但需选不同 model）
-  const secondaryCandidates = useMemo(() => supportedProviders, [supportedProviders]);
-
-  const effectivePrimaryModel =
-    modelPrimary.trim() || (defaultModelsForCap[primary] ?? '');
-  const effectiveSecondaryModel =
-    modelSecondary.trim() ||
-    (secondary ? (defaultModelsForCap[secondary] ?? '') : '');
+  const effectiveModel = (provider: RoutingProvider, model: string) =>
+    model.trim() || (defaultModelsForCap[provider] ?? '');
 
   const handleSave = () => {
-    if (
-      secondary &&
-      secondary === primary &&
-      effectivePrimaryModel === effectiveSecondaryModel
-    ) {
-      setMsg({
-        ok: false,
-        text: '主备 Provider 相同时，请选择不同的模型（例如主 Veo、备 Seedance）',
-      });
+    if (chain.length === 0) {
+      setMsg({ ok: false, text: '至少需要 1 条优先级路由' });
       return;
     }
+    const seen = new Set<string>();
+    for (const entry of chain) {
+      const key = `${entry.provider}::${effectiveModel(entry.provider, entry.model)}`;
+      if (seen.has(key)) {
+        setMsg({ ok: false, text: '路由链中存在重复的 provider + 模型组合' });
+        return;
+      }
+      seen.add(key);
+    }
     save.mutate();
+  };
+
+  const updateEntry = (index: number, patch: Partial<ChainEntryDraft>) => {
+    setChain((prev) =>
+      prev.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)),
+    );
+  };
+
+  const moveEntry = (index: number, direction: -1 | 1) => {
+    setChain((prev) => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   };
 
   const onlyOneProvider = supportedProviders.length === 1;
 
   if (!editing) {
+    const displayChain = row.chain.length > 0 ? row.chain : [row.primary];
     return (
       <div
         className={cn(
@@ -922,27 +948,26 @@ function CapabilityRow({
         </div>
 
         <div className="space-y-1.5">
-          <ProviderBlock provider={row.primary.provider} model={row.primary.model} role="主" prominent />
-          {row.secondary ? (
-            <>
-              <div className="flex justify-center py-0.5">
-                <ChevronRight className="h-3 w-3 text-slate-300 rotate-90" />
-              </div>
+          {displayChain.map((entry, index) => (
+            <div key={`${entry.provider}-${entry.model}-${index}`}>
+              {index > 0 && (
+                <div className="flex justify-center py-0.5">
+                  <ChevronRight className="h-3 w-3 text-slate-300 rotate-90" />
+                </div>
+              )}
               <ProviderBlock
-                provider={row.secondary.provider}
-                model={row.secondary.model}
-                role="兜底"
+                provider={entry.provider}
+                model={entry.model}
+                role={index === 0 ? '优先' : `#${index + 1}`}
+                prominent={index === 0}
               />
-            </>
-          ) : (
-            <p className="text-[10px] text-slate-400 text-center pt-1">无兜底</p>
-          )}
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  // 编辑模式：主在上、备在下，层次分明
   return (
     <div
       className={cn(
@@ -960,69 +985,88 @@ function CapabilityRow({
       </div>
 
       <div className="space-y-2">
-        {/* 主 Provider — 强调 */}
-        <div className="space-y-2 rounded-xl bg-white p-3 border-2 border-teal-200 shadow-sm">
-          <p className="text-xs font-semibold text-teal-700">主 Provider</p>
-          <select
-            value={primary}
-            onChange={(e) => {
-              const p = e.target.value as RoutingProvider;
-              setPrimary(p);
-              setModelPrimary(''); // 切换 provider 重置模型选择
-            }}
-            className="w-full px-2 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+        {chain.map((entry, index) => (
+          <div
+            key={`draft-${index}`}
+            className={cn(
+              'space-y-2 rounded-xl p-3 border shadow-sm',
+              index === 0
+                ? 'bg-white border-2 border-teal-200'
+                : 'bg-slate-50/80 border border-slate-200',
+            )}
           >
-            {supportedProviders.map((p) => (
-              <option key={p} value={p}>
-                {PROVIDER_META[p].label}
-              </option>
-            ))}
-          </select>
-          <ModelSelect
-            value={modelPrimary}
-            onChange={setModelPrimary}
-            options={modelOptionsForCap[primary] ?? []}
-            defaultModel={defaultModelsForCap[primary]}
-          />
-        </div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-700">
+                {index === 0 ? '最高优先级' : `优先级 #${index + 1}`}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => moveEntry(index, -1)}
+                  className="p-1 rounded border border-slate-200 bg-white disabled:opacity-40"
+                  title="上移"
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={index === chain.length - 1}
+                  onClick={() => moveEntry(index, 1)}
+                  className="p-1 rounded border border-slate-200 bg-white disabled:opacity-40"
+                  title="下移"
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={chain.length <= 1}
+                  onClick={() => setChain((prev) => prev.filter((_, i) => i !== index))}
+                  className="p-1 rounded border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40"
+                  title="删除"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+            <select
+              value={entry.provider}
+              onChange={(e) => {
+                const provider = e.target.value as RoutingProvider;
+                updateEntry(index, { provider, model: '' });
+              }}
+              className="w-full px-2 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+            >
+              {supportedProviders.map((p) => (
+                <option key={p} value={p}>
+                  {PROVIDER_META[p].label}
+                </option>
+              ))}
+            </select>
+            <ModelSelect
+              inputId={`model-${row.capability}-${index}`}
+              value={entry.model}
+              onChange={(model) => updateEntry(index, { model })}
+              options={modelOptionsForCap[entry.provider] ?? []}
+              defaultModel={defaultModelsForCap[entry.provider]}
+            />
+          </div>
+        ))}
 
-        <div className="flex justify-center">
-          <ChevronRight className="h-4 w-4 text-slate-300 rotate-90" />
-        </div>
-
-        {/* 备 Provider — 次级 */}
-        <div className="space-y-2 rounded-xl bg-slate-50/80 p-3 border border-slate-200">
-          <p className="text-[11px] font-medium text-slate-500">备 Provider（兜底）</p>
-          {secondary === primary && (
-            <p className="text-[10px] text-amber-600">
-              与主 Provider 相同时，请为备路指定不同模型
-            </p>
-          )}
-          <select
-            value={secondary ?? ''}
-            onChange={(e) => {
-              setSecondary((e.target.value || null) as RoutingProvider | null);
-              setModelSecondary(''); // 切换 provider 重置模型选择
-            }}
-            disabled={secondaryCandidates.length === 0}
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:bg-slate-100"
-          >
-            <option value="">无兜底</option>
-            {secondaryCandidates.map((p) => (
-              <option key={p} value={p}>
-                {PROVIDER_META[p].label}
-              </option>
-            ))}
-          </select>
-          <ModelSelect
-            value={modelSecondary}
-            onChange={setModelSecondary}
-            options={secondary ? (modelOptionsForCap[secondary] ?? []) : []}
-            defaultModel={secondary ? defaultModelsForCap[secondary] : undefined}
-            disabled={!secondary}
-            disabledPlaceholder="需先选 Provider"
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() =>
+            setChain((prev) => [
+              ...prev,
+              { provider: supportedProviders[0], model: '' },
+            ])
+          }
+          disabled={chain.length >= 12}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 text-xs font-medium text-slate-600 hover:border-teal-300 hover:text-teal-700 disabled:opacity-40"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          添加优先级路由
+        </button>
       </div>
 
       <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5">
@@ -1047,15 +1091,15 @@ function CapabilityRow({
             'rounded-xl px-3 py-2 text-xs border flex items-start gap-2',
             msg.ok
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-amber-200 bg-amber-50 text-amber-700',
+              : 'border-rose-200 bg-rose-50 text-rose-700',
           )}
         >
           {msg.ok ? (
-            <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
           )}
-          {msg.text}
+          <span>{msg.text}</span>
         </div>
       )}
 
@@ -1063,8 +1107,7 @@ function CapabilityRow({
         <button
           type="button"
           onClick={onExitEdit}
-          disabled={save.isPending}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-xs font-medium text-slate-700"
+          className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           取消
         </button>
@@ -1072,13 +1115,9 @@ function CapabilityRow({
           type="button"
           onClick={handleSave}
           disabled={save.isPending}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-medium"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium disabled:opacity-60"
         >
-          {save.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Save className="h-3.5 w-3.5" />
-          )}
+          {save.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           保存
         </button>
       </div>
@@ -1086,7 +1125,7 @@ function CapabilityRow({
   );
 }
 
-/** 模型 ID 下拉框：第一项为「默认」(空值)，其余为候选模型；当前自定义值不在候选时自动并入。 */
+/** 模型 slug：支持下拉候选 + 手动输入任意 endpoint */
 function ModelSelect({
   value,
   onChange,
@@ -1094,6 +1133,7 @@ function ModelSelect({
   defaultModel,
   disabled = false,
   disabledPlaceholder,
+  inputId,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -1101,27 +1141,41 @@ function ModelSelect({
   defaultModel?: string;
   disabled?: boolean;
   disabledPlaceholder?: string;
+  inputId: string;
 }) {
-  // 当前值若是自定义（不在候选里），并入列表以免丢失
-  const merged = value && !options.includes(value) ? [value, ...options] : options;
+  if (disabled) {
+    return (
+      <select
+        value=""
+        disabled
+        className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-slate-100"
+      >
+        <option value="">{disabledPlaceholder ?? '不可用'}</option>
+      </select>
+    );
+  }
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-slate-50 disabled:bg-slate-100"
-    >
-      {disabled && disabledPlaceholder ? (
-        <option value="">{disabledPlaceholder}</option>
-      ) : (
-        <option value="">默认（{defaultModel ?? '-'}）</option>
-      )}
-      {merged.map((m) => (
-        <option key={m} value={m}>
-          {m}
-        </option>
-      ))}
-    </select>
+    <div className="space-y-1">
+      <input
+        id={inputId}
+        list={`${inputId}-list`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={
+          defaultModel
+            ? `留空=默认 (${defaultModel})`
+            : '输入 MS endpoint slug，如 google/veo-3.1/fast/image-to-video'
+        }
+        className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-slate-50"
+      />
+      <datalist id={`${inputId}-list`}>
+        {options.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+      <p className="text-[10px] text-slate-400">可手动输入任意 endpoint slug，不限于下拉列表</p>
+    </div>
   );
 }
 
@@ -1133,7 +1187,7 @@ function ProviderBlock({
 }: {
   provider: RoutingProvider;
   model: string;
-  role: '主' | '兜底';
+  role: string;
   prominent?: boolean;
 }) {
   const meta = PROVIDER_META[provider];
