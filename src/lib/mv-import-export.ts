@@ -31,6 +31,7 @@ export interface MvExportPayload {
   shots: Array<Record<string, unknown>>;
   planning: Array<Record<string, unknown>>;
   assets: Array<Record<string, unknown>>;
+  agentMessages?: Array<Record<string, unknown>>;
 }
 
 /**
