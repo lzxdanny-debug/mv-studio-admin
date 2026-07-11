@@ -154,7 +154,7 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     icon: ServerCog,
     iconWrap: 'bg-blue-50',
     iconColor: 'text-blue-600',
-    desc: '现网主力。Gemini Audio（LRC 转写 / 音乐分析）锁死该 provider。',
+    desc: 'Legacy 渠道：/chat/completions（首页推荐、Agent 对话、LRC/音乐分析等）。保存后立即生效，无需重启。',
     consoleUrl: 'https://api.mountsea.ai',
     secretFields: [
       {

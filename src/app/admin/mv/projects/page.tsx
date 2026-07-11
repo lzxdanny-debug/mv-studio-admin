@@ -354,7 +354,7 @@ export default function AdminMvProjectsPage() {
               disabled={importing || !importEnabled}
               className={
                 importEnabled
-                  ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
+                  ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'
                   : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-200 text-slate-500 cursor-not-allowed'
               }
               title={

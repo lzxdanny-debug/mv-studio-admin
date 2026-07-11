@@ -802,14 +802,11 @@ export function AdminSidebar() {
   return (
     <aside className="w-[252px] h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
       {/* Logo */}
-      <div className="h-14 flex items-center gap-2.5 px-4 border-b border-slate-200 flex-shrink-0 bg-white">
-        <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center flex-shrink-0">
-          <Shield className="h-4 w-4 text-white" />
+      <div className="h-12 flex items-center px-4 border-b border-slate-200 flex-shrink-0 bg-white">
+        <div className="w-7 h-7 rounded-md bg-blue-600 flex items-center justify-center flex-shrink-0">
+          <Shield className="h-3.5 w-3.5 text-white" />
         </div>
-        <div className="min-w-0">
-          <p className="font-bold text-[15px] text-slate-900 truncate leading-tight">MV Studio</p>
-          <p className="text-xs text-slate-500 truncate">管理后台</p>
-        </div>
+        <p className="ml-2.5 text-sm font-semibold text-slate-700 truncate">管理后台</p>
       </div>
 
       {/* Nav */}
