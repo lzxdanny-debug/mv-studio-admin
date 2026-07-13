@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Cable,
@@ -61,6 +61,21 @@ interface ResolvedRouting {
 interface ChainEntryDraft {
   provider: RoutingProvider;
   model: string;
+}
+
+function buildChainDraft(
+  row: ResolvedRouting,
+  defaultModelsForCap: Partial<Record<RoutingProvider, string>>,
+): ChainEntryDraft[] {
+  const source = row.chain.length > 0 ? row.chain : [row.primary];
+  return source.map((entry) => {
+    const defaultModel = defaultModelsForCap[entry.provider] ?? '';
+    return {
+      provider: entry.provider,
+      // 与保存逻辑一致：留空表示使用默认 model
+      model: entry.model === defaultModel ? '' : entry.model,
+    };
+  });
 }
 
 interface ListResp {
@@ -780,6 +795,7 @@ function CapabilityGroup({
         {row && (
           <div className="w-1/2">
             <CapabilityRow
+              key={activeCap}
               bare
               row={row}
               meta={meta}
@@ -834,15 +850,19 @@ function CapabilityRow({
   const defaultModelsForCap = meta.defaultModels[row.capability];
   const modelOptionsForCap = meta.modelOptions?.[row.capability] ?? {};
 
-  const initialChain = (): ChainEntryDraft[] =>
-    (row.chain.length > 0 ? row.chain : [row.primary]).map((entry) => ({
-      provider: entry.provider,
-      model: '',
-    }));
-
-  const [chain, setChain] = useState<ChainEntryDraft[]>(initialChain);
+  const [chain, setChain] = useState<ChainEntryDraft[]>(() =>
+    buildChainDraft(row, defaultModelsForCap),
+  );
   const [isActive, setIsActive] = useState(row.isActive);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // 进入编辑时用最新 row 回填（避免 tab 切换或数据刷新后 state 与展示不一致）
+  useEffect(() => {
+    if (!editing) return;
+    setChain(buildChainDraft(row, defaultModelsForCap));
+    setIsActive(row.isActive);
+    setMsg(null);
+  }, [editing, row.capability]);
 
   const save = useMutation({
     mutationFn: () =>
