@@ -5,16 +5,18 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { WebBaseUrlSection } from './_components/web-base-url-section';
 import { AllowedOriginsSection } from './_components/allowed-origins-section';
+import { ComposeWorkerSection } from './_components/compose-worker-section';
 import { AccountTab } from './_components/account-tab';
 import { DatabaseSection } from './_components/database-section';
 import { LineTabs } from './_components/line-tabs';
 
-type SettingsTab = 'general' | 'account' | 'database';
+type SettingsTab = 'general' | 'account' | 'database' | 'worker';
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '通用设置' },
   { id: 'account', label: '账号设置' },
   { id: 'database', label: '数据库' },
+  { id: 'worker', label: 'Worker' },
 ];
 
 function GeneralTab() {
@@ -32,7 +34,9 @@ function SettingsPageContent() {
 
   const activeTab = useMemo<SettingsTab>(() => {
     const raw = searchParams.get('tab');
-    if (raw === 'account' || raw === 'database' || raw === 'general') return raw;
+    if (raw === 'account' || raw === 'database' || raw === 'general' || raw === 'worker') {
+      return raw;
+    }
     return 'general';
   }, [searchParams]);
 
@@ -73,6 +77,7 @@ function SettingsPageContent() {
               <DatabaseSection />
             </div>
           )}
+          {activeTab === 'worker' && <ComposeWorkerSection />}
         </div>
       </div>
     </div>
