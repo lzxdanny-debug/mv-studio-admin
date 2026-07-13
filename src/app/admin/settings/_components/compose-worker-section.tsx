@@ -78,6 +78,7 @@ export function ComposeWorkerSection() {
   const qc = useQueryClient();
   const [draft, setDraft] = useState<ComposeQueueSaved | null>(null);
   const [workerApiKeyInput, setWorkerApiKeyInput] = useState('');
+  const [savedKeyForCopy, setSavedKeyForCopy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [copyHint, setCopyHint] = useState<string | null>(null);
 
@@ -96,11 +97,20 @@ export function ComposeWorkerSection() {
   const save = useMutation({
     mutationFn: (payload: Partial<ComposeQueueSaved>) =>
       apiClient.patch('/admin/settings/mv/compose-queue', payload) as Promise<ComposeQueueResp>,
-    onSuccess: (resp) => {
-      setMsg({ ok: true, text: 'Worker 配置已保存，下一次入队/claim 即生效。' });
+    onSuccess: (resp, variables) => {
+      const newKey = variables.workerApiKey?.trim();
+      if (newKey) {
+        setSavedKeyForCopy(newKey);
+        setWorkerApiKeyInput('');
+        setMsg({
+          ok: true,
+          text: 'Worker 配置已保存。请立即复制 API Key 到 worker.constants.ts（关闭本页后将无法再次查看明文）。',
+        });
+      } else {
+        setMsg({ ok: true, text: 'Worker 配置已保存，下一次入队/claim 即生效。' });
+      }
       qc.setQueryData(['admin', 'settings', 'compose-queue'], resp);
       if (resp?.saved) setDraft(resp.saved);
-      setWorkerApiKeyInput('');
       setCopyHint(null);
     },
     onError: (e: any) =>
@@ -117,6 +127,8 @@ export function ComposeWorkerSection() {
 
   const dirty =
     JSON.stringify(draft) !== JSON.stringify(data.saved) || !!workerApiKeyInput.trim();
+
+  const copyableKey = workerApiKeyInput.trim() || savedKeyForCopy || '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,14 +148,15 @@ export function ComposeWorkerSection() {
 
   const generateWorkerApiKey = () => {
     setWorkerApiKeyInput(crypto.randomUUID());
+    setSavedKeyForCopy(null);
     setCopyHint(null);
     setMsg(null);
   };
 
   const copyWorkerApiKey = async () => {
-    const text = workerApiKeyInput.trim();
+    const text = copyableKey;
     if (!text) {
-      setCopyHint('请先生成或输入密钥后再复制（已保存的密钥不会明文展示）');
+      setCopyHint('请先生成并保存密钥，或保存后在本页立即复制（已存库的密钥不会明文展示）');
       return;
     }
     try {
@@ -193,7 +206,7 @@ export function ComposeWorkerSection() {
 
             <ConfigField
               label="Worker API Key"
-              hint="仅用于 Worker 访问 /internal/worker/* 的 Bearer 鉴权，与 workerId、用户登录无关。须与 mv-studio-worker 的 workerApiKey 一致；轮换后需同步更新 Worker 并保存本页。留空保存表示不修改已有密钥。"
+              hint="仅用于 Worker 访问 /internal/worker/* 的 Bearer 鉴权，与 workerId、用户登录无关。须与 mv-studio-worker 的 workerApiKey 一致。保存新密钥后请立即复制；离开本页后只能重新生成轮换。"
             >
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -233,6 +246,12 @@ export function ComposeWorkerSection() {
                   <p className={cn('text-[11px]', copyHint.includes('已复制') ? 'text-emerald-600' : 'text-amber-600')}>
                     {copyHint}
                   </p>
+                )}
+                {savedKeyForCopy && !workerApiKeyInput && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-[11px] text-emerald-800 leading-relaxed">
+                    新密钥已写入数据库。输入框仅显示掩码；点「复制」可获取刚保存的明文，请同步到{' '}
+                    <code className="px-1 rounded bg-white/80">worker.constants.ts</code>。
+                  </div>
                 )}
               </div>
             </ConfigField>
@@ -374,7 +393,8 @@ export function ComposeWorkerSection() {
             onClick={() => {
               setDraft(data.saved);
               setWorkerApiKeyInput('');
-      setCopyHint(null);
+              setSavedKeyForCopy(null);
+              setCopyHint(null);
               setMsg(null);
             }}
             disabled={!dirty || save.isPending}
