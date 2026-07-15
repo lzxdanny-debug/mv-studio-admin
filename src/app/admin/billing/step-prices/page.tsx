@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, Save, Wand2, HelpCircle, ExternalLink, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Coins, Save, Wand2, HelpCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -692,7 +692,7 @@ export default function StepPricesPage() {
   );
 
   // 视频片段生成改为按秒计费（独立可编辑卡片），从主步骤表中剔除；
-  // 第 10 步「最终合成」单独抽出，放到全部模块之后展示（与前端流程顺序对齐）。
+  // 第 10 步「最终合成」单独抽出，放在视频矩阵之后展示（与前端流程顺序对齐）。
   const mainRows = useMemo(
     () =>
       allRows.filter(
@@ -715,7 +715,7 @@ export default function StepPricesPage() {
     [allRows],
   );
 
-  // 第 10 步「最终合成」（不计费）—— 放在最后
+  // 第 10 步「最终合成」—— 放在视频矩阵之后
   const finalRows = useMemo(
     () => allRows.filter((r) => r.step === 'final_compose'),
     [allRows],
@@ -913,18 +913,15 @@ export default function StepPricesPage() {
               </div>
             )}
 
-            {/* E. 最终合成（不计费，折叠） */}
+            {/* E. 最终合成（Step ⑩） */}
             {finalRows.length > 0 && (
-              <details className="group bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                <summary className="cursor-pointer list-none px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <h2 className="text-sm font-semibold text-slate-700 inline">E. 最终合成（不计费）</h2>
-                      <p className="text-xs text-slate-400 mt-0.5">Step ⑩ 合成导出，不产生积分扣费</p>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
-                  </div>
-                </summary>
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold text-slate-700">E. 最终合成（Step ⑩）</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    用户点击「开始合成」时按下方价格预扣；合成成功结算，失败退回。
+                  </p>
+                </div>
                 <PriceTable
                   rows={finalRows}
                   edits={edits}
@@ -933,7 +930,7 @@ export default function StepPricesPage() {
                   setOpenHelp={setOpenHelp}
                   showResolution={tab === 'mv'}
                 />
-              </details>
+              </div>
             )}
           </div>
         </QueryState>
