@@ -63,7 +63,7 @@ const BONUS_SOURCE_LABEL: Record<string, string> = {
   other: '会员 / 手动 / 活动',
 };
 
-const PRESETS: RangePreset[] = ['7d', '30d', '90d', '12m'];
+const PRESETS: RangePreset[] = ['today', '7d', '30d', '90d', '12m'];
 
 const LINE_META: Record<
   CostLine['line'],
@@ -81,7 +81,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 };
 
 export default function BillingCostPage() {
-  const [preset, setPreset] = useState<RangePreset>('30d');
+  const [preset, setPreset] = useState<RangePreset>('today');
   const range = useMemo(() => computeRange(preset), [preset]);
 
   const qs = useMemo(() => {
