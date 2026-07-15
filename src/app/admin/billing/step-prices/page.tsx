@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, Save, Wand2, HelpCircle, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Coins, Save, Wand2, HelpCircle, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -647,17 +647,7 @@ export default function StepPricesPage() {
     queryKey: ['admin', 'billing', 'model-config'],
     queryFn: () => apiClient.get('/admin/billing/model-config') as any,
   });
-  // 当前 MV 定价模式：整片按时长时，下面这些「分步价」对 MV 维度不再生效
-  const { data: pricingConfig } = useQuery<{
-    params: Array<{ key: string; value: number | boolean | string }>;
-  }>({
-    queryKey: ['admin', 'billing', 'pricing-config'],
-    queryFn: () => apiClient.get('/admin/billing/pricing-config') as any,
-  });
-  const isPerDuration =
-    pricingConfig?.params?.find((p) => p.key === 'mvPricingMode')?.value ===
-    'per_duration';
-
+  // 当前统一按步实扣；整片秒价仅用于创建页估算（见定价策略 · 创建估算秒价）
   const save = useMutation({
     mutationFn: (items: unknown[]) =>
       apiClient.patch('/admin/billing/step-prices', { items }) as any,
@@ -768,29 +758,19 @@ export default function StepPricesPage() {
           </p>
         </div>
 
-        {tab === 'mv' && !isPerDuration && (
+        {tab === 'mv' && (
           <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
             <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
             <div className="leading-relaxed">
-              当前为<strong className="font-semibold">按步实扣</strong>模式：创建时仅做余额预检（时长估算），不实扣；各步骤完成后按下方表格实扣。AI 推荐、Agent 对话在「创建相关」区块单独计费。
-            </div>
-          </div>
-        )}
-
-        {isPerDuration && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
-            <div className="leading-relaxed">
-              当前 MV 定价为
+              当前为<strong className="font-semibold">按步实扣</strong>模式：创建时仅做余额预检（
               <Link
                 href="/admin/billing/pricing"
-                className="inline-flex items-center gap-0.5 mx-1 font-semibold text-amber-900 underline decoration-amber-400 hover:decoration-amber-700"
+                className="inline-flex items-center gap-0.5 mx-1 font-semibold text-blue-900 underline decoration-blue-300 hover:decoration-blue-600"
               >
-                整片按时长（遗留）
+                整片秒价估算
                 <ExternalLink className="h-3 w-3" />
               </Link>
-              模式：MV 主流程各步不再单独扣费。创建时仅做余额预检（时长估算），不实扣。
-              <strong className="font-semibold"> AI 推荐 / Agent 对话</strong> 仍按下方表格单独扣费。
+              ），不实扣；各步骤完成后按下方表格实扣。AI 推荐、Agent 对话在「创建相关」区块单独计费。
             </div>
           </div>
         )}
