@@ -5,20 +5,20 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { WebBaseUrlSection } from './_components/web-base-url-section';
 import { AllowedOriginsSection } from './_components/allowed-origins-section';
-import { ComposeWorkerSection } from './_components/compose-worker-section';
+import { MvSettingsTab } from './_components/mv-settings-tab';
 import { TaskPollingSection } from './_components/task-polling-section';
 import { AccountTab } from './_components/account-tab';
 import { DatabaseSection } from './_components/database-section';
 import { LineTabs } from './_components/line-tabs';
 
-type SettingsTab = 'general' | 'account' | 'database' | 'worker' | 'polling';
+type SettingsTab = 'general' | 'account' | 'database' | 'mv' | 'polling';
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '通用设置' },
   { id: 'account', label: '账号设置' },
+  { id: 'mv', label: 'MV设置' },
   { id: 'polling', label: '任务轮询' },
   { id: 'database', label: '数据库' },
-  { id: 'worker', label: 'Worker' },
 ];
 
 function GeneralTab() {
@@ -36,7 +36,8 @@ function SettingsPageContent() {
 
   const activeTab = useMemo<SettingsTab>(() => {
     const raw = searchParams.get('tab');
-    if (raw === 'account' || raw === 'database' || raw === 'general' || raw === 'worker' || raw === 'polling') {
+    if (raw === 'worker') return 'mv';
+    if (raw === 'account' || raw === 'database' || raw === 'general' || raw === 'mv' || raw === 'polling') {
       return raw;
     }
     return 'general';
@@ -75,12 +76,12 @@ function SettingsPageContent() {
           {activeTab === 'general' && <GeneralTab />}
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'polling' && <TaskPollingSection />}
+          {activeTab === 'mv' && <MvSettingsTab />}
           {activeTab === 'database' && (
             <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6">
               <DatabaseSection />
             </div>
           )}
-          {activeTab === 'worker' && <ComposeWorkerSection />}
         </div>
       </div>
     </div>

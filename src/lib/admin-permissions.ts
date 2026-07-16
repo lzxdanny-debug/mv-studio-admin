@@ -8,6 +8,7 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/mv/beat-effects', permission: 'asset.view' },
   { prefix: '/admin/mv/character-presets', permission: 'asset.view' },
   { prefix: '/admin/mv/defaults', permission: 'system.manage' },
+  { prefix: '/admin/content/discovery', permission: 'system.manage' },
   { prefix: '/admin/mv/cost-stats', permission: 'billing.cost.view' },
   { prefix: '/admin/music/tasks', permission: 'music.view' },
   { prefix: '/admin/tools/lrc', permission: 'tools.lrc.view' },

@@ -176,9 +176,9 @@ export function ComposeWorkerSection() {
         <div className="flex items-start gap-3 px-1">
           <Cpu className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-slate-800">合成 Worker 配置</p>
+            <p className="text-sm font-semibold text-slate-800">合成 MV（FFmpeg Worker）</p>
             <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-              管理 MV 合成队列（compose / 字幕重渲 / 编辑器渲染 / 抽帧）的消费方式与容量。
+              管理 MV 最终合成阶段（compose / 字幕重渲 / 编辑器渲染）的 FFmpeg Worker 队列与容量。
               配置写入数据库，留空则回退到 <code className="px-1 rounded bg-slate-100">.env</code> 或代码默认值。
             </p>
           </div>

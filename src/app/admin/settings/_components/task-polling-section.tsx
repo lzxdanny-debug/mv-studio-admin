@@ -161,7 +161,7 @@ export function TaskPollingSection() {
         </div>
 
         <p className="text-[11px] text-slate-400">
-          Compose Worker 本地 consumer 的轮询间隔在「Worker」标签页单独配置（compose_consumer_poll_ms）。
+          Compose Worker 本地 consumer 的轮询间隔在「MV设置」标签页单独配置（compose_consumer_poll_ms）。
         </p>
 
         {msg && (

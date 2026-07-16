@@ -157,6 +157,12 @@ const NAV_SECTIONS: NavSection[] = [
             icon: SlidersHorizontal,
             permission: 'system.manage',
           },
+          {
+            href: '/admin/content/discovery',
+            label: 'Discovery 搜索',
+            icon: Sparkles,
+            permission: 'system.manage',
+          },
         ],
       },
     ],
