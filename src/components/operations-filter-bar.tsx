@@ -1,12 +1,13 @@
 'use client';
 
-export type OperationsFilterKey = '' | 'isPublic' | 'hot' | 'recommended';
+export type OperationsFilterKey = '' | 'isPublic' | 'hot' | 'recommended' | 'homepageFeatured';
 
 export const OPERATIONS_FILTER_OPTIONS: Array<{ label: string; value: OperationsFilterKey }> = [
   { label: '全部', value: '' },
   { label: '公开', value: 'isPublic' },
   { label: '热门', value: 'hot' },
   { label: '推荐', value: 'recommended' },
+  { label: '首页推荐', value: 'homepageFeatured' },
 ];
 
 export function operationsFilterToQueryParams(

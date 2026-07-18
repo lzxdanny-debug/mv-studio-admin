@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Film, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { Download, Film, Home, Loader2, RefreshCw, Upload } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
 import { DataTable, DataTableColumn } from '@/components/data-table';
@@ -47,6 +47,8 @@ interface MvProjectRow {
   errorMessage: string | null;
   importSource: ImportSource | null;
   adminTags: string[] | null;
+  isPublic: boolean;
+  homepageFeaturedAt: string | null;
   createdAt: string;
   updatedAt: string;
   userDisplayName: string | null;
@@ -84,6 +86,7 @@ export default function AdminMvProjectsPage() {
   const [search, setSearch] = useState('');
   const [operationsFilter, setOperationsFilter] = useState<OperationsFilterKey>('');
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [homepageFeaturedPendingId, setHomepageFeaturedPendingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -112,6 +115,31 @@ export default function AdminMvProjectsPage() {
     staleTime: 5 * 60_000,
   });
   const importEnabled = capabilities?.importEnabled === true;
+
+  const homepageFeaturedMutation = useMutation<
+    { id: string; homepageFeaturedAt: string | null },
+    Error,
+    { id: string; featured: boolean }
+  >({
+    mutationFn: ({ id, featured }) =>
+      apiClient.patch(`/admin/mv/projects/${id}/homepage-featured`, { featured }) as Promise<{
+        id: string;
+        homepageFeaturedAt: string | null;
+      }>,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['admin', 'mv', 'projects'] });
+    },
+    onError: async (err: Error) => {
+      await alert({
+        title: '操作失败',
+        description: err.message || String(err),
+        variant: 'danger',
+      });
+    },
+    onSettled: () => {
+      setHomepageFeaturedPendingId(null);
+    },
+  });
 
   /** 单行导出：调 API 拉全量 JSON 后由浏览器触发下载 */
   const handleExport = async (row: MvProjectRow) => {
@@ -284,28 +312,67 @@ export default function AdminMvProjectsPage() {
     {
       key: 'actions',
       header: '操作',
-      width: 'w-24',
+      width: 'w-40',
       render: (row) => {
         const isExporting = exportingId === row.id;
+        const isFeatured = Boolean(row.homepageFeaturedAt);
+        const isHomepagePending = homepageFeaturedPendingId === row.id;
+        const canAddToHomepage =
+          row.status === 'done' && Boolean(row.resultUrl?.trim()) && row.isPublic;
+        const homepageDisabledReason = !row.resultUrl?.trim()
+          ? '项目尚无成片'
+          : row.status !== 'done'
+            ? '项目尚未完成'
+            : !row.isPublic
+              ? '请先在运营设置中开启公开'
+              : undefined;
+
         return (
-          <button
-            onClick={(e) => {
-              // 阻止事件冒泡到行链接（如有），并阻止 Link 默认行为
-              e.preventDefault();
-              e.stopPropagation();
-              void handleExport(row);
-            }}
-            disabled={isExporting}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition-colors"
-            title="导出项目 JSON（含全部 shots/planning/assets）"
-          >
-            {isExporting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Download className="h-3.5 w-3.5" />
-            )}
-            导出
-          </button>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleExport(row);
+              }}
+              disabled={isExporting}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition-colors"
+              title="导出项目 JSON（含全部 shots/planning/assets）"
+            >
+              {isExporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              导出
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setHomepageFeaturedPendingId(row.id);
+                homepageFeaturedMutation.mutate({ id: row.id, featured: !isFeatured });
+              }}
+              disabled={isHomepagePending || (!isFeatured && !canAddToHomepage)}
+              className={
+                isFeatured
+                  ? 'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-amber-700 hover:text-amber-800 hover:bg-amber-50 disabled:opacity-50 transition-colors'
+                  : 'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 disabled:opacity-50 transition-colors'
+              }
+              title={
+                isFeatured
+                  ? '从首页 MV 墙移出'
+                  : homepageDisabledReason ?? '加入首页 MV 墙展示'
+              }
+            >
+              {isHomepagePending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Home className="h-3.5 w-3.5" />
+              )}
+              {isFeatured ? '移出首页' : '加入首页'}
+            </button>
+          </div>
         );
       },
     },

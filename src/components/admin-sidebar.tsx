@@ -106,6 +106,7 @@ const NAV_SECTIONS: NavSection[] = [
         icon: FolderKanban,
         items: [
           { href: '/admin/mv/projects', label: 'MV 项目', icon: Film, permission: 'project.view' },
+          { href: '/admin/mv/charts', label: '热门榜单', icon: ListOrdered, permission: 'project.view' },
         ],
       },
       {
