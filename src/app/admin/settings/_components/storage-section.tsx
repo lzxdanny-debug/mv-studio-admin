@@ -52,6 +52,7 @@ export function StorageSection({ embedded = false }: { embedded?: boolean }) {
       setMsg({ ok: true, text: 'COS 配置已保存。' });
       setForm((f) => ({ ...f, secretId: '', secretKey: '' }));
       qc.invalidateQueries({ queryKey: ['admin', 'settings', 'storage'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'settings', 'general'] });
     },
     onError: () => setMsg({ ok: false, text: '保存失败，请检查输入后重试。' }),
   });

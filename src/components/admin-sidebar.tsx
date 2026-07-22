@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   Mail,
   Bell,
+  Clapperboard,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -163,6 +164,25 @@ const NAV_SECTIONS: NavSection[] = [
             label: 'Discovery 搜索',
             icon: Sparkles,
             permission: 'system.manage',
+          },
+        ],
+      },
+      {
+        key: 'mv-marketing',
+        label: '内容运营',
+        icon: Clapperboard,
+        items: [
+          {
+            href: '/admin/content/showcase',
+            label: '营销素材 / 灵感跑马灯',
+            icon: Clapperboard,
+            permission: 'marketing.view',
+          },
+          {
+            href: '/admin/content/articles',
+            label: '文章',
+            icon: FileText,
+            permission: 'blog.view',
           },
         ],
       },
@@ -525,7 +545,10 @@ const NAV_SECTIONS: NavSection[] = [
 function itemVisible(permissions: string[], item: NavLink): boolean {
   const perm = item.permission ?? resolveRoutePermission(item.href);
   if (!perm) return true;
-  return hasPermission(permissions, perm);
+  if (hasPermission(permissions, perm)) return true;
+  // 初期兼容：system.manage 可看到营销素材入口
+  if (perm === 'marketing.view' && hasPermission(permissions, 'system.manage')) return true;
+  return false;
 }
 
 function subgroupVisible(permissions: string[], subgroup: NavSubgroup): boolean {

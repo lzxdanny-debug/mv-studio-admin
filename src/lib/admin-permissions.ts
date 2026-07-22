@@ -9,6 +9,8 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/mv/character-presets', permission: 'asset.view' },
   { prefix: '/admin/mv/defaults', permission: 'system.manage' },
   { prefix: '/admin/content/discovery', permission: 'system.manage' },
+  { prefix: '/admin/content/showcase', permission: 'marketing.view' },
+  { prefix: '/admin/content/articles', permission: 'blog.view' },
   { prefix: '/admin/mv/cost-stats', permission: 'billing.cost.view' },
   { prefix: '/admin/music/tasks', permission: 'music.view' },
   { prefix: '/admin/tools/lrc', permission: 'tools.lrc.view' },
@@ -109,7 +111,17 @@ export function canAccessRoute(
 ): boolean {
   const required = resolveRoutePermission(pathname);
   if (!required) return true;
-  return hasPermission(permissions, required);
+  if (hasPermission(permissions, required)) return true;
+  // 初期兼容：持有 system.manage 也可进入营销素材页
+  if (
+    required === 'marketing.view' &&
+    (pathname === '/admin/content/showcase' ||
+      pathname.startsWith('/admin/content/showcase/')) &&
+    hasPermission(permissions, 'system.manage')
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function canAccessTab(
