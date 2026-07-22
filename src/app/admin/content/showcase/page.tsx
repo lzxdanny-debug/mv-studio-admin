@@ -375,10 +375,14 @@ export default function AdminMarketingShowcasePage() {
   const itemsByRow = useMemo(() => {
     const map = new Map<string, ShowcaseItem[]>();
     for (const row of rows) map.set(row.key, []);
+    // 历史多轨道条目统一归入当前唯一主轨道展示，避免旧 rowKey（playful 等）卡片“消失”
     for (const item of localItems) {
-      const list = map.get(item.rowKey) ?? [];
-      list.push(item);
-      map.set(item.rowKey, list);
+      const targetKey = rows.some((r) => r.key === item.rowKey)
+        ? item.rowKey
+        : PRIMARY_ROW_KEY;
+      const list = map.get(targetKey) ?? [];
+      list.push({ ...item, rowKey: targetKey });
+      map.set(targetKey, list);
     }
     for (const [, list] of map) list.sort((a, b) => a.sortOrder - b.sortOrder);
     return map;
