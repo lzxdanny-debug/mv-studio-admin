@@ -6,6 +6,7 @@ import { Settings as SettingsIcon } from 'lucide-react';
 import { WebBaseUrlSection } from './_components/web-base-url-section';
 import { AllowedOriginsSection } from './_components/allowed-origins-section';
 import { StorageProviderSection } from './_components/storage-provider-section';
+import { SupportSettingsSection } from './_components/support-settings-section';
 import { MvSettingsTab } from './_components/mv-settings-tab';
 import { TaskPollingSection } from './_components/task-polling-section';
 import { AccountTab } from './_components/account-tab';
@@ -13,13 +14,21 @@ import { DatabaseSection } from './_components/database-section';
 import { RewardfulSection } from './_components/rewardful-section';
 import { LineTabs } from './_components/line-tabs';
 
-type SettingsTab = 'general' | 'account' | 'database' | 'mv' | 'polling' | 'rewardful';
+type SettingsTab =
+  | 'general'
+  | 'account'
+  | 'database'
+  | 'mv'
+  | 'polling'
+  | 'rewardful'
+  | 'support';
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '通用设置' },
   { id: 'account', label: '账号设置' },
   { id: 'mv', label: 'MV设置' },
   { id: 'polling', label: '任务轮询' },
+  { id: 'support', label: '智能客服' },
   { id: 'rewardful', label: 'Rewardful' },
   { id: 'database', label: '数据库' },
 ];
@@ -30,6 +39,14 @@ function GeneralTab() {
       <WebBaseUrlSection />
       <AllowedOriginsSection />
       <StorageProviderSection />
+    </div>
+  );
+}
+
+function SupportTab() {
+  return (
+    <div className="space-y-8">
+      <SupportSettingsSection />
     </div>
   );
 }
@@ -47,7 +64,8 @@ function SettingsPageContent() {
       raw === 'general' ||
       raw === 'mv' ||
       raw === 'polling' ||
-      raw === 'rewardful'
+      raw === 'rewardful' ||
+      raw === 'support'
     ) {
       return raw;
     }
@@ -88,6 +106,7 @@ function SettingsPageContent() {
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'polling' && <TaskPollingSection />}
           {activeTab === 'mv' && <MvSettingsTab />}
+          {activeTab === 'support' && <SupportTab />}
           {activeTab === 'rewardful' && <RewardfulSection />}
           {activeTab === 'database' && (
             <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6">

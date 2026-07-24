@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Plus, Plug } from 'lucide-react';
+import { ExternalLink, FileText, Plus, Plug } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
@@ -11,6 +11,19 @@ import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { hasPermission } from '@/lib/admin-permissions';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
+import { useAlert, useConfirm } from '@/components/ui/dialog-provider';
+
+const WEB_BASE =
+  process.env.NEXT_PUBLIC_MAIN_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+
+/** C 端文章链接：中文无 locale 前缀，其它语言带 /{locale} */
+function publicArticleUrl(locale: string, slug: string): string {
+  const path =
+    locale === 'zh' || locale === 'zh-CN'
+      ? `/articles/${encodeURIComponent(slug)}`
+      : `/${locale}/articles/${encodeURIComponent(slug)}`;
+  return `${WEB_BASE}${path}`;
+}
 
 type ArticleStatus = 'draft' | 'published' | 'archived';
 
@@ -70,6 +83,8 @@ const STATUS_LABEL: Record<ArticleStatus, string> = {
 
 export default function AdminArticlesPage() {
   const qc = useQueryClient();
+  const alert = useAlert();
+  const confirm = useConfirm();
   const permissions = useAdminAuthStore((s) => s.permissions);
   const canManage = hasPermission(permissions, 'blog.manage');
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
@@ -79,6 +94,7 @@ export default function AdminArticlesPage() {
   const [searchInput, setSearchInput] = useState('');
   const [seobotOpen, setSeobotOpen] = useState(false);
   const [secretDraft, setSecretDraft] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const listQuery = useQuery<ListResponse>({
     queryKey: ['admin', 'blog', 'articles', { page, pageSize, status, locale, q }],
@@ -108,6 +124,47 @@ export default function AdminArticlesPage() {
       qc.invalidateQueries({ queryKey: ['admin', 'blog', 'seobot'] });
     },
   });
+
+  const invalidateList = () =>
+    qc.invalidateQueries({ queryKey: ['admin', 'blog', 'articles'] });
+
+  async function runAction(
+    id: string,
+    action: 'publish' | 'unpublish' | 'delete',
+  ) {
+    if (action === 'delete') {
+      const ok = await confirm({
+        title: '删除文章',
+        description: '确定删除该文章？此操作不可恢复。',
+        confirmText: '删除',
+        variant: 'danger',
+      });
+      if (!ok) return;
+    }
+
+    setBusyId(id);
+    try {
+      if (action === 'delete') {
+        await apiClient.delete(`/admin/blog/articles/${id}`);
+        alert({ title: '已删除', variant: 'success' });
+      } else if (action === 'publish') {
+        await apiClient.post(`/admin/blog/articles/${id}/publish`);
+        alert({ title: '已发布', variant: 'success' });
+      } else {
+        await apiClient.post(`/admin/blog/articles/${id}/unpublish`);
+        alert({ title: '已撤回发布', variant: 'success' });
+      }
+      await invalidateList();
+    } catch (err: any) {
+      alert({
+        title: '操作失败',
+        description: err?.message || '请稍后重试',
+        variant: 'danger',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const statusButtons = useMemo(() => STATUS_OPTIONS, []);
 
@@ -219,39 +276,109 @@ export default function AdminArticlesPage() {
                   <th className="px-4 py-3 font-medium">状态</th>
                   <th className="px-4 py-3 font-medium">来源</th>
                   <th className="px-4 py-3 font-medium">更新时间</th>
+                  <th className="px-4 py-3 font-medium">链接</th>
+                  <th className="px-4 py-3 font-medium text-right">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {listQuery.data?.items.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50/80">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/content/articles/${row.id}`}
-                        className="font-medium text-slate-900 hover:text-blue-600"
-                      >
-                        {row.title}
-                      </Link>
-                      <div className="mt-0.5 text-xs text-slate-400">/{row.slug}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{row.locale}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-                          STATUS_BADGE[row.status],
+                {listQuery.data?.items.map((row) => {
+                  const publicUrl = publicArticleUrl(row.locale, row.slug);
+                  const busy = busyId === row.id;
+                  return (
+                    <tr key={row.id} className="hover:bg-slate-50/80">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/content/articles/${row.id}`}
+                          className="font-medium text-slate-900 hover:text-blue-600"
+                        >
+                          {row.title}
+                        </Link>
+                        <div className="mt-0.5 text-xs text-slate-400">/{row.slug}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{row.locale}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
+                            STATUS_BADGE[row.status],
+                          )}
+                        >
+                          {STATUS_LABEL[row.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {row.externalSource || '本地'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {formatDate(row.updatedAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.status === 'published' ? (
+                          <a
+                            href={publicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex max-w-[220px] items-center gap-1 truncate text-xs text-blue-600 hover:underline"
+                            title={publicUrl}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                              {row.locale === 'zh' ? `/articles/${row.slug}` : `/${row.locale}/articles/${row.slug}`}
+                            </span>
+                          </a>
+                        ) : (
+                          <span
+                            className="text-xs text-slate-400"
+                            title="发布后可在 C 端访问"
+                          >
+                            —
+                          </span>
                         )}
-                      >
-                        {STATUS_LABEL[row.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {row.externalSource || '本地'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {formatDate(row.updatedAt)}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
+                          <Link
+                            href={`/admin/content/articles/${row.id}`}
+                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            编辑
+                          </Link>
+                          {canManage && (
+                            <>
+                              {row.status !== 'published' ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => runAction(row.id, 'publish')}
+                                  className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                                >
+                                  发布
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => runAction(row.id, 'unpublish')}
+                                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                >
+                                  撤回
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => runAction(row.id, 'delete')}
+                                className="rounded-lg border border-red-100 bg-white px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              >
+                                删除
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -314,12 +441,20 @@ export default function AdminArticlesPage() {
                       <li key={n}>{n}</li>
                     ))}
                   </ul>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
-                    <p>请求头：`X-Seobot-Secret`</p>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-2">
+                    <p>请求头：`X-Seobot-Secret`（SEObot 自定义 Header）</p>
                     <p>
-                      Body 字段：externalId, locale, slug, title, bodyMarkdown；可选
-                      excerpt, coverUrl, tags, seoTitle, seoDescription
+                      <span className="font-medium text-slate-700">兼容 SEObot 官方：</span>
+                      id → externalId，headline → title，markdown →
+                      bodyMarkdown，image → coverUrl，metaDescription →
+                      seo/excerpt，tags[].title → tags
                     </p>
+                    <p>
+                      亦可自定义字段：externalId, locale, slug, title,
+                      bodyMarkdown；可选 excerpt, coverUrl, tags, seoTitle,
+                      seoDescription
+                    </p>
+                    <p>无 locale 时用 Query：`?locale=en`（默认 en）</p>
                   </div>
                   {canManage && (
                     <div className="space-y-2 pt-2">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HardDrive, Save, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -45,23 +45,26 @@ export function StorageProviderSection() {
 
   const { data, isLoading, isError, error } = useQuery<GeneralConfigView>({
     queryKey: ['admin', 'settings', 'general'],
-    queryFn: async () => {
-      const cfg = (await apiClient.get('/admin/settings/general')) as unknown as GeneralConfigView;
-      setProvider(cfg.storageProvider || 'cos');
-      return cfg;
-    },
+    queryFn: () => apiClient.get('/admin/settings/general') as Promise<GeneralConfigView>,
   });
+
+  // 同页多个区块共用 queryKey；缓存命中时不会重跑 queryFn，必须从 data 同步选中态
+  useEffect(() => {
+    if (data?.storageProvider === 'cos' || data?.storageProvider === 's3') {
+      setProvider(data.storageProvider);
+    }
+  }, [data?.storageProvider]);
 
   const save = useMutation({
     mutationFn: (payload: { storageProvider: StorageProvider }) =>
-      apiClient.patch('/admin/settings/general', payload) as any,
-    onSuccess: (cfg: GeneralConfigView) => {
+      apiClient.patch('/admin/settings/general', payload) as Promise<GeneralConfigView>,
+    onSuccess: (cfg) => {
       setMsg({
         ok: true,
         text: `主存储已切换为 ${cfg.storageProvider === 's3' ? 'AWS S3' : '腾讯云 COS'}。仅影响新写入。`,
       });
       setProvider(cfg.storageProvider);
-      qc.invalidateQueries({ queryKey: ['admin', 'settings', 'general'] });
+      qc.setQueryData(['admin', 'settings', 'general'], cfg);
     },
     onError: (err: any) => {
       const text =

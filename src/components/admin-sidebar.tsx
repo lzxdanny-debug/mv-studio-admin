@@ -47,6 +47,9 @@ import {
   Mail,
   Bell,
   Clapperboard,
+  Mic2,
+  Image as ImageIcon,
+  Headphones,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -62,7 +65,7 @@ type NavLink = {
   label: string;
   icon?: LucideIcon;
   exact?: boolean;
-  badgeKey?: 'feedbackUnread';
+  badgeKey?: 'feedbackUnread' | 'supportUnread';
   permission?: string;
 };
 
@@ -197,6 +200,63 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    key: 'karaoke',
+    title: 'Karaoke 业务',
+    subgroups: [
+      {
+        key: 'karaoke-project',
+        label: '项目管理',
+        icon: Mic2,
+        items: [
+          {
+            href: '/admin/karaoke/projects',
+            label: 'Karaoke 项目',
+            icon: Mic2,
+            permission: 'karaoke.projects.view',
+          },
+        ],
+      },
+      {
+        key: 'karaoke-content',
+        label: '内容配置',
+        icon: ImageIcon,
+        items: [
+          {
+            href: '/admin/karaoke/scenes',
+            label: '演唱场景',
+            icon: ImageIcon,
+            permission: 'karaoke.scenes.view',
+          },
+          {
+            href: '/admin/karaoke/settings',
+            label: 'Karaoke 设置',
+            icon: SlidersHorizontal,
+            permission: 'karaoke.settings.view',
+          },
+        ],
+      },
+      {
+        key: 'karaoke-billing',
+        label: '定价与成本',
+        icon: Coins,
+        items: [
+          {
+            href: '/admin/karaoke/pricing',
+            label: '步骤价格',
+            icon: Coins,
+            permission: 'karaoke.pricing.view',
+          },
+          {
+            href: '/admin/karaoke/cost',
+            label: '成本统计',
+            icon: LineChart,
+            permission: 'karaoke.cost.view',
+          },
+        ],
+      },
+    ],
+  },
+  {
     key: 'ops',
     title: '用户运营',
     subgroups: [
@@ -224,6 +284,20 @@ const NAV_SECTIONS: NavSection[] = [
             icon: MessageCircle,
             badgeKey: 'feedbackUnread',
             permission: 'feedback.view',
+          },
+        ],
+      },
+      {
+        key: 'ops-support',
+        label: '智能客服',
+        icon: Headphones,
+        items: [
+          {
+            href: '/admin/support',
+            label: '客服 Inbox',
+            icon: Headphones,
+            badgeKey: 'supportUnread',
+            permission: 'support.inbox.view',
           },
         ],
       },
@@ -812,9 +886,20 @@ export function AdminSidebar() {
     enabled: hasPermission(permissions, 'feedback.view'),
   });
 
+  const { data: supportUnreadData } = useQuery<{ count: number }>({
+    queryKey: ['admin', 'support', 'unread'],
+    queryFn: () => apiClient.get('/admin/support/conversations/unread-count') as any,
+    refetchInterval: 30_000,
+    retry: false,
+    enabled: hasPermission(permissions, 'support.inbox.view'),
+  });
+
   const badges = useMemo(
-    () => ({ feedbackUnread: unreadData?.count ?? 0 }),
-    [unreadData?.count],
+    () => ({
+      feedbackUnread: unreadData?.count ?? 0,
+      supportUnread: supportUnreadData?.count ?? 0,
+    }),
+    [unreadData?.count, supportUnreadData?.count],
   );
 
   const visibleSections = useMemo(

@@ -18,6 +18,7 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/users/email-logs', permission: 'user.email_log.view' },
   { prefix: '/admin/users', permission: 'user.view' },
   { prefix: '/admin/feedback', permission: 'feedback.view' },
+  { prefix: '/admin/support', permission: 'support.inbox.view' },
   { prefix: '/admin/billing/settings', permission: 'billing.manage' },
   { prefix: '/admin/billing/bonus-config', permission: 'billing.manage' },
   { prefix: '/admin/billing/packages', permission: 'billing.manage' },
@@ -50,6 +51,11 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/settings', permission: 'system.manage' },
   { prefix: '/admin/admin-users', permission: 'admin.manage' },
   { prefix: '/admin/roles', permission: 'admin.manage' },
+  { prefix: '/admin/karaoke/projects', permission: 'karaoke.projects.view' },
+  { prefix: '/admin/karaoke/scenes', permission: 'karaoke.scenes.view' },
+  { prefix: '/admin/karaoke/settings', permission: 'karaoke.settings.view' },
+  { prefix: '/admin/karaoke/pricing', permission: 'karaoke.pricing.view' },
+  { prefix: '/admin/karaoke/cost', permission: 'karaoke.cost.view' },
 ];
 
 /** 详情页 Tab → permission */
@@ -77,6 +83,12 @@ export const TAB_PERMISSION_REGISTRY: Record<
   'logs.page': [
     { key: 'tail', label: '实时', permission: 'logs.view' },
     { key: 'history', label: '历史检索', permission: 'logs.search' },
+  ],
+  'karaoke.project.detail': [
+    { key: 'overview', label: '概览', permission: 'karaoke.projects.view' },
+    { key: 'segments', label: '片段', permission: 'karaoke.projects.view' },
+    { key: 'costs', label: '成本明细', permission: 'karaoke.cost.view' },
+    { key: 'operations', label: '操作', permission: 'karaoke.projects.retry' },
   ],
 };
 

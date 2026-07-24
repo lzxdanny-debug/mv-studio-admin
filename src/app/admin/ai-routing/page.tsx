@@ -34,6 +34,7 @@ import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
+import { SimpleSelect } from '@/components/ui/select';
 
 type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea' | 'mountseaMs';
 type AiCapability =
@@ -46,6 +47,10 @@ type AiCapability =
   | 'videoUltron'
   | 'videoMultiRef'
   | 'videoLipsync'
+  | 'karaokeSceneImage'
+  | 'karaokeVideoSolo'
+  | 'karaokeVideoPet'
+  | 'karaokeVideoDuet'
   | 'audioTranscribe'
   | 'audioAnalyze';
 
@@ -154,6 +159,13 @@ const CAP_GROUPS: CapGroup[] = [
     tabbed: true,
   },
   {
+    key: 'karaoke',
+    title: 'Photo Karaoke',
+    icon: Mic,
+    caps: ['karaokeSceneImage', 'karaokeVideoSolo', 'karaokeVideoPet', 'karaokeVideoDuet'],
+    tabbed: true,
+  },
+  {
     key: 'audio',
     title: '音频',
     icon: Mic,
@@ -167,6 +179,10 @@ const VIDEO_TAB_LABEL: Partial<Record<AiCapability, string>> = {
   videoMultiRef: '多图参考',
   videoSingleRef: '单图',
   videoLipsync: '对口型',
+  karaokeSceneImage: '场景图',
+  karaokeVideoSolo: 'Solo',
+  karaokeVideoPet: 'Pet',
+  karaokeVideoDuet: 'Duet',
 };
 
 const INLINE_SUB_LABEL: Partial<Record<AiCapability, string>> = {
@@ -430,18 +446,20 @@ function RouterTelemetrySection({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={rangeHours}
-            onChange={(e) => setRangeHours(parseInt(e.target.value, 10))}
-            className="px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white"
-          >
-            <option value={1}>近 1 小时</option>
-            <option value={6}>近 6 小时</option>
-            <option value={24}>近 24 小时</option>
-            <option value={72}>近 3 天</option>
-            <option value={168}>近 7 天</option>
-            <option value={720}>近 30 天</option>
-          </select>
+          <SimpleSelect
+            size="sm"
+            className="w-[7.5rem]"
+            value={String(rangeHours)}
+            onValueChange={(v) => setRangeHours(parseInt(v, 10))}
+            options={[
+              { value: '1', label: '近 1 小时' },
+              { value: '6', label: '近 6 小时' },
+              { value: '24', label: '近 24 小时' },
+              { value: '72', label: '近 3 天' },
+              { value: '168', label: '近 7 天' },
+              { value: '720', label: '近 30 天' },
+            ]}
+          />
           <button
             onClick={refresh}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700"
@@ -558,18 +576,22 @@ function RouterTelemetrySection({
           <Clock className="h-3.5 w-3.5 text-slate-500" />
           调用记录
         </h3>
-        <select
-          value={filterCap}
-          onChange={(e) => { setFilterCap(e.target.value as AiCapability | ''); setInvPage(1); }}
-          className="px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white"
-        >
-          <option value="">全部 capability</option>
-          {Object.entries(labels).map(([cap, label]) => (
-            <option key={cap} value={cap}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <SimpleSelect
+          size="sm"
+          className="min-w-[10rem]"
+          value={filterCap || 'all'}
+          onValueChange={(v) => {
+            setFilterCap(v === 'all' ? '' : (v as AiCapability));
+            setInvPage(1);
+          }}
+          options={[
+            { value: 'all', label: '全部 capability' },
+            ...Object.entries(labels).map(([cap, label]) => ({
+              value: cap,
+              label,
+            })),
+          ]}
+        />
       </div>
 
       <QueryState
@@ -1004,74 +1026,116 @@ function CapabilityRow({
         </button>
       </div>
 
-      <div className="space-y-2">
-        {chain.map((entry, index) => (
-          <div
-            key={`draft-${index}`}
-            className={cn(
-              'space-y-2 rounded-xl p-3 border shadow-sm',
-              index === 0
-                ? 'bg-white border-2 border-blue-200'
-                : 'bg-slate-50/80 border border-slate-200',
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-slate-700">
-                {index === 0 ? '最高优先级' : `优先级 #${index + 1}`}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={index === 0}
-                  onClick={() => moveEntry(index, -1)}
-                  className="p-1 rounded border border-slate-200 bg-white disabled:opacity-40"
-                  title="上移"
-                >
-                  <ChevronUp className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  disabled={index === chain.length - 1}
-                  onClick={() => moveEntry(index, 1)}
-                  className="p-1 rounded border border-slate-200 bg-white disabled:opacity-40"
-                  title="下移"
-                >
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  disabled={chain.length <= 1}
-                  onClick={() => setChain((prev) => prev.filter((_, i) => i !== index))}
-                  className="p-1 rounded border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40"
-                  title="删除"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+      <div className="space-y-2.5">
+        {chain.map((entry, index) => {
+          const providerMeta = PROVIDER_META[entry.provider];
+          return (
+            <div
+              key={`draft-${index}`}
+              className={cn(
+                'space-y-3 rounded-[14px] border bg-white p-3.5',
+                'shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
+                index === 0
+                  ? 'border-blue-200 ring-1 ring-blue-100'
+                  : 'border-slate-200/90',
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
+                      index === 0
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-500',
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <p className="text-xs font-semibold text-slate-700">
+                    {index === 0 ? '最高优先级' : `优先级 #${index + 1}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => moveEntry(index, -1)}
+                    className="rounded-[8px] p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30"
+                    title="上移"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === chain.length - 1}
+                    onClick={() => moveEntry(index, 1)}
+                    className="rounded-[8px] p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30"
+                    title="下移"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={chain.length <= 1}
+                    onClick={() => setChain((prev) => prev.filter((_, i) => i !== index))}
+                    className="rounded-[8px] p-1.5 text-rose-500 transition-colors hover:bg-rose-50 disabled:opacity-30"
+                    title="删除"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-medium text-slate-500">
+                  供应商
+                </label>
+                <SimpleSelect
+                  size="md"
+                  value={entry.provider}
+                  onValueChange={(v) => {
+                    updateEntry(index, {
+                      provider: v as RoutingProvider,
+                      model: '',
+                    });
+                  }}
+                  options={supportedProviders.map((p) => {
+                    const m = PROVIDER_META[p];
+                    const Icon = m.icon;
+                    return {
+                      value: p,
+                      label: m.label,
+                      leading: (
+                        <span
+                          className={cn(
+                            'inline-flex h-5 w-5 items-center justify-center rounded-[6px]',
+                            m.iconWrap,
+                          )}
+                        >
+                          <Icon className={cn('h-3 w-3', m.iconColor)} />
+                        </span>
+                      ),
+                    };
+                  })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-medium text-slate-500">
+                  模型 · {providerMeta.label}
+                </label>
+                <ModelSelect
+                  inputId={`model-${row.capability}-${index}`}
+                  value={entry.model}
+                  onChange={(model) => updateEntry(index, { model })}
+                  options={modelOptionsForCap[entry.provider] ?? []}
+                  defaultModel={defaultModelsForCap[entry.provider]}
+                />
               </div>
             </div>
-            <select
-              value={entry.provider}
-              onChange={(e) => {
-                const provider = e.target.value as RoutingProvider;
-                updateEntry(index, { provider, model: '' });
-              }}
-              className="w-full px-2 py-2 text-sm border border-slate-200 rounded-lg bg-white"
-            >
-              {supportedProviders.map((p) => (
-                <option key={p} value={p}>
-                  {PROVIDER_META[p].label}
-                </option>
-              ))}
-            </select>
-            <ModelSelect
-              inputId={`model-${row.capability}-${index}`}
-              value={entry.model}
-              onChange={(model) => updateEntry(index, { model })}
-              options={modelOptionsForCap[entry.provider] ?? []}
-              defaultModel={defaultModelsForCap[entry.provider]}
-            />
-          </div>
-        ))}
+          );
+        })}
 
         <button
           type="button"
@@ -1082,7 +1146,7 @@ function CapabilityRow({
             ])
           }
           disabled={chain.length >= 12}
-          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 text-xs font-medium text-slate-600 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40"
+          className="w-full inline-flex items-center justify-center gap-1.5 rounded-[12px] border border-dashed border-slate-300 px-3 py-2.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700 disabled:opacity-40"
         >
           <Plus className="h-3.5 w-3.5" />
           添加优先级路由
@@ -1145,7 +1209,9 @@ function CapabilityRow({
   );
 }
 
-/** 模型 slug：支持下拉候选 + 手动输入任意 endpoint */
+const MODEL_DEFAULT_VALUE = '__default__';
+
+/** 模型：纯下拉（默认项 + 候选列表，不再手输） */
 function ModelSelect({
   value,
   onChange,
@@ -1165,37 +1231,51 @@ function ModelSelect({
 }) {
   if (disabled) {
     return (
-      <select
-        value=""
+      <SimpleSelect
+        id={inputId}
+        size="md"
+        mono
         disabled
-        className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-slate-100"
-      >
-        <option value="">{disabledPlaceholder ?? '不可用'}</option>
-      </select>
+        value="unavailable"
+        onValueChange={() => undefined}
+        options={[
+          {
+            value: 'unavailable',
+            label: disabledPlaceholder ?? '不可用',
+          },
+        ]}
+      />
     );
   }
 
+  const models = Array.from(
+    new Set([
+      ...options,
+      // 已保存但不在候选里的值仍展示，避免回显丢失
+      ...(value.trim() && value.trim() !== defaultModel ? [value.trim()] : []),
+    ]),
+  );
+
+  const selectValue = value.trim() ? value.trim() : MODEL_DEFAULT_VALUE;
+
   return (
-    <div className="space-y-1">
-      <input
-        id={inputId}
-        list={`${inputId}-list`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={
-          defaultModel
-            ? `留空=默认 (${defaultModel})`
-            : '输入 MS endpoint slug，如 google/veo-3.1/fast/image-to-video'
-        }
-        className="w-full px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-lg bg-slate-50"
-      />
-      <datalist id={`${inputId}-list`}>
-        {options.map((m) => (
-          <option key={m} value={m} />
-        ))}
-      </datalist>
-      <p className="text-[10px] text-slate-400">可手动输入任意 endpoint slug，不限于下拉列表</p>
-    </div>
+    <SimpleSelect
+      id={inputId}
+      size="md"
+      mono
+      value={selectValue}
+      onValueChange={(v) => onChange(v === MODEL_DEFAULT_VALUE ? '' : v)}
+      options={[
+        {
+          value: MODEL_DEFAULT_VALUE,
+          label: defaultModel ? `默认 · ${defaultModel}` : '使用默认模型',
+        },
+        ...models.map((m) => ({
+          value: m,
+          label: m,
+        })),
+      ]}
+    />
   );
 }
 

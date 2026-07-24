@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Globe, Save, CheckCircle2, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -21,20 +21,20 @@ export function WebBaseUrlSection() {
 
   const { data, isLoading, isError, error } = useQuery<GeneralConfigView>({
     queryKey: ['admin', 'settings', 'general'],
-    queryFn: async () => {
-      const cfg = (await apiClient.get('/admin/settings/general')) as unknown as GeneralConfigView;
-      setWebBaseUrl(cfg.webBaseUrl);
-      return cfg;
-    },
+    queryFn: () => apiClient.get('/admin/settings/general') as Promise<GeneralConfigView>,
   });
+
+  useEffect(() => {
+    if (data?.webBaseUrl != null) setWebBaseUrl(data.webBaseUrl);
+  }, [data?.webBaseUrl]);
 
   const save = useMutation({
     mutationFn: (payload: { webBaseUrl: string }) =>
-      apiClient.patch('/admin/settings/general', payload) as any,
-    onSuccess: (cfg: GeneralConfigView) => {
+      apiClient.patch('/admin/settings/general', payload) as Promise<GeneralConfigView>,
+    onSuccess: (cfg) => {
       setMsg({ ok: true, text: '前端站点地址已保存，密码重置与邀请链接将立即使用新地址。' });
       setWebBaseUrl(cfg.webBaseUrl);
-      qc.invalidateQueries({ queryKey: ['admin', 'settings', 'general'] });
+      qc.setQueryData(['admin', 'settings', 'general'], (prev: any) => ({ ...prev, ...cfg }));
     },
     onError: () => setMsg({ ok: false, text: '保存失败，请检查 URL 格式后重试。' }),
   });

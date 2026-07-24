@@ -42,6 +42,7 @@ const MODULE_LABELS: Record<string, string> = {
   music: '音乐',
   tools: '工具',
   feedback: '反馈',
+  support: '客服',
   ai: 'AI 路由',
   logs: '日志',
 };

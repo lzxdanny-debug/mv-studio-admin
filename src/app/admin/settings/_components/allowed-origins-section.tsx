@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Shield, Save, CheckCircle2, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -21,20 +21,20 @@ export function AllowedOriginsSection() {
 
   const { data, isLoading, isError, error } = useQuery<GeneralConfigView>({
     queryKey: ['admin', 'settings', 'general'],
-    queryFn: async () => {
-      const cfg = (await apiClient.get('/admin/settings/general')) as unknown as GeneralConfigView;
-      setAllowedOrigins(cfg.allowedOrigins);
-      return cfg;
-    },
+    queryFn: () => apiClient.get('/admin/settings/general') as Promise<GeneralConfigView>,
   });
+
+  useEffect(() => {
+    if (data?.allowedOrigins != null) setAllowedOrigins(data.allowedOrigins);
+  }, [data?.allowedOrigins]);
 
   const save = useMutation({
     mutationFn: (payload: { allowedOrigins: string }) =>
-      apiClient.patch('/admin/settings/general', payload) as any,
-    onSuccess: (cfg: GeneralConfigView) => {
+      apiClient.patch('/admin/settings/general', payload) as Promise<GeneralConfigView>,
+    onSuccess: (cfg) => {
       setMsg({ ok: true, text: 'CORS 白名单已保存，下一次跨域请求即生效（无需重启）。' });
       setAllowedOrigins(cfg.allowedOrigins);
-      qc.invalidateQueries({ queryKey: ['admin', 'settings', 'general'] });
+      qc.setQueryData(['admin', 'settings', 'general'], (prev: any) => ({ ...prev, ...cfg }));
     },
     onError: (e: any) => {
       setMsg({
