@@ -12,8 +12,8 @@ import { formatDate, cn } from '@/lib/utils';
 import {
   DEFAULT_CNY_PER_USD,
   fetchCnyPerUsd,
-  formatCnyAmount,
-  mountseaCreditsToCny,
+  formatUsdAmount,
+  mountseaCreditsToUsd,
 } from '@/lib/mountsea-pricing';
 import { useAlert } from '@/components/ui/dialog-provider';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
@@ -211,7 +211,6 @@ export default function AdminMusicTaskDetailPage({
       mountseaEst,
       mountseaRec,
       displayCredits,
-      displayCny: mountseaCreditsToCny(displayCredits),
       allReconciled: reconciled === costs.records.length && mountseaRec > 0,
     };
   }, [costs]);
@@ -251,9 +250,6 @@ export default function AdminMusicTaskDetailPage({
                   <div>
                     <span className="text-slate-500">用户扣费：</span>
                     {userChargeCredits} 积分
-                    <span className="text-slate-400 text-xs ml-1">
-                      （{formatCnyAmount(mountseaCreditsToCny(userChargeCredits))}）
-                    </span>
                   </div>
                   <div><span className="text-slate-500">用户：</span>{detail?.user?.displayName || task.userId}</div>
                   <div><span className="text-slate-500">邮箱：</span>{detail?.user?.email || '—'}</div>
@@ -319,10 +315,12 @@ export default function AdminMusicTaskDetailPage({
                   {reconStats && reconStats.displayCredits > 0 && (
                     <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-blue-50 px-5 py-4 shadow-sm">
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-800/70 mb-1">
-                        音乐成本合计（人民币）
+                        音乐成本合计（USD）
                       </p>
                       <p className="text-3xl font-bold tabular-nums text-emerald-900 leading-none">
-                        {formatCnyAmount(reconStats.displayCny)}
+                        {formatUsdAmount(
+                          mountseaCreditsToUsd(reconStats.displayCredits, cnyPerUsd),
+                        )}
                       </p>
                       <p className="text-sm text-emerald-800/85 mt-2 tabular-nums">
                         {reconStats.displayCredits.toFixed(1)} credits
@@ -338,7 +336,7 @@ export default function AdminMusicTaskDetailPage({
                         )}
                       </p>
                       <p className="text-[10px] text-emerald-700/60 mt-1.5">
-                        100 credits = ¥1 CNY
+                        Mountsea 按 100 credits = 1 CNY · 汇率 {cnyPerUsd.toFixed(4)} CNY/USD 折算美元
                       </p>
                     </div>
                   )}

@@ -156,7 +156,7 @@ export default function BillingProfitPage() {
         <p className="text-[11px] text-slate-400 leading-relaxed px-1">
           <strong className="text-slate-500">口径说明：</strong>
           全部金额统一为美元 USD。净收入按支付完成时间统计总收入并扣除同期退款；
-          AI 成本为对账/估算后的美元合计（Fal/Cloudflare 原生美元，Mountsea 人民币按实时汇率折算）；
+          AI 成本为对账/估算后的美元合计（原生美元账单直接计入，Mountsea 人民币按实时汇率折算）；
           赠送积分成本按对外售价折算（注册 / 签到 / 会员 / 手动赠送，直接以美元计价）。
           估算毛利 = 净收入 − AI 成本 − 赠送积分成本，未计入 Stripe 手续费、人力与其他运营成本。
         </p>

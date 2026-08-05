@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Music2, Save, CheckCircle2, XCircle, HardDrive } from 'lucide-react';
+import { CheckCircle2, Save, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 
 interface MvMusicLimitsSaved {
   maxTrimSec: string;
@@ -23,65 +25,6 @@ interface MvMusicLimitsResp {
     maxUploadMb: number;
     maxUploadBytes: number;
   };
-}
-
-function ConfigField({
-  label,
-  hint,
-  value,
-  placeholder,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  placeholder: string;
-  min: number;
-  max: number;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-slate-700">{label}</span>
-      <input
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white font-mono tabular-nums"
-      />
-      <p className="text-[11px] text-slate-400 leading-relaxed">{hint}</p>
-    </label>
-  );
-}
-
-function SectionCard({
-  title,
-  description,
-  icon,
-  children,
-}: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-5 space-y-4">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 text-blue-600">{icon}</div>
-        <div>
-          <p className="text-sm font-semibold text-slate-800">{title}</p>
-          <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{description}</p>
-        </div>
-      </div>
-      {children}
-    </section>
-  );
 }
 
 export function MvMusicLimitsSection() {
@@ -115,9 +58,9 @@ export function MvMusicLimitsSection() {
 
   if (isLoading || !draft || !data) {
     return (
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6 flex items-center justify-center text-slate-400 text-sm h-48">
-        加载中…
-      </div>
+      <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
+        <div />
+      </QueryState>
     );
   }
 
@@ -136,77 +79,114 @@ export function MvMusicLimitsSection() {
           setMsg(null);
           save.mutate(draft);
         }}
-        className="space-y-5"
+        className="space-y-4"
       >
-        <SectionCard
-          title="音乐长度"
-          description="控制用户可选取的制作区间与源音频时长上限。前端波形裁剪器与创建项目接口均会校验。"
-          icon={<Music2 className="h-5 w-5" />}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ConfigField
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50/40 px-5 py-4">
+          <p className="text-base font-semibold text-slate-900">MV 音乐限制</p>
+          <p className="mt-1 text-sm text-slate-600">
+            控制制作区间、源音频时长与上传体积。前端波形裁剪器与创建项目接口均会校验。
+          </p>
+          <p className="mt-2 text-xs text-slate-600">
+            当前生效：制作 {eff.minDurationSec}–{eff.maxTrimSec}s · 源音频 ≤{eff.maxSourceSec}s ·
+            上传 ≤{eff.maxUploadMb}MB
+          </p>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              音乐长度
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 px-5 py-2">
+            <FormField
               label="最大制作时长（秒）"
-              hint={`用户单次 MV 可选取的最长区间。建议 60~180，当前生效 ${eff.maxTrimSec}s。留空走 env MV_MUSIC_MAX_TRIM_SEC 或默认 120。`}
-              value={draft.maxTrimSec}
-              placeholder={String(eff.maxTrimSec)}
-              min={10}
-              max={3600}
-              onChange={(maxTrimSec) => setField('maxTrimSec', maxTrimSec)}
-            />
-            <ConfigField
+              description={`建议 60–180，当前生效 ${eff.maxTrimSec}s。留空走 env 或默认 120。`}
+            >
+              <Input
+                size="sm"
+                type="number"
+                min={10}
+                max={3600}
+                mono
+                value={draft.maxTrimSec}
+                onChange={(e) => setField('maxTrimSec', e.target.value)}
+                placeholder={String(eff.maxTrimSec)}
+              />
+            </FormField>
+            <FormField
               label="最小制作时长（秒）"
-              hint={`低于该值拒绝创建项目。建议 5~15，当前生效 ${eff.minDurationSec}s。`}
-              value={draft.minDurationSec}
-              placeholder={String(eff.minDurationSec)}
-              min={5}
-              max={120}
-              onChange={(minDurationSec) => setField('minDurationSec', minDurationSec)}
-            />
-            <ConfigField
+              description={`低于该值拒绝创建。建议 5–15，当前生效 ${eff.minDurationSec}s。`}
+            >
+              <Input
+                size="sm"
+                type="number"
+                min={5}
+                max={120}
+                mono
+                value={draft.minDurationSec}
+                onChange={(e) => setField('minDurationSec', e.target.value)}
+                placeholder={String(eff.minDurationSec)}
+              />
+            </FormField>
+            <FormField
               label="源音频最大时长（秒）"
-              hint={`上传或外链导入的完整音频时长上限。建议 300~900，当前生效 ${eff.maxSourceSec}s。`}
-              value={draft.maxSourceSec}
-              placeholder={String(eff.maxSourceSec)}
-              min={30}
-              max={7200}
-              onChange={(maxSourceSec) => setField('maxSourceSec', maxSourceSec)}
-            />
+              description={`上传或外链导入完整时长上限。建议 300–900，当前生效 ${eff.maxSourceSec}s。`}
+            >
+              <Input
+                size="sm"
+                type="number"
+                min={30}
+                max={7200}
+                mono
+                value={draft.maxSourceSec}
+                onChange={(e) => setField('maxSourceSec', e.target.value)}
+                placeholder={String(eff.maxSourceSec)}
+              />
+            </FormField>
           </div>
-        </SectionCard>
+        </div>
 
-        <SectionCard
-          title="音乐容量"
-          description="控制音频上传体积上限，影响 /upload 接口与外链导入前的 HEAD 探测。"
-          icon={<HardDrive className="h-5 w-5" />}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ConfigField
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              音乐容量
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 px-5 py-2">
+            <FormField
               label="上传体积上限（MB）"
-              hint={`音频文件最大体积。建议 20~100，当前生效 ${eff.maxUploadMb}MB（${(eff.maxUploadBytes / 1024 / 1024).toFixed(0)}MB）。留空走 env 或默认 50。`}
-              value={draft.maxUploadMb}
-              placeholder={String(eff.maxUploadMb)}
-              min={1}
-              max={500}
-              onChange={(maxUploadMb) => setField('maxUploadMb', maxUploadMb)}
-            />
+              description={`建议 20–100，当前生效 ${eff.maxUploadMb}MB。留空走 env 或默认 50。`}
+            >
+              <Input
+                size="sm"
+                type="number"
+                min={1}
+                max={500}
+                mono
+                value={draft.maxUploadMb}
+                onChange={(e) => setField('maxUploadMb', e.target.value)}
+                placeholder={String(eff.maxUploadMb)}
+              />
+            </FormField>
           </div>
-        </SectionCard>
+        </div>
 
-        <p className="text-[11px] text-slate-400 px-1">
-          前端可通过公开接口 <code className="px-1 rounded bg-slate-100">GET /mv/limits</code> 读取生效值，用于波形裁剪器与上传提示。
+        <p className="text-[11px] text-slate-400">
+          前端可通过 <code className="rounded bg-slate-100 px-1">GET /mv/limits</code> 读取生效值。
         </p>
 
         {msg && (
           <div
             className={cn(
-              'flex items-center gap-2 text-sm rounded-lg px-3 py-2',
+              'flex items-center gap-2 rounded-xl px-3 py-2 text-sm',
               msg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
             )}
           >
             {msg.ok ? (
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
             ) : (
-              <XCircle className="h-4 w-4 flex-shrink-0" />
+              <XCircle className="h-4 w-4 shrink-0" />
             )}
             {msg.text}
           </div>
@@ -220,21 +200,16 @@ export function MvMusicLimitsSection() {
               setMsg(null);
             }}
             disabled={!dirty || save.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
           >
             撤销修改
           </button>
           <button
             type="submit"
             disabled={!dirty || save.isPending}
-            className={cn(
-              'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium',
-              dirty && !save.isPending
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed',
-            )}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
           >
-            <Save className="h-4 w-4" />
+            <Save className="h-3.5 w-3.5" />
             {save.isPending ? '保存中…' : '保存'}
           </button>
         </div>

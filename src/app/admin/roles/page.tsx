@@ -45,6 +45,8 @@ const MODULE_LABELS: Record<string, string> = {
   support: '客服',
   ai: 'AI 路由',
   logs: '日志',
+  karaoke: 'Photo Karaoke',
+  dance: '舞蹈视频',
 };
 
 export default function AdminRolesPage() {

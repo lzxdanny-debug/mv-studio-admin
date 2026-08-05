@@ -3,7 +3,15 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Download, ExternalLink, RefreshCw, Search, type LucideIcon } from 'lucide-react';
+import {
+  CheckCircle2,
+  Copy,
+  Download,
+  ExternalLink,
+  RefreshCw,
+  Search,
+  type LucideIcon,
+} from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
 import { QueryState } from '@/components/query-state';
@@ -14,6 +22,30 @@ import { useAlert } from '@/components/ui/dialog-provider';
 import { cn } from '@/lib/utils';
 import { labelMvFailureReason } from '@/lib/mv-failure-reasons';
 
+function CopyIconButton({ text }: { text: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button
+      type="button"
+      title={ok ? '已复制' : '复制 Task ID'}
+      onClick={async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(text);
+          setOk(true);
+          setTimeout(() => setOk(false), 1500);
+        } catch {
+          /* ignore */
+        }
+      }}
+      className="inline-flex shrink-0 items-center justify-center rounded border border-slate-200 p-1 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+    >
+      {ok ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
 export type AnomalyListKind = 'failed-shots' | 'storyboards';
 
 export interface AnomalyShotItem {
@@ -23,15 +55,25 @@ export interface AnomalyShotItem {
   status: string;
   anomalyKind: 'failed' | 'stuck';
   failureReason: string | null;
+  failureDetail?: string | null;
   genType: string;
   shotType: string;
   lipsync: boolean;
   lipsyncStatus: string | null;
+  lipsyncTaskId?: string | null;
   storyboardImageUrl: string | null;
   videoUrl: string | null;
   storyboardPrompt: string | null;
   prompt: string | null;
   metadata: Record<string, unknown> | null;
+  duration?: number | null;
+  startTime?: number | null;
+  taskId?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  projectVideoProvider?: string | null;
+  attemptCount?: number | null;
+  costStep?: string | null;
   createdAt: string;
   updatedAt: string;
   projectTitle: string;
@@ -43,6 +85,13 @@ export interface AnomalyShotItem {
   userId: string;
   userDisplayName: string | null;
   userEmail: string | null;
+  /** mv | karaoke；旧数据缺省按 mv */
+  product?: 'mv' | 'karaoke' | string | null;
+}
+
+export function resolveAnomalyProduct(row: Pick<AnomalyShotItem, 'product' | 'metadata'>): 'mv' | 'karaoke' {
+  if (row.product === 'karaoke' || row.metadata?.product === 'karaoke') return 'karaoke';
+  return 'mv';
 }
 
 interface ListResponse {
@@ -71,6 +120,9 @@ function buildQueryParams(
     failureReason: string;
     genType: string;
     shotType: string;
+    taskId: string;
+    provider: string;
+    model: string;
     dateFrom: string;
     dateTo: string;
   },
@@ -83,6 +135,9 @@ function buildQueryParams(
     failureReason: filters.failureReason || undefined,
     genType: filters.genType || undefined,
     shotType: filters.shotType || undefined,
+    taskId: filters.taskId || undefined,
+    provider: filters.provider || undefined,
+    model: filters.model || undefined,
     dateFrom: filters.dateFrom || undefined,
     dateTo: filters.dateTo || undefined,
   };
@@ -116,13 +171,38 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
   const [failureReason, setFailureReason] = useState('');
   const [genType, setGenType] = useState('');
   const [shotType, setShotType] = useState('');
+  const [taskId, setTaskId] = useState('');
+  const [provider, setProvider] = useState('');
+  const [model, setModel] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [exporting, setExporting] = useState(false);
 
   const filters = useMemo(
-    () => ({ search, errorReason, failureReason, genType, shotType, dateFrom, dateTo }),
-    [search, errorReason, failureReason, genType, shotType, dateFrom, dateTo],
+    () => ({
+      search,
+      errorReason,
+      failureReason,
+      genType,
+      shotType,
+      taskId,
+      provider,
+      model,
+      dateFrom,
+      dateTo,
+    }),
+    [
+      search,
+      errorReason,
+      failureReason,
+      genType,
+      shotType,
+      taskId,
+      provider,
+      model,
+      dateFrom,
+      dateTo,
+    ],
   );
 
   const { data: reasonOptions } = useQuery<{ items: Array<{ code: string; count: number }> }>({
@@ -150,7 +230,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
         params: buildQueryParams(1, 1, filters),
       })) as any;
       const date = new Date().toISOString().slice(0, 10);
-      downloadJson(`mv-${config.kind}-${date}.json`, payload);
+      downloadJson(`anomalies-${config.kind}-${date}.json`, payload);
     } catch (err: any) {
       await alert({
         title: '导出失败',
@@ -243,6 +323,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
             <option value="i2v">i2v</option>
             <option value="start_end">start_end</option>
             <option value="text2video">text2video</option>
+            <option value="karaoke">karaoke</option>
           </select>
           <select
             value={shotType}
@@ -255,7 +336,40 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
             <option value="">全部 shotType</option>
             <option value="avatar">avatar</option>
             <option value="normal">normal</option>
+            <option value="solo">solo（Karaoke）</option>
+            <option value="pet">pet（Karaoke）</option>
+            <option value="duet">duet（Karaoke）</option>
           </select>
+          <input
+            value={taskId}
+            onChange={(e) => {
+              setTaskId(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Task ID"
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[160px] font-mono"
+            title="按 Task ID 筛选"
+          />
+          <input
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value);
+              setPage(1);
+            }}
+            placeholder="渠道"
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[100px]"
+            title="按渠道筛选"
+          />
+          <input
+            value={model}
+            onChange={(e) => {
+              setModel(e.target.value);
+              setPage(1);
+            }}
+            placeholder="模型"
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[140px] font-mono"
+            title="按模型筛选"
+          />
           <input
             type="date"
             value={dateFrom}
@@ -288,46 +402,75 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
         >
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[960px]">
+              <table className="text-sm w-max min-w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr className="text-xs text-slate-500">
-                    <th className="px-4 py-3 text-left">项目</th>
-                    <th className="px-4 py-3 text-left">用户</th>
-                    <th className="px-4 py-3 text-left">镜头</th>
-                    <th className="px-4 py-3 text-left">异常</th>
-                    <th className="px-4 py-3 text-left">失败原因</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">项目</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">用户</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">镜头</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Task ID</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">渠道</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">模型</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">异常</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">失败原因</th>
                     {config.showStoryboardCol && (
-                      <th className="px-4 py-3 text-left">故事板</th>
+                      <th className="px-4 py-3 text-left whitespace-nowrap">故事板</th>
                     )}
-                    {config.showVideoCol && <th className="px-4 py-3 text-left">视频</th>}
-                    <th className="px-4 py-3 text-left">更新时间</th>
-                    <th className="px-4 py-3 text-left">操作</th>
+                    {config.showVideoCol && (
+                      <th className="px-4 py-3 text-left whitespace-nowrap">视频</th>
+                    )}
+                    <th className="px-4 py-3 text-left whitespace-nowrap">更新时间</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {data?.items.map((row) => {
-                    const lastVideoError = getLastVideoError(row.metadata);
+                    const lastVideoError =
+                      row.failureDetail?.trim() || getLastVideoError(row.metadata);
+                    const product = resolveAnomalyProduct(row);
+                    const projectHref =
+                      product === 'karaoke'
+                        ? `/admin/karaoke/projects/${row.projectId}`
+                        : `/admin/mv/projects/${row.projectId}`;
+                    const detailHref = `/admin/mv/anomalies/${product}/${row.id}?kind=${config.kind}`;
                     return (
-                      <tr key={row.id} className="hover:bg-slate-50 align-top">
+                      <tr key={`${product}-${row.id}`} className="hover:bg-slate-50 align-top">
                         <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span
+                              className={cn(
+                                'inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold',
+                                product === 'karaoke'
+                                  ? 'bg-violet-100 text-violet-700'
+                                  : 'bg-slate-100 text-slate-600',
+                              )}
+                            >
+                              {product === 'karaoke' ? 'Karaoke' : 'MV'}
+                            </span>
+                          </div>
                           <Link
-                            href={`/admin/mv/projects/${row.projectId}`}
-                            className="text-blue-700 hover:underline font-medium truncate block max-w-[180px]"
+                            href={projectHref}
+                            className="text-blue-700 hover:underline font-medium truncate block max-w-[160px]"
                           >
                             {row.projectTitle || row.projectId.slice(0, 8)}
                           </Link>
-                          <span className="text-[10px] text-slate-400 font-mono block">
-                            {row.projectId.slice(0, 8)}…
-                          </span>
                           <span className="text-[10px] text-slate-400">
                             {row.resolution} · {row.quality}
+                            {row.projectVideoProvider ? ` · ${row.projectVideoProvider}` : ''}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-600">
-                          <div>{row.userDisplayName || '—'}</div>
-                          <div className="text-slate-400">
-                            {row.userEmail || row.userId.slice(0, 8)}
+                        <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">
+                          <div className="font-medium text-slate-800">
+                            {row.userDisplayName || '—'}
                           </div>
+                          {row.userEmail && (
+                            <div className="text-[10px] text-slate-400 mt-0.5">{row.userEmail}</div>
+                          )}
+                          {!row.userDisplayName && !row.userEmail && (
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              {row.userId.slice(0, 8)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-600">
                           <div className="font-medium">#{row.shotIndex}</div>
@@ -335,6 +478,43 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
                             {row.genType} · {row.shotType}
                           </div>
                           <StatusBadge status={row.status} kind="generic" />
+                          {typeof row.duration === 'number' && (
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {row.duration.toFixed(1)}s
+                              {typeof row.attemptCount === 'number' && row.attemptCount > 0
+                                ? ` · 尝试 ${row.attemptCount}`
+                                : ''}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-[11px] font-mono text-slate-600">
+                          {row.taskId ? (
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span>{row.taskId}</span>
+                              <CopyIconButton text={row.taskId} />
+                            </div>
+                          ) : (
+                            <span className="text-slate-400" title="未提交上游任务或未落库">
+                              —
+                            </span>
+                          )}
+                          {row.costStep && (
+                            <span className="block whitespace-nowrap text-[10px] text-slate-400 mt-0.5">
+                              {row.costStep}
+                            </span>
+                          )}
+                          {row.lipsyncTaskId && (
+                            <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap text-[10px] text-slate-400">
+                              <span title={row.lipsyncTaskId}>lipsync: {row.lipsyncTaskId}</span>
+                              <CopyIconButton text={row.lipsyncTaskId} />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">
+                          {row.provider || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-mono text-slate-600 whitespace-nowrap">
+                          {row.model || <span className="text-slate-400">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -399,13 +579,21 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
                           {formatDate(new Date(row.updatedAt))}
                         </td>
                         <td className="px-4 py-3">
-                          <Link
-                            href={`/admin/mv/projects/${row.projectId}`}
-                            className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            项目详情
-                          </Link>
+                          <div className="flex flex-col gap-1.5">
+                            <Link
+                              href={detailHref}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"
+                            >
+                              错误详情
+                            </Link>
+                            <Link
+                              href={projectHref}
+                              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              项目
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );

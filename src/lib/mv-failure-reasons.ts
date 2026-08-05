@@ -1,7 +1,8 @@
-/** MV 镜头标准 failureReason 码 → 管理后台展示文案 */
+/** MV / Karaoke 标准 failureReason 码 → 管理后台展示文案 */
 export const MV_FAILURE_REASON_LABELS: Record<string, string> = {
   __STUCK__: '卡住（无失败码）',
   __NONE__: '失败（未分类）',
+  __MSG__: '失败（仅有错误详情）',
   IMAGE_BLOCKED: '故事板图片被拦截',
   PROMPT_BLOCKED: '提示词被拦截',
   CONTENT_SAFETY_RISK: '内容审核风险',
@@ -15,6 +16,37 @@ export const MV_FAILURE_REASON_LABELS: Record<string, string> = {
   PROVIDER_NOT_CONFIGURED: '引擎未配置',
   UPSTREAM_AUTH_FAILED: '上游认证失败',
   UNKNOWN: '未知错误',
+  // Karaoke
+  INPUT_INVALID: '输入不合法',
+  IMAGE_DOWNLOAD_FAILED: '图片下载失败',
+  AUDIO_DOWNLOAD_FAILED: '音频下载失败',
+  UNSUPPORTED_IMAGE_FORMAT: '不支持的图片格式',
+  UNSUPPORTED_AUDIO_FORMAT: '不支持的音频格式',
+  MODEL_UNAVAILABLE: '模型不可用',
+  MODEL_TIMEOUT: '模型超时',
+  MODEL_RATE_LIMITED: '模型限流',
+  MODEL_REJECTED: '模型拒绝',
+  LIPSYNC_CAPABILITY_UNAVAILABLE: '口型能力不可用',
+  VIDEO_DOWNLOAD_FAILED: '视频下载失败',
+  VIDEO_DURATION_MISMATCH: '视频时长不匹配',
+  VIDEO_BLACK_FRAME: '视频黑帧',
+  VIDEO_FROZEN: '视频卡顿/冻结',
+  VIDEO_IDENTITY_DRIFT: '人物/主体一致性漂移',
+  CONTINUITY_FRAME_FAILED: '连续性帧失败',
+  COMPOSE_FAILED: '合成失败',
+  CANCELLED: '已取消',
+  STALE_ATTEMPT: '片段超时（陈旧尝试）',
+  FEATURE_DISABLED: '功能未开启',
+  // Dance / LLM 规划
+  PLAN_SCHEMA_INVALID: '规划结构非法',
+  SECTION_RANGE_INVALID: '段落时间范围非法',
+  CHARACTER_IMAGE_INVALID: '角色图无效',
+  CHARACTER_IMAGE_UNUSABLE: '角色图不可用',
+  MUSIC_DOWNLOAD_FAILED: '音乐下载失败',
+  MUSIC_TOO_SHORT: '音乐过短',
+  MUSIC_TOO_LONG: '音乐过长',
+  PROCESS_RESTARTED: '进程重启导致中断',
+  CHARACTER_IDENTITY_ANALYSIS_FAILED: '角色身份分析失败',
 };
 
 export function labelMvFailureReason(code: string): string {

@@ -30,8 +30,8 @@ const PRESET_OPTIONS: TimeRangePreset[] = ['today', '24h', '7d', '30d', 'custom'
 const PROVIDER_OPTIONS: Array<{ value: string | null; label: string }> = [
   { value: null, label: '全部渠道' },
   { value: 'mountsea', label: 'Mountsea' },
-  { value: 'fal', label: 'Fal.ai' },
-  { value: 'cloudflare', label: 'Cloudflare' },
+  { value: 'apisale', label: 'apisale' },
+  { value: 'mountseaMs', label: 'Mountsea MS（已下线）' },
 ];
 const STEP_OPTIONS: Array<{ value: string | null; label: string }> = [
   { value: null, label: '全部步骤' },

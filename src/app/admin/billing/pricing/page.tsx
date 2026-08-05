@@ -13,8 +13,6 @@ import {
   mountseaCreditUsdPerCredit,
 } from '@/lib/mountsea-pricing';
 import { ModelPricingSection } from '../_components/model-pricing-section';
-import { DurationPricingSection } from '../_components/duration-pricing-section';
-import { DurationPricingTop } from '../_components/duration-pricing-top';
 import { useConfirm } from '@/components/ui/dialog-provider';
 
 import type { PricingConfigView, PricingParam } from '../_components/types';
@@ -198,19 +196,6 @@ export default function PricingConfigPage() {
   const billingEnabled = coerceBoolean(
     form.enabled !== undefined ? form.enabled : masterParam?.value,
   );
-  const profitFactor = Number(form.profitFactor ?? params.find((p) => p.key === 'profitFactor')?.value ?? 2.5);
-  const minChargeCredits = Number(form.minChargeCredits ?? params.find((p) => p.key === 'minChargeCredits')?.value ?? 1);
-  const baseCreditsPerSecond = Number(
-    form.mvDurationBaseCreditsPerSecond
-      ?? params.find((p) => p.key === 'mvDurationBaseCreditsPerSecond')?.value
-      ?? 0,
-  );
-  const aiRecommendCredits = Number(
-    form.mvDurationAiRecommendCredits
-      ?? params.find((p) => p.key === 'mvDurationAiRecommendCredits')?.value
-      ?? 0,
-  );
-
   const handleBillingToggle = async (next: boolean) => {
     if (!next) {
       const ok = await confirm({
@@ -261,7 +246,7 @@ export default function PricingConfigPage() {
             定价策略
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            积分计费引擎的全局参数与各渠道模型的单次调用定价。盈利系数为全局加价倍率，整片 MV 与 AI 推荐均会乘以此系数。
+            用户实扣由步骤价格与视频每秒价格矩阵决定；盈利系数只用于从模型美元标价派生未覆盖步骤的建议售价。
           </p>
         </div>
 
@@ -328,14 +313,6 @@ export default function PricingConfigPage() {
             )}
           </div>
         )}
-
-        <DurationPricingTop
-          profitFactor={profitFactor}
-          minChargeCredits={minChargeCredits}
-          baseCreditsPerSecond={baseCreditsPerSecond}
-          aiRecommendCredits={aiRecommendCredits}
-          onConfigSaved={(res) => syncFormFromView(setForm, res)}
-        />
 
         <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
           {/* 数值参数 */}
@@ -479,7 +456,6 @@ export default function PricingConfigPage() {
             </div>
           </div>
 
-          <DurationPricingSection profitFactor={profitFactor} />
         </QueryState>
 
         {/* MV 模型定价 */}

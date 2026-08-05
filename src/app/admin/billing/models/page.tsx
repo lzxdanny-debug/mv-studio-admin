@@ -19,9 +19,12 @@ interface ModelConfigView {
 }
 
 const PROVIDER_LABEL: Record<string, string> = {
-  cloudflare: 'Cloudflare',
-  fal: 'Fal.ai',
   mountsea: 'Mountsea',
+  apisale: 'apisale',
+  mountseaMs: 'Mountsea MS（已下线）',
+  // 已下线渠道：仅用于渲染历史成本/对账记录
+  cloudflare: 'Cloudflare（已下线）',
+  fal: 'Fal.ai（已下线）',
 };
 
 function ChannelCard({

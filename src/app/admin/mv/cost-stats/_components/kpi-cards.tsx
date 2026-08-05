@@ -16,8 +16,8 @@ import { DEFAULT_CNY_PER_USD, mountseaCreditUsdPerCredit } from '@/lib/mountsea-
  *   - 失败浪费（"已计费但失败"分类的估算成本之和）
  *   - 对账覆盖率
  *
- * 货币单位：Mountsea credits / Cloudflare neuron 折算到 USD 仅做"量级展示"，
- * 不用于结算。Fal 本来就是 USD。详见后端 native-pricing.ts 顶部注释。
+ * 货币单位：Mountsea credits 折算到 USD 仅做"量级展示"，不用于结算；
+ * 原生美元计价的渠道直接累加。详见后端 native-pricing.ts 顶部注释。
  */
 
 interface KpiCardsProps {
@@ -25,7 +25,6 @@ interface KpiCardsProps {
 }
 
 const USD_PER_MOUNTSEA_CREDIT = mountseaCreditUsdPerCredit(DEFAULT_CNY_PER_USD);
-const USD_PER_CLOUDFLARE_NEURON = 0;
 
 export function KpiCards({ payload }: KpiCardsProps) {
   const { summary, failureBreakdown } = payload;
@@ -34,14 +33,11 @@ export function KpiCards({ payload }: KpiCardsProps) {
     summary.totalCalls > 0 ? summary.successCalls / summary.totalCalls : 0;
 
   const estTotalUsd =
-    summary.estimated.falUsd +
-    summary.estimated.mountseaCredits * USD_PER_MOUNTSEA_CREDIT +
-    summary.estimated.cloudflareNeuron * USD_PER_CLOUDFLARE_NEURON;
+    summary.estimated.usd +
+    summary.estimated.mountseaCredits * USD_PER_MOUNTSEA_CREDIT;
 
-  // reconciled.falUsd 后端已合并 fal_billing_events + cf_aig_logs 两个 USD 来源，
-  // cloudflareNeuron 现在恒为 0（CF 真实账单不是 neuron 计价）
   const recTotalUsd =
-    summary.reconciled.falUsd +
+    summary.reconciled.usd +
     summary.reconciled.mountseaCredits * USD_PER_MOUNTSEA_CREDIT;
 
   // "失败浪费" = 失败分类中标记 likelyBilled=true 的总估算
@@ -74,11 +70,11 @@ export function KpiCards({ payload }: KpiCardsProps) {
           <>
             <span className="text-slate-500">已对账 {formatUsd(recTotalUsd)}</span>
             <span className="text-slate-300 mx-1">·</span>
-            <span className="text-slate-400">含 Mountsea/CF 折算</span>
+            <span className="text-slate-400">含 Mountsea 积分折算</span>
           </>
         }
         helperTitle={
-          'Mountsea：100 credits = 1 CNY，按 CNY/USD=7.2 折算；Cloudflare 暂未登记单价。\n' +
+          'Mountsea：100 credits = 1 CNY，按 CNY/USD=7.2 折算。\n' +
           '此为量级展示，不用于结算（结算以对账后的真实账单 reconciled_amount 为准）。'
         }
       />

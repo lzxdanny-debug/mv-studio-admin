@@ -48,7 +48,8 @@ interface OverviewStats {
     newProjects: number;
     doneProjects: number;
     rechargeCents: number;
-    costCny: number;
+    /** AI 上游成本（美元） */
+    costUsd?: number;
   };
 }
 
@@ -290,8 +291,8 @@ export default function AdminDashboard() {
             <FinanceCard
               href="/admin/billing/cost"
               label="今日成本"
-              value={`¥${(s.today.costCny ?? 0).toFixed(2)}`}
-              sub="点击查看成本统计"
+              value={`$${(s.today.costUsd ?? 0).toFixed(2)}`}
+              sub="AI 上游成本（美元）· 点击查看"
               icon={Coins}
               tone="border-l-amber-500"
             />

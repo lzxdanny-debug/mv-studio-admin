@@ -1,23 +1,19 @@
 'use client';
 
-import { CreditCard } from 'lucide-react';
-import { StripeConfigSection } from '../_components/stripe-config-section';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function AdminBillingSettingsPage() {
+/** 旧入口：充值设置已迁到系统设置 Tab */
+export default function AdminBillingSettingsRedirectPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/admin/settings?tab=billing');
+  }, [router]);
+
   return (
-    <div className="admin-page">
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-600" />
-            充值设置
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Stripe 密钥与 Checkout 回调地址（USD 计价，Stripe Checkout 托管页）。积分套餐、会员计划请到对应子页配置；注册/签到赠送请到「赠送积分」；计费系数与模型定价请到「定价策略」页。
-          </p>
-        </div>
-        <StripeConfigSection />
-      </div>
+    <div className="flex flex-1 items-center justify-center bg-slate-100 text-sm text-slate-500">
+      正在跳转到系统设置 · 充值设置…
     </div>
   );
 }

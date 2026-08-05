@@ -107,9 +107,12 @@ const RES_LABEL: Record<string, string> = {
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
-  cloudflare: 'Cloudflare',
-  fal: 'Fal.ai',
   mountsea: 'Mountsea',
+  apisale: 'apisale',
+  mountseaMs: 'Mountsea MS（已下线）',
+  // 已下线渠道：仅用于渲染历史成本/对账记录
+  cloudflare: 'Cloudflare（已下线）',
+  fal: 'Fal.ai（已下线）',
 };
 
 /** 前端步骤徽标文案：'pre' = 创作前置，'1'..'10' = 流程第 N 步 */

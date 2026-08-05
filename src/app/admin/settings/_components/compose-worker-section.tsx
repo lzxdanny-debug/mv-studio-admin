@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cpu, Save, CheckCircle2, XCircle, Copy, Sparkles } from 'lucide-react';
+import { CheckCircle2, Copy, Save, Sparkles, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { SecretInput } from '@/components/secret-input';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
+import { SimpleSelect } from '@/components/ui/select';
 import { FromEnvBadge } from './from-env-badge';
+import { CONTROL_WIDE, SECRET_INPUT_CLS } from './settings-form-styles';
 
 interface ComposeQueueSaved {
   workerApiKey: string;
@@ -34,45 +38,7 @@ interface ComposeQueueResp {
   };
 }
 
-function ConfigField({
-  label,
-  hint,
-  children,
-  className,
-}: {
-  label: string;
-  hint: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={cn('block space-y-1.5', className)}>
-      <span className="text-xs font-medium text-slate-700">{label}</span>
-      {children}
-      <p className="text-[11px] text-slate-400 leading-relaxed">{hint}</p>
-    </label>
-  );
-}
-
-function SectionCard({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-5 space-y-4">
-      <div>
-        <p className="text-sm font-semibold text-slate-800">{title}</p>
-        <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{description}</p>
-      </div>
-      {children}
-    </section>
-  );
-}
+const MODE_DEFAULT = '__default__';
 
 export function ComposeWorkerSection() {
   const qc = useQueryClient();
@@ -119,9 +85,9 @@ export function ComposeWorkerSection() {
 
   if (isLoading || !draft || !data) {
     return (
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6 flex items-center justify-center text-slate-400 text-sm h-48">
-        加载中…
-      </div>
+      <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
+        <div />
+      </QueryState>
     );
   }
 
@@ -167,66 +133,84 @@ export function ComposeWorkerSection() {
     }
   };
 
-  const inputClass =
-    'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white';
+  const keyConfigured = data.effective.workerApiKeyConfigured;
 
   return (
     <QueryState isLoading={false} isError={isError} error={error} isEmpty={false} height="h-48">
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="flex items-start gap-3 px-1">
-          <Cpu className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-slate-800">合成 MV（FFmpeg Worker）</p>
-            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-              管理 MV 最终合成阶段（compose / 字幕重渲 / 编辑器渲染）的 FFmpeg Worker 队列与容量。
-              配置写入数据库，留空则回退到 <code className="px-1 rounded bg-slate-100">.env</code> 或代码默认值。
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div
+          className={cn(
+            'flex items-center justify-between gap-4 rounded-2xl border px-5 py-4',
+            keyConfigured
+              ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'
+              : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50',
+          )}
+        >
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-base font-semibold text-slate-900">合成 MV（FFmpeg Worker）</p>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                模式 {data.effective.consumerMode}
+              </span>
+              {data.effective.workerApiKeyFromEnv && <FromEnvBadge fromEnv />}
+            </div>
+            <p className="mt-1 text-sm text-slate-600">
+              管理 compose / 字幕重渲 / 编辑器渲染的 FFmpeg 队列与容量。留空回退 env 或代码默认值。
             </p>
           </div>
+          {keyConfigured ? (
+            <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-500" />
+          ) : (
+            <XCircle className="h-6 w-6 shrink-0 text-amber-500" />
+          )}
         </div>
 
-        <SectionCard
-          title="消费模式与鉴权"
-          description="决定合成任务由 API 本机 FFmpeg 处理，还是由外部 Worker 进程轮询领取。"
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ConfigField
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              消费模式与鉴权
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 px-5 py-2">
+            <FormField
               label="消费模式"
-              hint={`local：API 进程内直接跑 FFmpeg，无需部署 Worker。worker：API 只入队，须有 Worker 在线 claim，否则任务会卡住。当前生效：${data.effective.consumerMode}。`}
+              description={`local：API 内 FFmpeg；worker：外部 claim。当前生效 ${data.effective.consumerMode}。`}
+              controlClassName={CONTROL_WIDE}
             >
-              <select
-                value={draft.consumerMode}
-                onChange={(e) => setField('consumerMode', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">（默认 local）</option>
-                <option value="local">local — API 内 FFmpeg</option>
-                <option value="worker">worker — 外部 Worker claim</option>
-              </select>
-            </ConfigField>
-
-            <ConfigField
+              <SimpleSelect
+                size="sm"
+                value={draft.consumerMode || MODE_DEFAULT}
+                onValueChange={(v) => setField('consumerMode', v === MODE_DEFAULT ? '' : v)}
+                options={[
+                  { value: MODE_DEFAULT, label: '默认（local）' },
+                  { value: 'local', label: 'local — API 内 FFmpeg' },
+                  { value: 'worker', label: 'worker — 外部 Worker claim' },
+                ]}
+              />
+            </FormField>
+            <FormField
               label="Worker API Key"
-              hint="仅用于 Worker 访问 /internal/worker/* 的 Bearer 鉴权，与 workerId、用户登录无关。须与 mv-studio-worker 的 workerApiKey 一致。保存新密钥后请立即复制；离开本页后只能重新生成轮换。"
+              description="Worker 访问 /internal/worker/* 的 Bearer。保存新密钥后请立即复制。"
+              className="items-start"
+              controlClassName="sm:w-[420px] w-full"
             >
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <SecretInput
-                      configured={data.effective.workerApiKeyConfigured}
-                      maskedPreview={data.effective.workerApiKeyMasked}
-                      value={workerApiKeyInput}
-                      onChange={(v) => {
-                        setWorkerApiKeyInput(v);
-                        setCopyHint(null);
-                      }}
-                      placeholder="点击右侧自动生成"
-                    />
-                  </div>
+              <div className="w-full space-y-2">
+                <SecretInput
+                  configured={data.effective.workerApiKeyConfigured}
+                  maskedPreview={data.effective.workerApiKeyMasked}
+                  value={workerApiKeyInput}
+                  onChange={(v) => {
+                    setWorkerApiKeyInput(v);
+                    setCopyHint(null);
+                  }}
+                  placeholder="点击下方自动生成"
+                  className={SECRET_INPUT_CLS}
+                />
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={generateWorkerApiKey}
-                    className="inline-flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    title="生成 UUID 作为 API Key"
+                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
                     自动生成
@@ -234,154 +218,164 @@ export function ComposeWorkerSection() {
                   <button
                     type="button"
                     onClick={() => void copyWorkerApiKey()}
-                    className="inline-flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50"
-                    title="复制当前输入框中的密钥"
+                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                   >
                     <Copy className="h-3.5 w-3.5" />
                     复制
                   </button>
-                  {data.effective.workerApiKeyFromEnv && <FromEnvBadge />}
                 </div>
                 {copyHint && (
-                  <p className={cn('text-[11px]', copyHint.includes('已复制') ? 'text-emerald-600' : 'text-amber-600')}>
+                  <p
+                    className={cn(
+                      'text-[11px]',
+                      copyHint.includes('已复制') ? 'text-emerald-600' : 'text-amber-600',
+                    )}
+                  >
                     {copyHint}
                   </p>
                 )}
                 {savedKeyForCopy && !workerApiKeyInput && (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-[11px] text-emerald-800 leading-relaxed">
-                    新密钥已写入数据库。输入框仅显示掩码；点「复制」可获取刚保存的明文，请同步到{' '}
-                    <code className="px-1 rounded bg-white/80">worker.constants.ts</code>。
+                  <div className="rounded-[10px] border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-[11px] leading-relaxed text-emerald-800">
+                    新密钥已写入。点「复制」获取刚保存的明文，并同步到{' '}
+                    <code className="rounded bg-white/80 px-1">worker.constants.ts</code>。
                   </div>
                 )}
               </div>
-            </ConfigField>
+            </FormField>
           </div>
-        </SectionCard>
+        </div>
 
-        <SectionCard
-          title="队列与容量"
-          description="控制全站合成任务的并发与排队上限，在用户会员档位限制之外额外生效。"
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ConfigField
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              队列与容量
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 px-5 py-2">
+            <FormField
               label="全局 running 上限"
-              hint={`全站 status=running 的合成任务数上限；达到后新任务无法入队（503）。建议 2~8，当前生效 ${data.effective.globalMaxRunning}。`}
+              description={`全站 running 上限；达限后新任务 503。建议 2–8，当前 ${data.effective.globalMaxRunning}。`}
             >
-              <input
+              <Input
+                size="sm"
                 type="number"
                 min={1}
                 max={64}
+                mono
                 value={draft.globalMaxRunning}
                 onChange={(e) => setField('globalMaxRunning', e.target.value)}
                 placeholder={String(data.effective.globalMaxRunning)}
-                className={cn(inputClass, 'font-mono tabular-nums')}
               />
-            </ConfigField>
-
-            <ConfigField
+            </FormField>
+            <FormField
               label="队列 queued 上限"
-              hint={`全站排队中（queued）任务数上限；队列满后拒绝新入队。建议 20~100，当前生效 ${data.effective.globalMaxQueued}。`}
+              description={`排队上限。建议 20–100，当前 ${data.effective.globalMaxQueued}。`}
             >
-              <input
+              <Input
+                size="sm"
                 type="number"
                 min={1}
                 max={500}
+                mono
                 value={draft.globalMaxQueued}
                 onChange={(e) => setField('globalMaxQueued', e.target.value)}
                 placeholder={String(data.effective.globalMaxQueued)}
-                className={cn(inputClass, 'font-mono tabular-nums')}
               />
-            </ConfigField>
-
-            <ConfigField
+            </FormField>
+            <FormField
               label="预签名 URL 有效期（秒）"
-              hint={`Worker 下载素材、上传成品用的 COS 预签名链接有效期。合成耗时长时适当加大（默认 14400 = 4 小时），当前生效 ${data.effective.presignExpiresSec} 秒。`}
-              className="sm:col-span-2"
+              description={`COS 预签名有效期。默认 14400（4h），当前 ${data.effective.presignExpiresSec}。`}
             >
-              <input
+              <Input
+                size="sm"
                 type="number"
                 min={60}
                 max={86400}
+                mono
                 value={draft.presignExpiresSec}
                 onChange={(e) => setField('presignExpiresSec', e.target.value)}
                 placeholder={String(data.effective.presignExpiresSec)}
-                className={cn(inputClass, 'font-mono tabular-nums')}
               />
-            </ConfigField>
+            </FormField>
           </div>
-        </SectionCard>
+        </div>
 
-        <SectionCard
-          title="本地消费（local 模式）"
-          description="仅当消费模式为 local 时生效；API 进程内的 in-process consumer 使用以下参数。"
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ConfigField
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              本地消费（local）
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 px-5 py-2">
+            <FormField
               label="本地并发槽位"
-              hint={`API 本机同时跑几个 FFmpeg 合成。受 CPU/内存限制，建议 1~2，当前生效 ${data.effective.localMaxSlots}。`}
+              description={`本机同时跑几个 FFmpeg。建议 1–2，当前 ${data.effective.localMaxSlots}。`}
             >
-              <input
+              <Input
+                size="sm"
                 type="number"
                 min={1}
                 max={16}
+                mono
                 value={draft.localMaxSlots}
                 onChange={(e) => setField('localMaxSlots', e.target.value)}
                 placeholder={String(data.effective.localMaxSlots)}
-                className={cn(inputClass, 'font-mono tabular-nums')}
               />
-            </ConfigField>
-
-            <ConfigField
+            </FormField>
+            <FormField
               label="轮询间隔（毫秒）"
-              hint={`local consumer 从队列 claim 任务的频率。越小响应越快、DB 压力略增，建议 2000~5000，当前生效 ${data.effective.consumerPollMs} ms。`}
+              description={`claim 频率。建议 2000–5000，当前 ${data.effective.consumerPollMs} ms。`}
             >
-              <input
+              <Input
+                size="sm"
                 type="number"
                 min={500}
                 max={60000}
+                mono
                 value={draft.consumerPollMs}
                 onChange={(e) => setField('consumerPollMs', e.target.value)}
                 placeholder={String(data.effective.consumerPollMs)}
-                className={cn(inputClass, 'font-mono tabular-nums')}
               />
-            </ConfigField>
+            </FormField>
           </div>
-        </SectionCard>
+        </div>
 
-        <section className="rounded-2xl bg-slate-50 border border-slate-100 px-5 py-4 text-xs text-slate-500 leading-relaxed space-y-2">
-          <p className="font-medium text-slate-700">Worker 进程侧配置（mv-studio-worker）</p>
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-xs leading-relaxed text-slate-500 space-y-2">
+          <p className="font-medium text-slate-700">Worker 进程侧（mv-studio-worker）</p>
           <p>
-            以下参数不在本页管理，需在 Worker 代码{' '}
-            <code className="px-1 rounded bg-white border border-slate-100">src/config/worker.constants.ts</code>{' '}
-            中按机器填写：
+            以下参数在{' '}
+            <code className="rounded border border-slate-100 bg-white px-1">
+              src/config/worker.constants.ts
+            </code>{' '}
+            配置：
           </p>
-          <ul className="list-disc pl-4 space-y-1">
+          <ul className="list-disc space-y-1 pl-4">
             <li>
-              <code className="px-1 rounded bg-white">mainApiBaseUrl</code> — 主服务地址（不含 /api）
+              <code className="rounded bg-white px-1">mainApiBaseUrl</code> — 主服务地址
             </li>
             <li>
-              <code className="px-1 rounded bg-white">workerApiKey</code> — 与上方 API Key 相同
+              <code className="rounded bg-white px-1">workerApiKey</code> — 与上方 API Key 相同
             </li>
             <li>
-              <code className="px-1 rounded bg-white">workerId</code> — 实例标识，多 Worker 时须唯一
+              <code className="rounded bg-white px-1">workerId</code> — 多实例须唯一
             </li>
             <li>
-              <code className="px-1 rounded bg-white">workerMaxSlots</code> — 本机同时处理任务数，建议从 1 开始
+              <code className="rounded bg-white px-1">workerMaxSlots</code> — 本机并发，建议从 1 开始
             </li>
           </ul>
-        </section>
+        </div>
 
         {msg && (
           <div
             className={cn(
-              'flex items-center gap-2 text-sm rounded-lg px-3 py-2',
+              'flex items-center gap-2 rounded-xl px-3 py-2 text-sm',
               msg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
             )}
           >
             {msg.ok ? (
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
             ) : (
-              <XCircle className="h-4 w-4 flex-shrink-0" />
+              <XCircle className="h-4 w-4 shrink-0" />
             )}
             {msg.text}
           </div>
@@ -398,21 +392,16 @@ export function ComposeWorkerSection() {
               setMsg(null);
             }}
             disabled={!dirty || save.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
           >
             撤销修改
           </button>
           <button
             type="submit"
             disabled={!dirty || save.isPending}
-            className={cn(
-              'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium',
-              dirty && !save.isPending
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed',
-            )}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
           >
-            <Save className="h-4 w-4" />
+            <Save className="h-3.5 w-3.5" />
             {save.isPending ? '保存中…' : '保存'}
           </button>
         </div>

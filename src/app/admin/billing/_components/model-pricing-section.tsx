@@ -42,15 +42,13 @@ const RES_LABEL: Record<string, string> = {
   '1080p': '超清 1080p',
 };
 
-const CHANNEL_ORDER = ['mountseaMs', 'cloudflare', 'fal', 'mountsea'] as const;
+const CHANNEL_ORDER = ['apisale', 'mountsea'] as const;
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
-  mountseaMs:
-    'Mountsea /ms/v1：按 endpoint slug 出图/出视频（如 google/veo-3.1/...）。与下方 Mountsea Hub 是不同 API、不同模型 ID。',
+  apisale:
+    'apisale：按 endpoint slug 出图/出视频（如 google/veo-3.1/...），USD 钱包计费。媒体主渠道。',
   mountsea:
-    'Mountsea Hub：/v1 聊天、Hub 视频/图像名。文本、音频、部分视频走此通道；积分单价与 MS 共用上方「Mountsea 积分成本」。',
-  cloudflare: 'Cloudflare Workers AI / AI Gateway。',
-  fal: 'Fal.ai，按 USD 结算。',
+    'Mountsea Hub：/v1 聊天、Hub 视频/图像名。文本、音频、部分视频走此通道；成本单位为 Mountsea credits。',
 };
 
 function rowKey(r: { channel: string; modelId: string; resolution: string }) {
@@ -67,7 +65,7 @@ function discountText(listUsd: number, costUsd: number): string {
 
 export function ModelPricingSection() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<string>('mountseaMs');
+  const [tab, setTab] = useState<string>('apisale');
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 

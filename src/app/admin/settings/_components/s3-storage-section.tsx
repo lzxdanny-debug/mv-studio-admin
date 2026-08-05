@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cloud, Settings as SettingsIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Save, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { SecretInput } from '@/components/secret-input';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 import { FromEnvBadge } from './from-env-badge';
+import { CONTROL_MD, CONTROL_WIDE, SECRET_INPUT_CLS } from './settings-form-styles';
 
 interface S3StorageConfig {
   accessKeyIdMasked: string;
@@ -95,41 +98,58 @@ export function S3StorageSection({ embedded = false }: { embedded?: boolean }) {
   return (
     <section>
       <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-64">
-        <div className={cn(!embedded && 'bg-white border border-slate-200 rounded-2xl p-5')}>
-          <div className="flex items-start gap-3 mb-4">
-            <Cloud className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-800">AWS S3</p>
-              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                海外主存储账号。配置完成后可在「通用设置」切换为主存储；公网 URL 优先使用 Public Base（CDN）。
-              </p>
-              {data && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  {configured ? (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-xs text-emerald-600 font-medium">
-                        已配置 · {data.bucket} ({data.region})
-                        <FromEnvBadge fromEnv={data.accessKeyIdFromEnv || data.secretAccessKeyFromEnv} />
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="text-xs text-amber-600 font-medium">
-                        未配置完整，无法切换为主存储
-                      </span>
-                    </>
+        <form
+          onSubmit={handleSubmit}
+          className={cn('space-y-4', !embedded && 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm')}
+        >
+          <div
+            className={cn(
+              'flex items-center justify-between gap-4 rounded-2xl border px-5 py-4',
+              configured
+                ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'
+                : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50',
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-semibold text-slate-900">AWS S3</p>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                    configured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
                   )}
-                </div>
-              )}
+                >
+                  {configured ? '已配置' : '未配置'}
+                </span>
+                {data && (
+                  <FromEnvBadge
+                    fromEnv={data.accessKeyIdFromEnv || data.secretAccessKeyFromEnv}
+                  />
+                )}
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                {configured
+                  ? `${data?.bucket} · ${data?.region} · 可在「通用设置」切换为主存储`
+                  : '未配置完整时，无法切换为主存储'}
+              </p>
             </div>
+            {configured ? (
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-500" />
+            ) : (
+              <XCircle className="h-6 w-6 shrink-0 text-amber-500" />
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Access Key Id</label>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">凭证</h2>
+            </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField
+                label="Access Key Id"
+                description="留空保存表示不修改已有密钥。"
+                controlClassName={CONTROL_WIDE}
+              >
                 <SecretInput
                   configured={data?.accessKeyIdConfigured}
                   maskedPreview={data?.accessKeyIdMasked}
@@ -137,10 +157,14 @@ export function S3StorageSection({ embedded = false }: { embedded?: boolean }) {
                   onChange={(accessKeyId) => setForm((f) => ({ ...f, accessKeyId }))}
                   placeholder="AKIAxxxxxxxxxxxxxxxx"
                   type="text"
+                  className={SECRET_INPUT_CLS}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Secret Access Key</label>
+              </FormField>
+              <FormField
+                label="Secret Access Key"
+                description="对应密钥。留空保存表示不修改。"
+                controlClassName={CONTROL_WIDE}
+              >
                 <SecretInput
                   configured={data?.secretAccessKeyConfigured}
                   maskedPreview={data?.secretAccessKeyMasked}
@@ -148,81 +172,99 @@ export function S3StorageSection({ embedded = false }: { embedded?: boolean }) {
                   onChange={(secretAccessKey) => setForm((f) => ({ ...f, secretAccessKey }))}
                   placeholder="密钥明文"
                   showToggle
+                  className={SECRET_INPUT_CLS}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Bucket</label>
-                <input
-                  type="text"
+              </FormField>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">存储桶</h2>
+            </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField label="Bucket" description="S3 存储桶名称。" controlClassName={CONTROL_MD}>
+                <Input
+                  size="sm"
                   placeholder="msea-ai-prod-assets-…"
                   value={form.bucket}
                   onChange={(e) => setForm((f) => ({ ...f, bucket: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Region</label>
-                <input
-                  type="text"
+              </FormField>
+              <FormField label="Region" description="如 us-east-1。">
+                <Input
+                  size="sm"
                   placeholder="us-east-1"
                   value={form.region}
                   onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Prefix</label>
-                <input
-                  type="text"
+              </FormField>
+              <FormField
+                label="Prefix"
+                description="对象键前缀，如 mv-studio/permanent。"
+                controlClassName={CONTROL_MD}
+              >
+                <Input
+                  size="sm"
                   placeholder="mv-studio/permanent"
                   value={form.prefix}
                   onChange={(e) => setForm((f) => ({ ...f, prefix: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Public Base</label>
-                <input
+              </FormField>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                公网访问
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField
+                label="Public Base"
+                description="公网 URL 优先使用该 CDN / 自定义域名。"
+                controlClassName={CONTROL_WIDE}
+              >
+                <Input
+                  size="sm"
                   type="url"
                   placeholder="https://assets.aimv.video"
                   value={form.publicBase}
                   onChange={(e) => setForm((f) => ({ ...f, publicBase: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">CDN Origin Prefix</label>
-                <input
-                  type="text"
+              </FormField>
+              <FormField
+                label="CDN Origin Prefix"
+                description="CDN Origin Path 已包含该目录时填写；S3 保留完整路径，公网 URL 自动去除它。"
+                controlClassName={CONTROL_MD}
+              >
+                <Input
+                  size="sm"
                   placeholder="mv-studio"
                   value={form.publicOriginPrefix}
                   onChange={(e) => setForm((f) => ({ ...f, publicOriginPrefix: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-                  CDN 的 Origin Path 已包含该目录时填写；S3 保留完整路径，公网 URL 自动去除它。
-                </p>
-              </div>
+              </FormField>
             </div>
+          </div>
 
+          <div className="flex flex-col items-end gap-2">
             {msg && (
               <p className={cn('text-xs font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
                 {msg.text}
               </p>
             )}
-
-            <div className="flex justify-end pt-1">
-              <button
-                type="submit"
-                disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
-              >
-                <SettingsIcon className={cn('h-3.5 w-3.5', save.isPending && 'animate-spin')} />
-                {save.isPending ? '保存中…' : '保存配置'}
-              </button>
-            </div>
-          </form>
-        </div>
+            <button
+              type="submit"
+              disabled={save.isPending}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {save.isPending ? '保存中…' : '保存配置'}
+            </button>
+          </div>
+        </form>
       </QueryState>
     </section>
   );

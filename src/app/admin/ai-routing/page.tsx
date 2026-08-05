@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Cloud,
-  Sparkles,
   ServerCog,
   Layers,
   ChevronRight,
@@ -28,6 +27,7 @@ import {
   Image as ImageIcon,
   Film,
   Mic,
+  Sparkles,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
@@ -36,14 +36,20 @@ import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { SimpleSelect } from '@/components/ui/select';
 
-type RoutingProvider = 'cloudflare' | 'fal' | 'mountsea' | 'mountseaMs';
+type RoutingProvider = 'mountsea' | 'apisale';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
   | 'textAgent'
+  | 'dancePlanning'
+  | 'danceVision'
+  | 'danceImage'
+  | 'danceVideoSingleRef'
+  | 'danceVideo'
   | 'visionAnalyze'
   | 'imageNanoBanana'
   | 'videoSingleRef'
+  | 'videoGrok'
   | 'videoUltron'
   | 'videoMultiRef'
   | 'videoLipsync'
@@ -51,6 +57,9 @@ type AiCapability =
   | 'karaokeVideoSolo'
   | 'karaokeVideoPet'
   | 'karaokeVideoDuet'
+  | 'effectVideoI2V'
+  | 'effectImageEdit'
+  | 'effectVideoMultiRef'
   | 'audioTranscribe'
   | 'audioAnalyze';
 
@@ -60,6 +69,7 @@ interface ResolvedRouting {
   primary: { provider: RoutingProvider; model: string };
   secondary: { provider: RoutingProvider; model: string } | null;
   isActive: boolean;
+  timeoutMs: number | null;
   source: 'db' | 'code';
 }
 
@@ -99,35 +109,71 @@ interface MetaResp {
   modelOptions: Record<AiCapability, Partial<Record<RoutingProvider, string[]>>>;
 }
 
-const PROVIDER_META: Record<
-  RoutingProvider,
-  { label: string; icon: typeof Cloud; iconWrap: string; iconColor: string }
-> = {
-  cloudflare: {
-    label: 'Cloudflare',
-    icon: Cloud,
-    iconWrap: 'bg-orange-50',
-    iconColor: 'text-orange-600',
-  },
-  fal: {
-    label: 'Fal.ai',
-    icon: Sparkles,
-    iconWrap: 'bg-rose-50',
-    iconColor: 'text-rose-600',
-  },
+type ProviderMetaItem = {
+  label: string;
+  icon: typeof Cloud;
+  iconWrap: string;
+  iconColor: string;
+};
+
+const PROVIDER_META: Record<RoutingProvider, ProviderMetaItem> = {
   mountsea: {
     label: 'Mountsea',
     icon: ServerCog,
     iconWrap: 'bg-blue-50',
     iconColor: 'text-blue-600',
   },
-  mountseaMs: {
-    label: 'Mountsea MS',
+  apisale: {
+    label: 'apisale',
     icon: Layers,
-    iconWrap: 'bg-blue-50',
-    iconColor: 'text-blue-600',
+    iconWrap: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
   },
 };
+
+/** 历史调用记录里可能仍出现已下线渠道（mountseaMs / fal / cloudflare） */
+const LEGACY_PROVIDER_META: Record<string, ProviderMetaItem> = {
+  mountseaMs: {
+    label: 'Mountsea MS（已下线）',
+    icon: Layers,
+    iconWrap: 'bg-slate-100',
+    iconColor: 'text-slate-500',
+  },
+  fal: {
+    label: 'Fal.ai（已下线）',
+    icon: Cloud,
+    iconWrap: 'bg-slate-100',
+    iconColor: 'text-slate-500',
+  },
+  cloudflare: {
+    label: 'Cloudflare（已下线）',
+    icon: Cloud,
+    iconWrap: 'bg-slate-100',
+    iconColor: 'text-slate-500',
+  },
+};
+
+function getProviderMeta(provider: string | null | undefined): ProviderMetaItem {
+  if (!provider) {
+    return {
+      label: '-',
+      icon: Cloud,
+      iconWrap: 'bg-slate-100',
+      iconColor: 'text-slate-400',
+    };
+  }
+  if (provider in PROVIDER_META) {
+    return PROVIDER_META[provider as RoutingProvider];
+  }
+  return (
+    LEGACY_PROVIDER_META[provider] ?? {
+      label: provider,
+      icon: Cloud,
+      iconWrap: 'bg-slate-100',
+      iconColor: 'text-slate-500',
+    }
+  );
+}
 
 // 能力分组：双 capability 一行并排；视频用 tab（多图/单图/对口型）
 interface CapGroup {
@@ -149,13 +195,26 @@ const CAP_GROUPS: CapGroup[] = [
     caps: ['textGpt', 'textGemini', 'textAgent'],
     inline: true,
   },
+  {
+    key: 'dance',
+    title: 'Dance Video',
+    icon: Sparkles,
+    caps: [
+      'dancePlanning',
+      'danceVision',
+      'danceImage',
+      'danceVideoSingleRef',
+      'danceVideo',
+    ],
+    tabbed: true,
+  },
   { key: 'vision', title: '视觉理解', icon: Eye, caps: ['visionAnalyze'] },
   { key: 'image', title: '图像生成', icon: ImageIcon, caps: ['imageNanoBanana'] },
   {
     key: 'video',
     title: '视频生成',
     icon: Film,
-    caps: ['videoUltron', 'videoMultiRef', 'videoSingleRef', 'videoLipsync'],
+    caps: ['videoUltron', 'videoMultiRef', 'videoSingleRef', 'videoGrok', 'videoLipsync'],
     tabbed: true,
   },
   {
@@ -163,6 +222,13 @@ const CAP_GROUPS: CapGroup[] = [
     title: 'Photo Karaoke',
     icon: Mic,
     caps: ['karaokeSceneImage', 'karaokeVideoSolo', 'karaokeVideoPet', 'karaokeVideoDuet'],
+    tabbed: true,
+  },
+  {
+    key: 'video-effects',
+    title: '视频特效',
+    icon: Sparkles,
+    caps: ['effectVideoI2V', 'effectImageEdit', 'effectVideoMultiRef'],
     tabbed: true,
   },
   {
@@ -178,17 +244,28 @@ const VIDEO_TAB_LABEL: Partial<Record<AiCapability, string>> = {
   videoUltron: 'Ultron 高质量',
   videoMultiRef: '多图参考',
   videoSingleRef: '单图',
+  videoGrok: 'Grok 长镜头',
   videoLipsync: '对口型',
   karaokeSceneImage: '场景图',
   karaokeVideoSolo: 'Solo',
   karaokeVideoPet: 'Pet',
   karaokeVideoDuet: 'Duet',
+  dancePlanning: '策划',
+  danceVision: '人物识别',
+  danceImage: '图片',
+  danceVideoSingleRef: '单图视频',
+  danceVideo: '多图视频',
+  effectVideoI2V: '单图直出 I2V',
+  effectImageEdit: '图编辑',
+  effectVideoMultiRef: '多图参考',
 };
 
 const INLINE_SUB_LABEL: Partial<Record<AiCapability, string>> = {
   textGpt: 'GPT',
   textGemini: 'Gemini',
   textAgent: 'Agent 对话',
+  dancePlanning: '导演与编舞',
+  danceVision: '人物参考图分析',
   audioTranscribe: '转写',
   audioAnalyze: '分析',
 };
@@ -505,7 +582,7 @@ function RouterTelemetrySection({
                       <td className="px-3 py-2">
                         {r.provider ? (
                           <span className="text-slate-600">
-                            {PROVIDER_META[r.provider].label}
+                            {getProviderMeta(r.provider).label}
                           </span>
                         ) : (
                           <span className="text-red-500">全部失败</span>
@@ -655,7 +732,7 @@ function RouterTelemetrySection({
                     <td className="px-3 py-2">
                       {row.usedProvider ? (
                         <span className="text-slate-600">
-                          {PROVIDER_META[row.usedProvider].label}
+                          {getProviderMeta(row.usedProvider).label}
                           <span className="text-slate-400 mx-1">·</span>
                           <span className="font-mono text-[10px] text-slate-500">
                             {row.usedModel}
@@ -681,7 +758,7 @@ function RouterTelemetrySection({
                             )}
                             title={a.errorMessage ?? ''}
                           >
-                            {PROVIDER_META[a.provider]?.label ?? a.provider}
+                            {getProviderMeta(a.provider).label}
                             <span className="font-mono text-[9px] opacity-70">
                               {fmtMs(a.elapsedMs)}
                             </span>
@@ -1028,7 +1105,7 @@ function CapabilityRow({
 
       <div className="space-y-2.5">
         {chain.map((entry, index) => {
-          const providerMeta = PROVIDER_META[entry.provider];
+          const providerMeta = getProviderMeta(entry.provider);
           return (
             <div
               key={`draft-${index}`}
@@ -1290,7 +1367,7 @@ function ProviderBlock({
   role: string;
   prominent?: boolean;
 }) {
-  const meta = PROVIDER_META[provider];
+  const meta = getProviderMeta(provider);
   const Icon = meta.icon;
   return (
     <div

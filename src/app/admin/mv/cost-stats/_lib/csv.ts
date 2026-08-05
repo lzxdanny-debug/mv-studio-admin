@@ -38,10 +38,9 @@ export function buildCostStatsCsv(payload: CostStatsPayload): string {
       ['成功', payload.summary.successCalls],
       ['失败', payload.summary.failedCalls],
       ['估算 Mountsea credits', payload.summary.estimated.mountseaCredits],
-      ['估算 Fal USD', payload.summary.estimated.falUsd],
-      ['估算 Cloudflare neuron', payload.summary.estimated.cloudflareNeuron],
+      ['估算 USD', payload.summary.estimated.usd],
       ['对账后 Mountsea credits', payload.summary.reconciled.mountseaCredits],
-      ['对账后 Fal USD', payload.summary.reconciled.falUsd],
+      ['对账后 USD', payload.summary.reconciled.usd],
       ['对账覆盖率', `${(payload.summary.reconciliation.ratio * 100).toFixed(1)}%`],
     ]),
   );

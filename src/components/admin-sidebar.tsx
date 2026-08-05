@@ -50,6 +50,8 @@ import {
   Mic2,
   Image as ImageIcon,
   Headphones,
+  FlaskConical,
+  Wand2,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -111,25 +113,6 @@ const NAV_SECTIONS: NavSection[] = [
         items: [
           { href: '/admin/mv/projects', label: 'MV 项目', icon: Film, permission: 'project.view' },
           { href: '/admin/mv/charts', label: '热门榜单', icon: ListOrdered, permission: 'project.view' },
-        ],
-      },
-      {
-        key: 'mv-anomaly',
-        label: '异常管理',
-        icon: AlertTriangle,
-        items: [
-          {
-            href: '/admin/mv/anomalies/failed-shots',
-            label: '镜头视频失败',
-            icon: AlertTriangle,
-            permission: 'mv.anomaly.view',
-          },
-          {
-            href: '/admin/mv/anomalies/storyboards',
-            label: '故事板异常',
-            icon: AlertTriangle,
-            permission: 'mv.anomaly.view',
-          },
         ],
       },
       {
@@ -253,6 +236,141 @@ const NAV_SECTIONS: NavSection[] = [
             permission: 'karaoke.cost.view',
           },
         ],
+      },
+    ],
+  },
+  {
+    key: 'dance',
+    title: 'Dance 业务',
+    subgroups: [
+      {
+        key: 'dance-project',
+        label: '项目管理',
+        icon: PersonStanding,
+        items: [
+          {
+            href: '/admin/dance/projects',
+            label: '舞蹈项目',
+            icon: PersonStanding,
+            permission: 'dance.projects.view',
+          },
+          {
+            href: '/admin/dance/reference-test',
+            label: '参考图对照测试',
+            icon: FlaskConical,
+            permission: 'dance.projects.view',
+          },
+        ],
+      },
+      {
+        key: 'dance-content',
+        label: '内容配置',
+        icon: Layers,
+        items: [
+          {
+            href: '/admin/dance/styles',
+            label: '舞种',
+            icon: Palette,
+            permission: 'dance.styles.view',
+          },
+          {
+            href: '/admin/dance/visual-styles',
+            label: '视觉风格',
+            icon: ImageIcon,
+            permission: 'dance.styles.view',
+          },
+          {
+            href: '/admin/dance/choreography',
+            label: '编舞模板',
+            icon: ListOrdered,
+            permission: 'dance.choreography.view',
+          },
+          {
+            href: '/admin/dance/scenes',
+            label: '舞蹈场景',
+            icon: ImageIcon,
+            permission: 'dance.scenes.view',
+          },
+          {
+            href: '/admin/dance/settings',
+            label: 'Dance 设置',
+            icon: SlidersHorizontal,
+            permission: 'dance.settings.view',
+          },
+        ],
+      },
+      {
+        key: 'dance-billing',
+        label: '定价与成本',
+        icon: Coins,
+        items: [
+          {
+            href: '/admin/dance/pricing',
+            label: '步骤价格',
+            icon: Coins,
+            permission: 'dance.pricing.view',
+          },
+          {
+            href: '/admin/dance/cost',
+            label: '成本统计',
+            icon: LineChart,
+            permission: 'dance.cost.view',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'video-effects',
+    title: '视频特效',
+    items: [
+      {
+        href: '/admin/video-effects/templates',
+        label: '模板库',
+        icon: Wand2,
+        permission: 'effects.template.view',
+      },
+      {
+        href: '/admin/video-effects/categories',
+        label: '分类',
+        icon: Layers,
+        permission: 'effects.view',
+      },
+      {
+        href: '/admin/video-effects/scenarios',
+        label: '场景',
+        icon: ImageIcon,
+        permission: 'effects.view',
+      },
+      {
+        href: '/admin/video-effects/workflows',
+        label: '工作流',
+        icon: Route,
+        permission: 'effects.workflow.view',
+      },
+      {
+        href: '/admin/video-effects/prompts',
+        label: 'Prompt',
+        icon: FileText,
+        permission: 'effects.prompt.view',
+      },
+      {
+        href: '/admin/video-effects/pricing',
+        label: '定价',
+        icon: Coins,
+        permission: 'effects.pricing.view',
+      },
+      {
+        href: '/admin/video-effects/tasks',
+        label: '任务',
+        icon: ListOrdered,
+        permission: 'effects.task.view',
+      },
+      {
+        href: '/admin/video-effects/settings',
+        label: '设置',
+        icon: SlidersHorizontal,
+        permission: 'effects.settings.view',
       },
     ],
   },
@@ -401,12 +519,6 @@ const NAV_SECTIONS: NavSection[] = [
         icon: CreditCard,
         items: [
           {
-            href: '/admin/billing/settings',
-            label: '充值设置',
-            icon: CreditCard,
-            permission: 'billing.manage',
-          },
-          {
             href: '/admin/billing/bonus-config',
             label: '赠送积分',
             icon: Gift,
@@ -499,6 +611,50 @@ const NAV_SECTIONS: NavSection[] = [
             label: '邀请拉新',
             icon: Users,
             permission: 'billing.cost.view',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: 'api-calls',
+    title: 'API调用记录',
+    subgroups: [
+      {
+        key: 'api-calls-list',
+        label: '调用明细',
+        icon: Activity,
+        items: [
+          {
+            href: '/admin/api-calls',
+            label: '调用记录',
+            icon: Activity,
+            permission: 'billing.cost.view',
+          },
+        ],
+      },
+      {
+        key: 'api-calls-anomaly',
+        label: '异常管理',
+        icon: AlertTriangle,
+        items: [
+          {
+            href: '/admin/mv/anomalies/failed-shots',
+            label: '镜头视频失败',
+            icon: AlertTriangle,
+            permission: 'mv.anomaly.view',
+          },
+          {
+            href: '/admin/mv/anomalies/storyboards',
+            label: '故事板异常',
+            icon: AlertTriangle,
+            permission: 'mv.anomaly.view',
+          },
+          {
+            href: '/admin/mv/anomalies/llm',
+            label: '语言大模型异常',
+            icon: AlertTriangle,
+            permission: 'mv.anomaly.view',
           },
         ],
       },

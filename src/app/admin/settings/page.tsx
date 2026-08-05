@@ -12,6 +12,7 @@ import { TaskPollingSection } from './_components/task-polling-section';
 import { AccountTab } from './_components/account-tab';
 import { DatabaseSection } from './_components/database-section';
 import { RewardfulSection } from './_components/rewardful-section';
+import { BillingRechargeTab } from './_components/billing-recharge-tab';
 import { LineTabs } from './_components/line-tabs';
 
 type SettingsTab =
@@ -20,6 +21,7 @@ type SettingsTab =
   | 'database'
   | 'mv'
   | 'polling'
+  | 'billing'
   | 'rewardful'
   | 'support';
 
@@ -28,6 +30,7 @@ const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'account', label: '账号设置' },
   { id: 'mv', label: 'MV设置' },
   { id: 'polling', label: '任务轮询' },
+  { id: 'billing', label: '充值设置' },
   { id: 'support', label: '智能客服' },
   { id: 'rewardful', label: 'Rewardful' },
   { id: 'database', label: '数据库' },
@@ -35,7 +38,7 @@ const TABS: Array<{ id: SettingsTab; label: string }> = [
 
 function GeneralTab() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <WebBaseUrlSection />
       <AllowedOriginsSection />
       <StorageProviderSection />
@@ -45,7 +48,7 @@ function GeneralTab() {
 
 function SupportTab() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <SupportSettingsSection />
     </div>
   );
@@ -64,6 +67,7 @@ function SettingsPageContent() {
       raw === 'general' ||
       raw === 'mv' ||
       raw === 'polling' ||
+      raw === 'billing' ||
       raw === 'rewardful' ||
       raw === 'support'
     ) {
@@ -106,13 +110,10 @@ function SettingsPageContent() {
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'polling' && <TaskPollingSection />}
           {activeTab === 'mv' && <MvSettingsTab />}
+          {activeTab === 'billing' && <BillingRechargeTab />}
           {activeTab === 'support' && <SupportTab />}
           {activeTab === 'rewardful' && <RewardfulSection />}
-          {activeTab === 'database' && (
-            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-6">
-              <DatabaseSection />
-            </div>
-          )}
+          {activeTab === 'database' && <DatabaseSection />}
         </div>
       </div>
     </div>

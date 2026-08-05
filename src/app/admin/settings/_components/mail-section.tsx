@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mail, Save, Plug, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Plug, Save, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { SecretInput } from '@/components/secret-input';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 import { FromEnvBadge } from './from-env-badge';
+import { CONTROL_MD, CONTROL_WIDE, SECRET_INPUT_CLS } from './settings-form-styles';
 
 interface MailConfigView {
   brand: string;
@@ -90,74 +93,101 @@ export function MailSection({ embedded = false }: { embedded?: boolean }) {
     save.mutate(payload);
   };
 
+  const enabled = !!data?.enabled;
+
   return (
     <section>
       <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
-        <div className={cn(!embedded && 'bg-white border border-slate-200 rounded-2xl p-5')}>
-          <div className="flex items-start gap-3 mb-4">
-            <Mail className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-800">阿里云邮件推送</p>
-              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                用于注册验证码、找回密码等系统邮件。发信地址须已在阿里云 DirectMail 控制台验证。
-              </p>
-              {data && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  {data.enabled ? (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-xs text-emerald-600 font-medium">
-                        已配置 · {data.accountName}
-                        <FromEnvBadge fromEnv={data.accessKeyIdFromEnv || data.accessKeySecretFromEnv} />
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="text-xs text-amber-600 font-medium">
-                        未配置完整，验证码/找回密码邮件无法发送
-                      </span>
-                    </>
+        <form
+          onSubmit={handleSubmit}
+          className={cn('space-y-4', !embedded && 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm')}
+        >
+          <div
+            className={cn(
+              'flex items-center justify-between gap-4 rounded-2xl border px-5 py-4',
+              enabled
+                ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'
+                : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50',
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-semibold text-slate-900">阿里云邮件推送</p>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                    enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
                   )}
-                </div>
-              )}
+                >
+                  {enabled ? '已配置' : '未配置'}
+                </span>
+                {data && (
+                  <FromEnvBadge
+                    fromEnv={data.accessKeyIdFromEnv || data.accessKeySecretFromEnv}
+                  />
+                )}
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                {enabled
+                  ? `发信地址 ${data?.accountName} · 用于注册验证码、找回密码等`
+                  : '未配置完整时，验证码/找回密码邮件无法发送'}
+              </p>
             </div>
+            {enabled ? (
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-500" />
+            ) : (
+              <XCircle className="h-6 w-6 shrink-0 text-amber-500" />
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">邮件品牌名</label>
-                <input
-                  type="text"
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                发信身份
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField label="邮件品牌名" description="邮件正文与标题中展示的品牌名。">
+                <Input
+                  size="sm"
                   value={form.brand}
                   onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
                   placeholder="AI MV Studio"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">发信地址</label>
-                <input
-                  type="text"
+              </FormField>
+              <FormField
+                label="发信地址"
+                description="须已在阿里云 DirectMail 控制台验证。"
+                controlClassName={CONTROL_MD}
+              >
+                <Input
+                  size="sm"
                   value={form.accountName}
                   onChange={(e) => setForm((f) => ({ ...f, accountName: e.target.value }))}
                   placeholder="dk@yourdomain.com"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">地域 Region</label>
-                <input
-                  type="text"
+              </FormField>
+              <FormField label="地域 Region" description="阿里云地域，如 cn-hangzhou。">
+                <Input
+                  size="sm"
                   value={form.regionId}
                   onChange={(e) => setForm((f) => ({ ...f, regionId: e.target.value }))}
                   placeholder="cn-hangzhou"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">AccessKey ID</label>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">凭证</h2>
+            </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField
+                label="AccessKey ID"
+                description="留空保存表示不修改已有密钥。"
+                controlClassName={CONTROL_MD}
+              >
                 <SecretInput
                   configured={data?.accessKeyIdConfigured}
                   maskedPreview={data?.accessKeyIdMasked}
@@ -165,10 +195,14 @@ export function MailSection({ embedded = false }: { embedded?: boolean }) {
                   onChange={(accessKeyId) => setForm((f) => ({ ...f, accessKeyId }))}
                   placeholder="LTAI..."
                   type="text"
+                  className={SECRET_INPUT_CLS}
                 />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-600 mb-1">AccessKey Secret</label>
+              </FormField>
+              <FormField
+                label="AccessKey Secret"
+                description="对应 Secret。留空保存表示不修改。"
+                controlClassName={CONTROL_WIDE}
+              >
                 <SecretInput
                   configured={data?.accessKeySecretConfigured}
                   maskedPreview={data?.accessKeySecretMasked}
@@ -176,28 +210,40 @@ export function MailSection({ embedded = false }: { embedded?: boolean }) {
                   onChange={(accessKeySecret) => setForm((f) => ({ ...f, accessKeySecret }))}
                   placeholder="32 位字符串"
                   showToggle
+                  className={SECRET_INPUT_CLS}
                 />
-              </div>
+              </FormField>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">测试收件邮箱</label>
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
-              />
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">连通性</h2>
             </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField
+                label="测试收件邮箱"
+                description="点击「发送测试邮件」时使用，不会随配置保存。"
+                controlClassName={CONTROL_MD}
+              >
+                <Input
+                  size="sm"
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="your@email.com"
+                />
+              </FormField>
+            </div>
+          </div>
 
+          <div className="flex flex-col items-end gap-2">
             {msg && (
               <p className={cn('text-xs font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
                 {msg.text}
               </p>
             )}
-
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -208,23 +254,23 @@ export function MailSection({ embedded = false }: { embedded?: boolean }) {
                   }
                   test.mutate(testEmail.trim());
                 }}
-                disabled={test.isPending || !data?.enabled}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 text-sm font-medium transition-colors"
+                disabled={test.isPending || !enabled}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
               >
                 <Plug className={cn('h-3.5 w-3.5', test.isPending && 'animate-pulse')} />
-                发送测试邮件
+                {test.isPending ? '发送中…' : '发送测试邮件'}
               </button>
               <button
                 type="submit"
                 disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
               >
                 <Save className="h-3.5 w-3.5" />
                 {save.isPending ? '保存中…' : '保存配置'}
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </QueryState>
     </section>
   );

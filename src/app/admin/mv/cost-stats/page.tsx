@@ -75,8 +75,6 @@ export default function CostStatsPage() {
   // 对账：成功后 invalidate 自身 cost-stats query 让 reconciled_amount 自动刷新
   const reconcileMutation = useMutation<{
     mountsea: number;
-    fal: number;
-    cloudflare: number;
     total: number;
     reconciled: number;
     unmatched: number;
@@ -91,7 +89,7 @@ export default function CostStatsPage() {
         description:
           `时间窗：${s.window.startIso.slice(11, 19)} → ${s.window.endIso.slice(11, 19)}（最近 ${s.window.hours}h）\n\n` +
           `本次窗口待对账记录：${s.total} 条\n` +
-          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea} · fal ${s.fal} · cf ${s.cloudflare}）\n` +
+          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea}）\n` +
           `未匹配：${s.unmatched} 条`,
       });
     },
@@ -121,7 +119,7 @@ export default function CostStatsPage() {
               成本统计
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              所有渠道（Mountsea / Fal / Cloudflare）的调用 & 消费聚合
+              所有渠道（Mountsea / Mountsea MS）的调用 & 消费聚合
               {data && (
                 <span className="ml-2 text-slate-400">
                   · {data.range.fromIso.slice(0, 16).replace('T', ' ')} ~{' '}
@@ -210,7 +208,7 @@ export default function CostStatsPage() {
               {/* 底部说明 */}
               <div className="text-[11px] text-slate-400 leading-relaxed pt-2 px-1">
                 <strong className="text-slate-500">数据说明：</strong>
-                成本数据来自 mv_cost_records 埋点。"估算成本"按官方公开价计算（Mountsea credit / Fal USD / Cloudflare neuron 单位异构，
+                成本数据来自 mv_cost_records 埋点。"估算成本"按官方公开价计算（Mountsea credit 与原生 USD 单位异构，
                 量级展示时按 1 credit ≈ 0.0014 USD 折算）；"已对账金额"由 cron 每小时调上游账单 API 回填，
                 以 reconciled_amount 为最终结算依据。"失败浪费"基于失败类型启发式判断
                 （内容审核/超时多半已被上游计费，5xx/限流/鉴权失败一般不计费），实际仍以对账为准。

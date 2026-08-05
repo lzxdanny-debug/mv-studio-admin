@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cloud, Save, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Save, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { SecretInput } from '@/components/secret-input';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 import { FromEnvBadge } from './from-env-badge';
+import { CONTROL_WIDE, SECRET_INPUT_CLS } from './settings-form-styles';
 
 interface AiProviderStatus {
   configured: boolean;
@@ -28,7 +31,7 @@ interface MountseaOpsConfigView {
   reconcileEnabled: boolean;
   aiProviders: {
     mountsea: AiProviderStatus;
-    mountseaMs: AiProviderStatus;
+    apisale: AiProviderStatus;
   };
 }
 
@@ -84,113 +87,117 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
     return `${name}：已配置${src ? `（${src}）` : ''}${p.baseUrl ? ` · ${p.baseUrl}` : ''}`;
   };
 
+  const ssoOk = !!data?.ssoEnabled;
+  const reconcileOk = !!data?.reconcileEnabled;
+
   return (
     <section>
       <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
-        <div className={cn(!embedded && 'bg-white border border-slate-200 rounded-2xl p-5')}>
-          <div className="flex items-start gap-3 mb-4">
-            <Cloud className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-800">Mountsea 集成</p>
-              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                用户端 API 用于 Mountsea 账号登录与 SSO；Usage Token 用于成本对账拉取真实积分流水。
-                AI 生成用的 API Key 请在{' '}
-                <Link
-                  href="/admin/ai-providers"
-                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2"
+        <form
+          onSubmit={handleSubmit}
+          className={cn('space-y-4', !embedded && 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm')}
+        >
+          <div
+            className={cn(
+              'flex items-center justify-between gap-4 rounded-2xl border px-5 py-4',
+              ssoOk && reconcileOk
+                ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'
+                : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50',
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-semibold text-slate-900">Mountsea 集成</p>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                    ssoOk ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+                  )}
                 >
-                  AI 渠道凭证
-                </Link>{' '}
-                页配置，避免重复录入。
+                  SSO {ssoOk ? '就绪' : '未配置'}
+                </span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                    reconcileOk ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+                  )}
+                >
+                  对账 {reconcileOk ? '就绪' : '未配置'}
+                </span>
+                {data && (
+                  <FromEnvBadge fromEnv={data.userApiUrlFromEnv || data.usageTokenFromEnv} />
+                )}
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                用户端 API 用于登录与 SSO；Usage Token 用于成本对账。AI Key 请在渠道凭证页配置。
               </p>
-              {data && (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
-                  <div className="flex items-center gap-1.5">
-                    {data.ssoEnabled ? (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-xs text-emerald-600 font-medium">
-                          SSO 已就绪
-                          <FromEnvBadge fromEnv={data.userApiUrlFromEnv} />
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="text-xs text-amber-600 font-medium">用户 API 未配置</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {data.reconcileEnabled ? (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-xs text-emerald-600 font-medium">
-                          对账 Token 已配置
-                          <FromEnvBadge fromEnv={data.usageTokenFromEnv} />
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="text-xs text-amber-600 font-medium">对账 Token 未配置</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
+            {ssoOk && reconcileOk ? (
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-500" />
+            ) : (
+              <XCircle className="h-6 w-6 shrink-0 text-amber-500" />
+            )}
           </div>
 
           {data && (
-            <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-xs text-slate-600 space-y-1">
-              <p className="font-medium text-slate-700">AI 渠道凭证（只读）</p>
-              <p>{providerLabel(data.aiProviders.mountsea, 'Mountsea Legacy')}</p>
-              <p>{providerLabel(data.aiProviders.mountseaMs, 'Mountsea /ms/v1')}</p>
-              <Link
-                href="/admin/ai-providers"
-                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 mt-1"
-              >
-                前往配置 MOUNTSEA_API_KEY
-                <ExternalLink className="h-3 w-3" />
-              </Link>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  AI 渠道凭证（只读）
+                </h2>
+                <Link
+                  href="/admin/ai-providers"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
+                  前往配置
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </div>
+              <div className="space-y-1.5 px-5 py-4 text-sm text-slate-600">
+                <p>{providerLabel(data.aiProviders.mountsea, 'Mountsea（文本/Hub）')}</p>
+                <p>{providerLabel(data.aiProviders.apisale, 'apisale（媒体主渠道）')}</p>
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  用户端 API 地址
-                </label>
-                <input
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                SSO 与对账
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-100 px-5 py-2">
+              <FormField
+                label="用户端 API 地址"
+                description="对应 MOUNTSEA_USER_API_URL。"
+                controlClassName={CONTROL_WIDE}
+              >
+                <Input
+                  size="sm"
                   type="url"
                   value={form.userApiUrl}
                   onChange={(e) => setForm((f) => ({ ...f, userApiUrl: e.target.value }))}
                   placeholder="https://dk.mountsea.ai"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">对应 MOUNTSEA_USER_API_URL</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  对账 API 地址
-                </label>
-                <input
+              </FormField>
+              <FormField
+                label="对账 API 地址"
+                description="对应 MOUNTSEA_USAGE_BASE_URL；留空则与用户端同域。"
+                controlClassName={CONTROL_WIDE}
+              >
+                <Input
+                  size="sm"
                   type="url"
                   value={form.usageBaseUrl}
                   onChange={(e) => setForm((f) => ({ ...f, usageBaseUrl: e.target.value }))}
                   placeholder="https://dk.mountsea.ai"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  对应 MOUNTSEA_USAGE_BASE_URL，留空则与用户端同域
-                </p>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Usage Token（用户 JWT）
-                </label>
+              </FormField>
+              <FormField
+                label="Usage Token"
+                description="用户 JWT（MOUNTSEA_USAGE_TOKEN）。登录后从 Network Bearer 复制，约 24h 有效。留空保存表示不修改。"
+                controlClassName={CONTROL_WIDE}
+              >
                 <SecretInput
                   configured={data?.usageTokenConfigured}
                   maskedPreview={data?.usageTokenMasked}
@@ -198,32 +205,28 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
                   onChange={(usageToken) => setForm((f) => ({ ...f, usageToken }))}
                   placeholder="eyJhbGciOiJIUzI1NiIs..."
                   showToggle
+                  className={SECRET_INPUT_CLS}
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  对应 MOUNTSEA_USAGE_TOKEN。登录 dk.mountsea.ai 后从 Network 请求头 Bearer 复制，约
-                  24h 有效。
-                </p>
-              </div>
+              </FormField>
             </div>
+          </div>
 
+          <div className="flex flex-col items-end gap-2">
             {msg && (
               <p className={cn('text-xs font-medium', msg.ok ? 'text-emerald-600' : 'text-red-500')}>
                 {msg.text}
               </p>
             )}
-
-            <div className="flex justify-end pt-1">
-              <button
-                type="submit"
-                disabled={save.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors"
-              >
-                <Save className="h-3.5 w-3.5" />
-                {save.isPending ? '保存中…' : '保存配置'}
-              </button>
-            </div>
-          </form>
-        </div>
+            <button
+              type="submit"
+              disabled={save.isPending}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {save.isPending ? '保存中…' : '保存配置'}
+            </button>
+          </div>
+        </form>
       </QueryState>
     </section>
   );

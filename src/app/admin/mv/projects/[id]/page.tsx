@@ -201,18 +201,19 @@ function classifyUnreconciledRecord(
  * 设计要点：
  *   - records 是按时间顺序的全量原始记录，前端可以做"时间线视图"
  *   - byStep / byProvider 是聚合桶，给汇总卡片用
- *   - totals.mountsea_credits / fal_usd / cloudflare_usd 三种计费单位并存，
- *     Cloudflare 无本地价格表估算，cloudflare_usd 来自 cf_aig_logs 真实账单
- *   - priceTableMatched=false 时，DB 记录的 cost 与当前价格表不一致（说明价格表更新了
- *     但历史记录没回填），前端可以显眼标注让运维知道"这条数据该刷一下"
+ *   - 汇总卡优先展示对账真实消耗；价格表估算单独展示
+ *   - mountsea_credits=估算积分，mountsea_rec_credits=实扣积分；
+ *     native_usd=美元渠道估算，reconciled_usd=美元渠道实扣
+ *   - priceTableMatched=false 时，DB 记录的 cost 与当前价格表不一致
  */
 interface CostBucket {
   calls: number;
   success: number;
   failure: number;
   mountsea_credits: number;
-  fal_usd: number;
-  cloudflare_usd: number;
+  mountsea_rec_credits: number;
+  native_usd: number;
+  reconciled_usd: number;
   elapsed_ms_sum: number;
 }
 
@@ -220,7 +221,7 @@ type CostRecordRow = {
     id: string;
     shotId: string | null;
     step: string;
-    provider: 'mountsea' | 'fal' | 'cloudflare';
+    provider: string;
     model: string;
     quantity: number;
     quantityUnit: string;
@@ -260,18 +261,15 @@ interface ProjectCosts {
     reconciled: number;
     failedNoBill: number;
     pendingSync: number;
-    falRecUsd: number;
-    cfRecUsd: number;
+    recUsd: number;
     mountseaRecCredits: number;
-    falEstUsd: number;
+    estUsd: number;
     mountseaEstCredits: number;
   };
 }
 
 interface ReconcileSummary {
   mountsea: number;
-  fal: number;
-  cloudflare: number;
   total: number;
   reconciled: number;
   unmatched: number;
@@ -311,10 +309,18 @@ const EMPTY_COST_BUCKET: CostBucket = {
   success: 0,
   failure: 0,
   mountsea_credits: 0,
-  fal_usd: 0,
-  cloudflare_usd: 0,
+  mountsea_rec_credits: 0,
+  native_usd: 0,
+  reconciled_usd: 0,
   elapsed_ms_sum: 0,
 };
+
+/** 桶内 Mountsea：有实扣用实扣，否则回退估算 */
+function bucketMountseaCredits(b: CostBucket): { credits: number; isReal: boolean } {
+  const rec = safeCostNumber(b.mountsea_rec_credits);
+  if (rec > 0) return { credits: rec, isReal: true };
+  return { credits: safeCostNumber(b.mountsea_credits), isReal: false };
+}
 
 const ASSET_TYPE_LABELS: Record<string, string> = {
   ref_image: '参考图',
@@ -916,17 +922,17 @@ function HistoryTab({
 }
 
 /**
- * 成本明细 Tab —— 阶段 1：内部审计视角
+ * 成本明细 Tab —— 内部审计视角
  *
  * 数据特征：
- *   - cost_native_amount 取自 native-pricing.ts 公开价格表，与上游真实账单可能存在 ±20% 偏差
- *   - 三种计费单位（Mountsea credits / Fal USD / Cloudflare USD）并存，不做汇率换算
- *   - 失败记录也会出现：上游"扣了钱没出片"的场景需要可见，运维核账时也要看到这部分损耗
+ *   - 汇总优先累加对账真实消耗；价格表估算单独展示（Mountsea / apisale 同一口径）
+ *   - Mountsea credits 按 100 credits=1 CNY + Frankfurter 汇率折 USD
+ *   - 失败记录也会出现：上游"扣了钱没出片"的场景需要可见
  *
  * UI 分层：
- *   1. 顶部 3 张大卡：三种原生单位的总额（视觉上类似账单首页）
- *   2. 中部双栏：按步骤聚合 + 按 Provider 聚合（横向对比："是哪个步骤在烧钱"和"是哪家在烧钱"）
- *   3. 底部表格：原始记录时间线，可点开 metadata 看 raw payload
+ *   1. 顶部：对账状态 + 真实 USD 合计；三张卡（Mountsea / 美元渠道 / 估算对照）
+ *   2. 中部双栏：按步骤 / Provider 聚合（真实优先）
+ *   3. 底部表格：原始记录时间线
  */
 function CostsTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
@@ -958,7 +964,7 @@ function CostsTab({ projectId }: { projectId: string }) {
           summary.total === 0
             ? '本项目没有 reconciled_at 为空的成本记录。'
             : `待对账记录：${summary.total} 条\n` +
-              `成功匹配：${summary.reconciled} 条（mountsea ${summary.mountsea} · fal ${summary.fal} · cf ${summary.cloudflare}）\n` +
+              `成功匹配：${summary.reconciled} 条（mountsea ${summary.mountsea}）\n` +
               `未匹配：${summary.unmatched} 条`,
         variant: summary.total === 0 ? 'info' : allMatched ? 'success' : 'warning',
       });
@@ -992,7 +998,7 @@ function CostsTab({ projectId }: { projectId: string }) {
     const mountseaEstUsd = mountseaCreditsToUsd(rs.mountseaEstCredits, cnyPerUsd);
     const mountseaRecUsd = mountseaCreditsToUsd(rs.mountseaRecCredits, cnyPerUsd);
     const mountseaUsd = mountseaRecUsd > 0 ? mountseaRecUsd : mountseaEstUsd;
-    const totalCostUsd = rs.falRecUsd + rs.cfRecUsd + mountseaUsd;
+    const totalCostUsd = rs.recUsd + mountseaUsd;
     return {
       ...rs,
       mountseaRecUsd,
@@ -1053,9 +1059,7 @@ function CostsTab({ projectId }: { projectId: string }) {
                       {formatUsdAmount(reconStats.totalCostUsd)}
                     </p>
                     <p className="text-sm text-emerald-800/85 mt-2 tabular-nums">
-                      Fal {formatUsdAmount(reconStats.falRecUsd)}
-                      {' + '}
-                      CF {formatUsdAmount(reconStats.cfRecUsd)}
+                      美元账单 {formatUsdAmount(reconStats.recUsd)}
                       {' + '}
                       Mountsea {formatUsdAmount(reconStats.mountseaUsd)}
                       {reconStats.mountseaRecUsd <= 0 && reconStats.mountseaEstCredits > 0 && (
@@ -1063,15 +1067,16 @@ function CostsTab({ projectId }: { projectId: string }) {
                       )}
                     </p>
                     <p className="text-[10px] text-emerald-700/60 mt-1.5">
-                      Mountsea 按 100 credits = 1 CNY · 汇率 {cnyPerUsd.toFixed(4)} CNY/USD
+                      以上金额均为美元 USD。Mountsea 折算：100 credits = 1 CNY ÷ 汇率{' '}
+                      {cnyPerUsd.toFixed(4)} CNY/USD
                       {Math.abs(cnyPerUsd - DEFAULT_CNY_PER_USD) > 0.01 ? '（Frankfurter 实时）' : '（默认兜底）'}
                     </p>
                   </div>
                 )}
 
-                {reconStats.falEstUsd > 0 && reconStats.falRecUsd > 0 && (
+                {reconStats.estUsd > 0 && reconStats.recUsd > 0 && (
                   <span className="text-[11px] text-slate-500">
-                    Fal 价格表估算 {formatUsdAmount(reconStats.falEstUsd)}，已对账 {formatUsdAmount(reconStats.falRecUsd)}
+                    价格表估算 {formatUsdAmount(reconStats.estUsd)}，已对账 {formatUsdAmount(reconStats.recUsd)}
                   </span>
                 )}
               </div>
@@ -1115,83 +1120,103 @@ function CostHeaderCards({
   byProvider: Record<string, CostBucket>;
   cnyPerUsd?: number;
 }) {
+  const msRecCredits = safeCostNumber(totals.mountsea_rec_credits);
+  const msEstCredits = safeCostNumber(totals.mountsea_credits);
+  const msRealUsd = mountseaCreditsToUsd(msRecCredits, cnyPerUsd);
+  const msEstUsd = mountseaCreditsToUsd(msEstCredits, cnyPerUsd);
+  const usdReal = safeCostNumber(totals.reconciled_usd);
+  const usdEst = safeCostNumber(totals.native_usd);
+  const totalRealUsd = msRealUsd + usdReal;
+  const totalEstUsd = msEstUsd + usdEst;
+  const mountseaBucket = byProvider.mountsea;
+  const usdChannelCalls = Math.max(
+    0,
+    totals.calls - (mountseaBucket?.calls ?? 0),
+  );
+  const usdChannelSuccess = Math.max(
+    0,
+    totals.success - (mountseaBucket?.success ?? 0),
+  );
+  const usdChannelFailure = Math.max(
+    0,
+    totals.failure - (mountseaBucket?.failure ?? 0),
+  );
+
   const cards: Array<{
     key: string;
     label: string;
-    value: number;
-    suffix: string;
+    primary: string;
+    secondary: string;
+    footer: string;
     color: string;
-    decimals: number;
+    active: boolean;
   }> = [
     {
       key: 'mountsea',
-      label: 'Mountsea',
-      value: safeCostNumber(totals.mountsea_credits),
-      suffix: 'credits',
+      label: 'Mountsea 真实消耗',
+      primary: msRecCredits > 0 ? formatUsdAmount(msRealUsd) : msEstCredits > 0 ? formatUsdAmount(msEstUsd) : '$0.00',
+      secondary:
+        msRecCredits > 0
+          ? `${msRecCredits.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits 实扣` +
+            (msEstCredits > 0
+              ? ` · 估算 ${formatUsdAmount(msEstUsd)}（${msEstCredits.toLocaleString(undefined, { maximumFractionDigits: 0 })} credits）`
+              : '')
+          : msEstCredits > 0
+            ? `${msEstCredits.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits（尚未对账，显示估算）`
+            : '无 Mountsea 记录',
+      footer: mountseaBucket
+        ? `${mountseaBucket.calls} 次 · 成功 ${mountseaBucket.success} / 失败 ${mountseaBucket.failure}`
+        : '0 次调用',
       color: 'from-blue-50 to-blue-100 text-blue-700 border-blue-200',
-      decimals: 2,
+      active: msRecCredits > 0 || msEstCredits > 0,
     },
     {
-      key: 'fal',
-      label: 'Fal',
-      value: safeCostNumber(totals.fal_usd),
-      suffix: 'USD',
-      color: 'from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200',
-      decimals: 4,
-    },
-    {
-      key: 'cloudflare',
-      label: 'Cloudflare',
-      value: safeCostNumber(totals.cloudflare_usd),
-      suffix: 'USD',
+      key: 'usdChannels',
+      label: '美元渠道真实消耗',
+      primary: usdReal > 0 ? formatUsdAmount(usdReal) : usdEst > 0 ? formatUsdAmount(usdEst) : '$0.00',
+      secondary:
+        usdReal > 0
+          ? `apisale 等实扣` + (usdEst > 0 ? ` · 估算 ${formatUsdAmount(usdEst)}` : '')
+          : usdEst > 0
+            ? `估算 ${formatUsdAmount(usdEst)}（尚未对账）`
+            : '无美元渠道记录',
+      footer: `${usdChannelCalls} 次 · 成功 ${usdChannelSuccess} / 失败 ${usdChannelFailure}`,
       color: 'from-amber-50 to-amber-100 text-amber-700 border-amber-200',
-      decimals: 2,
+      active: usdReal > 0 || usdEst > 0,
+    },
+    {
+      key: 'estimate',
+      label: '价格表估算合计',
+      primary: totalEstUsd > 0 ? formatUsdAmount(totalEstUsd) : '$0.00',
+      secondary:
+        totalRealUsd > 0 && totalEstUsd > 0
+          ? `真实合计 ${formatUsdAmount(totalRealUsd)} · 偏差 ${(((totalEstUsd - totalRealUsd) / totalRealUsd) * 100).toFixed(1)}%`
+          : 'Mountsea + 美元渠道价格表估算',
+      footer: `${totals.calls} 次调用 · 成功 ${totals.success} / 失败 ${totals.failure}`,
+      color: 'from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200',
+      active: totalEstUsd > 0,
     },
   ];
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      {cards.map((c) => {
-        const bucket = byProvider[c.key] ?? totals;
-        const isMountsea = c.key === 'mountsea';
-        const value = safeCostNumber(c.value);
-        return (
-          <div
-            key={c.label}
-            className={cn(
-              'rounded-xl border p-4 bg-gradient-to-br',
-              value > 0 ? c.color : 'from-slate-50 to-slate-100 text-slate-500 border-slate-200',
-            )}
-          >
-            <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
-              <DollarSign className="h-3.5 w-3.5" />
-              {c.label}
-            </div>
-            {isMountsea && value > 0 ? (
-              <div className="mt-1">
-                <div className="text-2xl font-bold tabular-nums">
-                  {formatUsdAmount(mountseaCreditsToUsd(value, cnyPerUsd))}
-                </div>
-                <div className="text-[11px] text-slate-400 font-normal mt-0.5">
-                  {value.toLocaleString(undefined, { maximumFractionDigits: 2 })} credits
-                </div>
-              </div>
-            ) : (
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-2xl font-bold tabular-nums">
-                  {value.toLocaleString(undefined, {
-                    minimumFractionDigits: value > 0 ? Math.min(c.decimals, 2) : 0,
-                    maximumFractionDigits: c.decimals,
-                  })}
-                </span>
-                <span className="text-xs opacity-70">{c.suffix}</span>
-              </div>
-            )}
-            <div className="text-[11px] opacity-60 mt-1">
-              {bucket.calls} 次调用 · 成功 {bucket.success} / 失败 {bucket.failure}
-            </div>
+      {cards.map((c) => (
+        <div
+          key={c.key}
+          className={cn(
+            'rounded-xl border p-4 bg-gradient-to-br',
+            c.active ? c.color : 'from-slate-50 to-slate-100 text-slate-500 border-slate-200',
+          )}
+        >
+          <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
+            <DollarSign className="h-3.5 w-3.5" />
+            {c.label}
           </div>
-        );
-      })}
+          <div className="mt-1 text-2xl font-bold tabular-nums">{c.primary}</div>
+          <div className="text-[11px] text-slate-500 font-normal mt-1 leading-snug">{c.secondary}</div>
+          <div className="text-[11px] opacity-60 mt-1.5">{c.footer}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1242,13 +1267,19 @@ function CostBreakdownCard({
             <tr>
               <th className="text-left pb-2 font-medium">Key</th>
               <th className="text-right pb-2 font-medium">调用</th>
-              <th className="text-right pb-2 font-medium">Mountsea $</th>
-              <th className="text-right pb-2 font-medium">Fal $</th>
-              <th className="text-right pb-2 font-medium">CF $</th>
+              <th className="text-right pb-2 font-medium">Mountsea 真实$</th>
+              <th className="text-right pb-2 font-medium">美元渠道真实$</th>
+              <th className="text-right pb-2 font-medium">估算$</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {rows.map(({ key, label, placeholder, bucket: b }) => (
+            {rows.map(({ key, label, placeholder, bucket: b }) => {
+              const ms = bucketMountseaCredits(b);
+              const usdReal = safeCostNumber(b.reconciled_usd);
+              const usdEst = safeCostNumber(b.native_usd);
+              const msEstUsd = mountseaCreditsToUsd(safeCostNumber(b.mountsea_credits), cnyPerUsd);
+              const rowEstUsd = msEstUsd + usdEst;
+              return (
               <tr key={key} className={placeholder && b.calls === 0 ? 'opacity-60' : undefined}>
                 <td className="py-1.5 text-slate-700">
                   <span className="font-medium">{label}</span>
@@ -1265,26 +1296,30 @@ function CostBreakdownCard({
                   {b.calls > 0 ? b.calls : '—'}
                 </td>
                 <td className="py-1.5 text-right">
-                  {safeCostNumber(b.mountsea_credits) > 0 ? (
-                    <MountseaAmount
-                      credits={safeCostNumber(b.mountsea_credits)}
-                      usdClassName="text-blue-600 font-medium text-xs"
-                      cnyPerUsd={cnyPerUsd}
-                    />
+                  {ms.credits > 0 ? (
+                    <div>
+                      <MountseaAmount
+                        credits={ms.credits}
+                        usdClassName="text-blue-600 font-medium text-xs"
+                        cnyPerUsd={cnyPerUsd}
+                      />
+                      {!ms.isReal && (
+                        <div className="text-[10px] text-amber-600">估算</div>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-slate-300">—</span>
                   )}
                 </td>
-                <td className="py-1.5 text-right tabular-nums text-emerald-600">
-                  {safeCostNumber(b.fal_usd) > 0 ? safeCostNumber(b.fal_usd).toFixed(4) : '—'}
-                </td>
                 <td className="py-1.5 text-right tabular-nums text-amber-600">
-                  {safeCostNumber(b.cloudflare_usd) > 0
-                    ? safeCostNumber(b.cloudflare_usd).toFixed(2)
-                    : '—'}
+                  {usdReal > 0 ? usdReal.toFixed(4) : '—'}
+                </td>
+                <td className="py-1.5 text-right tabular-nums text-emerald-600">
+                  {rowEstUsd > 0 ? rowEstUsd.toFixed(4) : '—'}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -1597,20 +1632,6 @@ function resolveReconciledCellDisplay(
   const ageMs = Date.now() - new Date(r.createdAt).getTime();
   const isRecent = ageMs < 2 * 60 * 60 * 1000;
 
-  if (r.provider === 'cloudflare') {
-    return {
-      kind: 'reason',
-      label: isRecent ? 'CF 账单同步中' : '待 CF 对账',
-      tone: 'info',
-    };
-  }
-  if (r.provider === 'fal') {
-    return {
-      kind: 'reason',
-      label: isRecent ? 'Fal 账单同步中' : '待 Fal 对账',
-      tone: 'info',
-    };
-  }
   if (r.provider === 'mountsea') {
     return {
       kind: 'reason',
@@ -1981,8 +2002,8 @@ function CostRecordsTable({
                         className={cn(
                           'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mr-1.5 shrink-0',
                           r.provider === 'mountsea' && 'bg-blue-50 text-blue-700',
-                          r.provider === 'fal' && 'bg-emerald-50 text-emerald-700',
-                          r.provider === 'cloudflare' && 'bg-amber-50 text-amber-700',
+                          r.provider === 'apisale' && 'bg-emerald-50 text-emerald-700',
+                          r.provider === 'mountseaMs' && 'bg-slate-100 text-slate-500',
                         )}
                       >
                         {r.provider}

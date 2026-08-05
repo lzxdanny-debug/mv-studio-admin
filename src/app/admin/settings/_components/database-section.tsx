@@ -1,9 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Database, Server } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
+import { FormField } from '@/components/ui/form-field';
 
 interface DatabaseConfigView {
   postgres: {
@@ -23,12 +23,11 @@ interface DatabaseConfigView {
   note: string;
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function ReadonlyValue({ value }: { value: string }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 py-2 border-b border-slate-100 last:border-0">
-      <span className="text-xs font-medium text-slate-500 w-28 shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 font-mono break-all">{value}</span>
-    </div>
+    <span className="w-full truncate text-right font-mono text-xs text-slate-800" title={value}>
+      {value}
+    </span>
   );
 }
 
@@ -39,58 +38,65 @@ export function DatabaseSection() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
         {data && (
           <>
-            <section>
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                PostgreSQL
-              </h2>
-              <div className="bg-white border border-slate-200 rounded-2xl p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <Database className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">主数据库连接</p>
-                    <p className="text-xs text-slate-400 mt-0.5">只读展示，来自 API 环境变量（DB_*）</p>
-                  </div>
-                </div>
-                <InfoRow label="Host" value={data.postgres.host} />
-                <InfoRow label="Port" value={data.postgres.port} />
-                <InfoRow label="User" value={data.postgres.user || '—'} />
-                <InfoRow label="Database" value={data.postgres.database || '—'} />
-                <InfoRow
-                  label="Password"
-                  value={data.postgres.passwordConfigured ? '已配置（不展示）' : '未配置'}
-                />
-              </div>
-            </section>
+            <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4">
+              <p className="text-base font-semibold text-slate-900">数据库连接（只读）</p>
+              <p className="mt-1 text-sm text-slate-600">{data.note}</p>
+            </div>
 
-            <section>
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                Redis
-              </h2>
-              <div className="bg-white border border-slate-200 rounded-2xl p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <Server className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">队列 / 会话缓存</p>
-                    <p className="text-xs text-slate-400 mt-0.5">只读展示，来自 API 环境变量（REDIS_*）</p>
-                  </div>
-                </div>
-                <InfoRow label="Host" value={data.redis.host} />
-                <InfoRow label="Port" value={data.redis.port} />
-                <InfoRow label="DB Index" value={data.redis.db} />
-                <InfoRow
-                  label="Password"
-                  value={data.redis.passwordConfigured ? '已配置（不展示）' : '未配置'}
-                />
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-100 px-5 py-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  PostgreSQL · DB_*
+                </h2>
               </div>
-            </section>
+              <div className="divide-y divide-slate-100 px-5 py-2">
+                <FormField label="Host" description="主数据库主机。">
+                  <ReadonlyValue value={data.postgres.host} />
+                </FormField>
+                <FormField label="Port" description="连接端口。">
+                  <ReadonlyValue value={data.postgres.port} />
+                </FormField>
+                <FormField label="User" description="数据库用户。">
+                  <ReadonlyValue value={data.postgres.user || '—'} />
+                </FormField>
+                <FormField label="Database" description="库名。">
+                  <ReadonlyValue value={data.postgres.database || '—'} />
+                </FormField>
+                <FormField label="Password" description="密钥不展示明文。">
+                  <ReadonlyValue
+                    value={data.postgres.passwordConfigured ? '已配置（不展示）' : '未配置'}
+                  />
+                </FormField>
+              </div>
+            </div>
 
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-              {data.note}
-            </p>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-100 px-5 py-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Redis · REDIS_*
+                </h2>
+              </div>
+              <div className="divide-y divide-slate-100 px-5 py-2">
+                <FormField label="Host" description="队列 / 会话缓存主机。">
+                  <ReadonlyValue value={data.redis.host} />
+                </FormField>
+                <FormField label="Port" description="连接端口。">
+                  <ReadonlyValue value={data.redis.port} />
+                </FormField>
+                <FormField label="DB Index" description="Redis 逻辑库编号。">
+                  <ReadonlyValue value={data.redis.db} />
+                </FormField>
+                <FormField label="Password" description="密钥不展示明文。">
+                  <ReadonlyValue
+                    value={data.redis.passwordConfigured ? '已配置（不展示）' : '未配置'}
+                  />
+                </FormField>
+              </div>
+            </div>
           </>
         )}
       </QueryState>

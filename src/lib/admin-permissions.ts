@@ -2,6 +2,7 @@
 export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string; exact?: boolean }> = [
   { prefix: '/admin', permission: 'dashboard.view', exact: true },
   { prefix: '/admin/mv/projects', permission: 'project.view' },
+  { prefix: '/admin/api-calls', permission: 'billing.cost.view' },
   { prefix: '/admin/mv/anomalies', permission: 'mv.anomaly.view' },
   { prefix: '/admin/mv/styles', permission: 'asset.view' },
   { prefix: '/admin/mv/dance-styles', permission: 'asset.view' },
@@ -56,6 +57,23 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/karaoke/settings', permission: 'karaoke.settings.view' },
   { prefix: '/admin/karaoke/pricing', permission: 'karaoke.pricing.view' },
   { prefix: '/admin/karaoke/cost', permission: 'karaoke.cost.view' },
+  { prefix: '/admin/dance/projects', permission: 'dance.projects.view' },
+  { prefix: '/admin/dance/reference-test', permission: 'dance.projects.view' },
+  { prefix: '/admin/dance/visual-styles', permission: 'dance.styles.view' },
+  { prefix: '/admin/dance/styles', permission: 'dance.styles.view' },
+  { prefix: '/admin/dance/choreography', permission: 'dance.choreography.view' },
+  { prefix: '/admin/dance/scenes', permission: 'dance.scenes.view' },
+  { prefix: '/admin/dance/settings', permission: 'dance.settings.view' },
+  { prefix: '/admin/dance/pricing', permission: 'dance.pricing.view' },
+  { prefix: '/admin/dance/cost', permission: 'dance.cost.view' },
+  { prefix: '/admin/video-effects/templates', permission: 'effects.template.view' },
+  { prefix: '/admin/video-effects/categories', permission: 'effects.view' },
+  { prefix: '/admin/video-effects/scenarios', permission: 'effects.view' },
+  { prefix: '/admin/video-effects/workflows', permission: 'effects.workflow.view' },
+  { prefix: '/admin/video-effects/prompts', permission: 'effects.prompt.view' },
+  { prefix: '/admin/video-effects/pricing', permission: 'effects.pricing.view' },
+  { prefix: '/admin/video-effects/tasks', permission: 'effects.task.view' },
+  { prefix: '/admin/video-effects/settings', permission: 'effects.settings.view' },
 ];
 
 /** 详情页 Tab → permission */
@@ -89,6 +107,12 @@ export const TAB_PERMISSION_REGISTRY: Record<
     { key: 'segments', label: '片段', permission: 'karaoke.projects.view' },
     { key: 'costs', label: '成本明细', permission: 'karaoke.cost.view' },
     { key: 'operations', label: '操作', permission: 'karaoke.projects.retry' },
+  ],
+  'dance.project.detail': [
+    { key: 'overview', label: '概览', permission: 'dance.projects.view' },
+    { key: 'sections', label: '段落与片段', permission: 'dance.projects.view' },
+    { key: 'attempts', label: '生成尝试', permission: 'dance.projects.view' },
+    { key: 'costs', label: '成本明细', permission: 'dance.cost.view' },
   ],
 };
 

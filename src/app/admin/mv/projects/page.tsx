@@ -167,8 +167,6 @@ export default function AdminMvProjectsPage() {
    */
   const reconcileNowMutation = useMutation<{
     mountsea: number;
-    fal: number;
-    cloudflare: number;
     total: number;
     reconciled: number;
     unmatched: number;
@@ -184,7 +182,7 @@ export default function AdminMvProjectsPage() {
         description:
           `时间窗：${s.window.startIso.slice(11, 19)} → ${s.window.endIso.slice(11, 19)}（最近 ${s.window.hours}h）\n\n` +
           `本次窗口待对账记录：${s.total} 条\n` +
-          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea} · fal ${s.fal} · cf ${s.cloudflare}）\n` +
+          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea}）\n` +
           `未匹配：${s.unmatched} 条（下次 cron 会再尝试，或扩大时间窗后重试）`,
       });
     },

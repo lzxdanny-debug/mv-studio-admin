@@ -21,13 +21,12 @@ export interface CostStatsPayload {
     failedCalls: number;
     estimated: {
       mountseaCredits: number;
-      falUsd: number;
-      cloudflareNeuron: number;
+      /** 原生美元计价渠道（含已下线渠道的历史记录）合计 */
+      usd: number;
     };
     reconciled: {
       mountseaCredits: number;
-      falUsd: number;
-      cloudflareNeuron: number;
+      usd: number;
     };
     reconciliation: {
       reconciledCount: number;
@@ -40,13 +39,13 @@ export interface CostStatsPayload {
     calls: number;
     success: number;
     failed: number;
-    /** 估算金额（按 cost_native_unit 求和；CF 价格表为空时为 0） */
+    /** 估算金额（按 cost_native_unit 求和；价格表未登记时为 0） */
     estAmount: number;
-    /** 估算单位（credits/usd/neuron），CF 因价格表空时为 null → 前端显示 "—" */
+    /** 估算单位（credits/usd），价格表未登记时为 null → 前端显示 "—" */
     estUnit: string | null;
     /** 真实账单金额（按 reconciled_source 求和） */
     reconciledAmount: number;
-    /** 真实账单单位（mountsea_usage→credits / fal_billing_events,cf_aig_logs→usd） */
+    /** 真实账单单位（mountsea_usage→credits / 其余账单来源→usd） */
     reconciledUnit: string | null;
   }>;
   byStep: Array<{
@@ -105,14 +104,19 @@ export const STEP_LABELS: Record<string, string> = {
 /** Provider 标签 */
 export const PROVIDER_LABELS: Record<string, string> = {
   mountsea: 'Mountsea',
-  fal: 'Fal.ai',
-  cloudflare: 'Cloudflare',
+  apisale: 'apisale',
+  mountseaMs: 'Mountsea MS（已下线）',
+  // 已下线渠道：仅用于渲染历史记录
+  cloudflare: 'Cloudflare（已下线）',
+  fal: 'Fal.ai（已下线）',
 };
 
 export const PROVIDER_COLORS: Record<string, string> = {
   mountsea: '#a855f7', // purple
-  fal: '#3b82f6', // blue
-  cloudflare: '#f97316', // orange
+  apisale: '#10b981', // emerald
+  mountseaMs: '#94a3b8', // slate（已下线）
+  cloudflare: '#94a3b8', // slate
+  fal: '#94a3b8', // slate
 };
 
 /** 失败大类的颜色：billed=红，not billed=灰 */
