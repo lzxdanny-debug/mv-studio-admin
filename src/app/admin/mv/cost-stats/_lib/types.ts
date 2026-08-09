@@ -105,6 +105,8 @@ export const STEP_LABELS: Record<string, string> = {
 export const PROVIDER_LABELS: Record<string, string> = {
   mountsea: 'Mountsea',
   apisale: 'apisale',
+  smartfashion: 'smartfashion',
+  aitokens: 'aitokens',
   mountseaMs: 'Mountsea MS（已下线）',
   // 已下线渠道：仅用于渲染历史记录
   cloudflare: 'Cloudflare（已下线）',
@@ -114,6 +116,8 @@ export const PROVIDER_LABELS: Record<string, string> = {
 export const PROVIDER_COLORS: Record<string, string> = {
   mountsea: '#a855f7', // purple
   apisale: '#10b981', // emerald
+  smartfashion: '#0891b2', // cyan
+  aitokens: '#0d9488', // teal
   mountseaMs: '#94a3b8', // slate（已下线）
   cloudflare: '#94a3b8', // slate
   fal: '#94a3b8', // slate

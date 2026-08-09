@@ -18,7 +18,13 @@ interface BonusRow {
   userDisplayName: string | null;
   amount: number;
   usd: number;
-  source: 'signup' | 'daily_check_in' | 'referral' | 'other';
+  source:
+    | 'signup'
+    | 'daily_check_in'
+    | 'referral'
+    | 'membership'
+    | 'manual'
+    | 'other';
   referenceId: string | null;
   description: string;
   createdAt: string;
@@ -45,7 +51,9 @@ const SOURCE_META: Record<BonusRow['source'], { label: string; cls: string }> = 
   signup: { label: '注册赠送', cls: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
   daily_check_in: { label: '每日签到', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
   referral: { label: '邀请奖励', cls: 'bg-violet-50 text-violet-700 border-violet-100' },
-  other: { label: '会员 / 手动', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+  membership: { label: '会员月赠', cls: 'bg-amber-50 text-amber-700 border-amber-100' },
+  manual: { label: '手动调整', cls: 'bg-sky-50 text-sky-700 border-sky-100' },
+  other: { label: '活动 / 其它', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
 };
 
 export default function AdminBonusPage() {
@@ -166,12 +174,12 @@ export default function AdminBonusPage() {
             赠送积分明细
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            注册赠送 / 每日签到 / 会员与后台手动赠送的积分流水（按对外售价折算营销成本）
+            注册 / 签到 / 邀请 / 会员月赠 / 手动调整 / 其它活动（按对外售价折算营销成本）
           </p>
         </div>
 
         {/* 汇总卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
           <div className="rounded-lg p-4 bg-blue-600 text-white border border-blue-700">
             <span className="text-xs font-medium text-emerald-50/90">赠送成本合计</span>
             <p className="mt-2 text-2xl font-bold tabular-nums">{usdAmount(summary.data?.totalUsd ?? 0)}</p>
@@ -236,7 +244,9 @@ export default function AdminBonusPage() {
             <option value="signup">注册赠送</option>
             <option value="daily_check_in">每日签到</option>
             <option value="referral">邀请奖励</option>
-            <option value="other">会员 / 手动</option>
+            <option value="membership">会员月赠</option>
+            <option value="manual">手动调整</option>
+            <option value="other">活动 / 其它</option>
           </select>
         </div>
 

@@ -71,6 +71,31 @@ async function refreshAccessToken(): Promise<string> {
   }
 }
 
+/** 登录/验证码/refresh 自身的 401 不是「access token 过期」，禁止走 refresh 重试。
+ * 否则登录失败（含错误密码）会消费一次性验证码后被自动重放，界面永远显示「验证码错误」。 */
+function isAuthCredentialRequest(url?: string): boolean {
+  if (!url) return false;
+  return (
+    url.includes('/admin/auth/login') ||
+    url.includes('/admin/auth/captcha') ||
+    url.includes('/admin/auth/refresh')
+  );
+}
+
+function rejectApiError(error: any) {
+  const data = error?.response?.data;
+  if (data && typeof data === 'object') {
+    const message = data.message;
+    if (typeof message === 'string' && message) {
+      return Promise.reject(Object.assign(new Error(message), data));
+    }
+    if (Array.isArray(message) && message[0]) {
+      return Promise.reject(Object.assign(new Error(String(message[0])), data));
+    }
+  }
+  return Promise.reject(data || error);
+}
+
 apiClient.interceptors.response.use(
   (response) => {
     // API 的 TransformInterceptor 统一包了一层 { success, data, timestamp }
@@ -84,13 +109,18 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthCredentialRequest(originalRequest.url)
+    ) {
       originalRequest._retry = true;
 
       // 没有 refresh token —— 用户从未登录或已登出，直接 reject，
       // AdminLayout 的 guard 会负责把它重定向到 /login
       if (!localStorage.getItem('admin_refresh_token')) {
-        return Promise.reject(error.response?.data || error);
+        return rejectApiError(error);
       }
 
       try {
@@ -108,7 +138,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error.response?.data || error);
+    return rejectApiError(error);
   },
 );
 

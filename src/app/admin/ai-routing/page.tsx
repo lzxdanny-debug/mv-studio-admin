@@ -36,7 +36,7 @@ import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { SimpleSelect } from '@/components/ui/select';
 
-type RoutingProvider = 'mountsea' | 'apisale';
+type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'minimax';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
@@ -128,6 +128,24 @@ const PROVIDER_META: Record<RoutingProvider, ProviderMetaItem> = {
     icon: Layers,
     iconWrap: 'bg-emerald-50',
     iconColor: 'text-emerald-600',
+  },
+  smartfashion: {
+    label: 'smartfashion',
+    icon: Cloud,
+    iconWrap: 'bg-cyan-50',
+    iconColor: 'text-cyan-700',
+  },
+  aitokens: {
+    label: 'aitokens',
+    icon: Cloud,
+    iconWrap: 'bg-teal-50',
+    iconColor: 'text-teal-700',
+  },
+  minimax: {
+    label: 'minimax',
+    icon: Film,
+    iconWrap: 'bg-violet-50',
+    iconColor: 'text-violet-700',
   },
 };
 

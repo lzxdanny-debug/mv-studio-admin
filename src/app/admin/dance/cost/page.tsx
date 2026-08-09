@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { LineChart } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LineChart, Loader2, RefreshCw } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
+import { useAlert } from '@/components/ui/dialog-provider';
 import { cn } from '@/lib/utils';
 
 interface Bucket {
@@ -40,10 +41,45 @@ function toRows(map: Record<string, Bucket> | undefined) {
 
 export default function AdminDanceCostPage() {
   const [days, setDays] = useState<number>(30);
+  const qc = useQueryClient();
+  const alert = useAlert();
 
   const { data, isLoading, isError, error } = useQuery<DanceCostView>({
     queryKey: ['admin', 'dance', 'cost', days],
     queryFn: () => apiClient.get(`/admin/dance/cost?days=${days}`) as any,
+  });
+
+  const reconcileMutation = useMutation<{
+    mountsea: number;
+    apisale: number;
+    smartfashion: number;
+    aitokens: number;
+    total: number;
+    reconciled: number;
+    unmatched: number;
+    warnings?: string[];
+    window: { hours: number; startIso: string; endIso: string };
+  }>({
+    mutationFn: () =>
+      apiClient.post('/admin/dance/cost/reconcile-now?hours=6', {}) as any,
+    onSuccess: async (s) => {
+      await qc.invalidateQueries({ queryKey: ['admin', 'dance', 'cost'] });
+      await alert({
+        title: '对账完成',
+        description:
+          `时间窗：${s.window.startIso.slice(11, 19)} → ${s.window.endIso.slice(11, 19)}（最近 ${s.window.hours}h）\n\n` +
+          `待对账 ${s.total} 条，成功 ${s.reconciled}（smartfashion ${s.smartfashion} / aitokens ${s.aitokens ?? 0} / apisale ${s.apisale} / mountsea ${s.mountsea}）\n` +
+          `未匹配 ${s.unmatched}` +
+          (s.warnings?.length ? `\n\n${s.warnings.join('\n')}` : ''),
+      });
+    },
+    onError: async (err: any) => {
+      await alert({
+        title: '对账失败',
+        description: err?.message ?? String(err),
+        variant: 'danger',
+      });
+    },
   });
 
   const failureRows = Object.entries(data?.failureReasons ?? {}).sort((a, b) => b[1] - a[1]);
@@ -59,22 +95,39 @@ export default function AdminDanceCostPage() {
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               按 dance_cost_records 聚合：用户侧扣减积分与渠道原生成本分开口径，便于核算毛利。
+              smartfashion / aitokens 对账需在 AI Provider 配置系统访问令牌。
             </p>
           </div>
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
-            {RANGE_OPTIONS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setDays(value)}
-                className={cn(
-                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                  days === value ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-50',
-                )}
-              >
-                近 {value} 天
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => reconcileMutation.mutate()}
+              disabled={reconcileMutation.isPending}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              title="拉取 smartfashion / aitokens /api/log/self 等上游账单，回填最近 6 小时未对账记录"
+            >
+              {reconcileMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              {reconcileMutation.isPending ? '对账中…' : '立即对账（最近 6h）'}
+            </button>
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+              {RANGE_OPTIONS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setDays(value)}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                    days === value ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-50',
+                  )}
+                >
+                  近 {value} 天
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

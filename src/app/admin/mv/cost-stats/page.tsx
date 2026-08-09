@@ -75,6 +75,9 @@ export default function CostStatsPage() {
   // 对账：成功后 invalidate 自身 cost-stats query 让 reconciled_amount 自动刷新
   const reconcileMutation = useMutation<{
     mountsea: number;
+    apisale?: number;
+    smartfashion?: number;
+    aitokens?: number;
     total: number;
     reconciled: number;
     unmatched: number;
@@ -89,7 +92,8 @@ export default function CostStatsPage() {
         description:
           `时间窗：${s.window.startIso.slice(11, 19)} → ${s.window.endIso.slice(11, 19)}（最近 ${s.window.hours}h）\n\n` +
           `本次窗口待对账记录：${s.total} 条\n` +
-          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea}）\n` +
+          `成功匹配：${s.reconciled} 条（mountsea ${s.mountsea}` +
+          ` / apisale ${s.apisale ?? 0} / smartfashion ${s.smartfashion ?? 0} / aitokens ${s.aitokens ?? 0}）\n` +
           `未匹配：${s.unmatched} 条`,
       });
     },

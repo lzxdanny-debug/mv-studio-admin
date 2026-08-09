@@ -1753,7 +1753,7 @@ export default function AdminMarketingShowcasePage() {
                 封面图（可选，留空自动截取第一帧）
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,.jpg,.jpeg,.png"
                   className="mt-1 block w-full text-xs file:mr-2 file:rounded-md file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white"
                   onChange={(e) => setUploadPoster(e.target.files?.[0] ?? null)}
                 />

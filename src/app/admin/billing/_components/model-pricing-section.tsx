@@ -42,13 +42,17 @@ const RES_LABEL: Record<string, string> = {
   '1080p': '超清 1080p',
 };
 
-const CHANNEL_ORDER = ['apisale', 'mountsea'] as const;
+const CHANNEL_ORDER = ['apisale', 'mountsea', 'smartfashion', 'aitokens'] as const;
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
   apisale:
     'apisale：按 endpoint slug 出图/出视频（如 google/veo-3.1/...），USD 钱包计费。媒体主渠道。',
   mountsea:
     'Mountsea Hub：/v1 聊天、Hub 视频/图像名。文本、音频、部分视频走此通道；成本单位为 Mountsea credits。',
+  smartfashion:
+    'smartfashion New-API：Bearer + /v1/video/generations（Seedance 2.0 / Fast）；对账走 /api/log/self。',
+  aitokens:
+    'aitokens New-API（seedance.ai-tokens.app）：Bearer + /v1/video/generations（Seedance 2.0 / Fast）；对账走 /api/log/self。',
 };
 
 function rowKey(r: { channel: string; modelId: string; resolution: string }) {

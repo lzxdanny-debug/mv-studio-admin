@@ -21,6 +21,8 @@ interface ModelConfigView {
 const PROVIDER_LABEL: Record<string, string> = {
   mountsea: 'Mountsea',
   apisale: 'apisale',
+  smartfashion: 'smartfashion',
+  aitokens: 'aitokens',
   mountseaMs: 'Mountsea MS（已下线）',
   // 已下线渠道：仅用于渲染历史成本/对账记录
   cloudflare: 'Cloudflare（已下线）',

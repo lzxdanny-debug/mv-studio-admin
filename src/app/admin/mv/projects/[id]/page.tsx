@@ -270,6 +270,9 @@ interface ProjectCosts {
 
 interface ReconcileSummary {
   mountsea: number;
+  apisale?: number;
+  smartfashion?: number;
+  aitokens?: number;
   total: number;
   reconciled: number;
   unmatched: number;
@@ -964,7 +967,8 @@ function CostsTab({ projectId }: { projectId: string }) {
           summary.total === 0
             ? '本项目没有 reconciled_at 为空的成本记录。'
             : `待对账记录：${summary.total} 条\n` +
-              `成功匹配：${summary.reconciled} 条（mountsea ${summary.mountsea}）\n` +
+              `成功匹配：${summary.reconciled} 条（mountsea ${summary.mountsea}` +
+              ` / apisale ${summary.apisale ?? 0} / smartfashion ${summary.smartfashion ?? 0} / aitokens ${summary.aitokens ?? 0}）\n` +
               `未匹配：${summary.unmatched} 条`,
         variant: summary.total === 0 ? 'info' : allMatched ? 'success' : 'warning',
       });

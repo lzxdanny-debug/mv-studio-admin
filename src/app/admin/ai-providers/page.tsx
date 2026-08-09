@@ -17,6 +17,7 @@ import {
   Database,
   ServerCog,
   Layers,
+  Film,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
@@ -40,9 +41,15 @@ const CONTROL_WIDE = 'sm:w-[360px] w-[220px]';
 // 类型 —— 与后端 CredentialView / 字段定义一一对应
 // ──────────────────────────────────────────────────────────────────────
 
-type AiProvider = 'mountsea' | 'apisale';
+type AiProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'minimax';
 
-const ALL_AI_PROVIDERS: AiProvider[] = ['mountsea', 'apisale'];
+const ALL_AI_PROVIDERS: AiProvider[] = [
+  'mountsea',
+  'apisale',
+  'smartfashion',
+  'aitokens',
+  'minimax',
+];
 
 interface CredentialView {
   provider: AiProvider;
@@ -149,6 +156,97 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     hasBaseUrl: true,
     baseUrlPlaceholder: 'https://api.apisale.ai (默认)',
   },
+  smartfashion: {
+    provider: 'smartfashion',
+    title: 'smartfashion',
+    icon: Cloud,
+    iconWrap: 'bg-cyan-50',
+    iconColor: 'text-cyan-700',
+    desc:
+      'New-API Seedance 视频：Bearer + /v1/video/generations。视频用 API Key；对账另需系统访问令牌 + 用户 ID（拉 /api/log/self）。',
+    consoleUrl: 'https://seedance.smartfashionai.cn',
+    secretFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key（视频）',
+        placeholder: 'sk-xxxxxxxxxxxxxxxxxxxx',
+        secret: true,
+        hint: '令牌管理里的 sk-…；仅用于生成视频',
+      },
+      {
+        key: 'usageToken',
+        label: '系统访问令牌（对账）',
+        placeholder: '登录后 GET /api/user/token',
+        secret: true,
+        hint: '≠ API Key；Authorization 原样放入，Header 另带 New-Api-User',
+      },
+      {
+        key: 'userId',
+        label: '用户 ID（New-Api-User）',
+        placeholder: '例如 126638',
+        secret: false,
+        hint: '控制台个人资料里的数字用户 ID',
+      },
+    ],
+    hasBaseUrl: true,
+    baseUrlPlaceholder: 'https://seedance.smartfashionai.cn (默认)',
+  },
+  aitokens: {
+    provider: 'aitokens',
+    title: 'aitokens',
+    icon: Cloud,
+    iconWrap: 'bg-teal-50',
+    iconColor: 'text-teal-700',
+    desc:
+      'New-API Seedance 视频（seedance.ai-tokens.app）：与 smartfashion 协议同构、独立账本。Bearer + /v1/video/generations。',
+    consoleUrl: 'https://seedance.ai-tokens.app',
+    secretFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key（视频）',
+        placeholder: 'sk-xxxxxxxxxxxxxxxxxxxx',
+        secret: true,
+        hint: '令牌管理里的 sk-…；仅用于生成视频',
+      },
+      {
+        key: 'usageToken',
+        label: '系统访问令牌（对账）',
+        placeholder: '登录后 GET /api/user/token',
+        secret: true,
+        hint: '≠ API Key；Authorization 原样放入，Header 另带 New-Api-User',
+      },
+      {
+        key: 'userId',
+        label: '用户 ID（New-Api-User）',
+        placeholder: '例如 126638',
+        secret: false,
+        hint: '控制台个人资料里的数字用户 ID',
+      },
+    ],
+    hasBaseUrl: true,
+    baseUrlPlaceholder: 'https://seedance.ai-tokens.app (默认)',
+  },
+  minimax: {
+    provider: 'minimax',
+    title: 'MiniMax',
+    icon: Film,
+    iconWrap: 'bg-violet-50',
+    iconColor: 'text-violet-700',
+    desc:
+      '官方 Video V2：Bearer + POST /v2/video_generation（MiniMax-H3）。支持单图 i2va / 多图 r2va / 对口型 reference_audio。',
+    consoleUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    secretFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key',
+        placeholder: 'xxxxxxxxxxxxxxxxxxxx',
+        secret: true,
+        hint: '环境变量 MINIMAX_API_KEY；Authorization: Bearer …（国内开放平台按量 Key）',
+      },
+    ],
+    hasBaseUrl: true,
+    baseUrlPlaceholder: 'https://api.minimaxi.com (默认；国际可用 https://api.minimax.io)',
+  },
 };
 
 // ──────────────────────────────────────────────────────────────────────
@@ -176,7 +274,7 @@ export default function AiProvidersPage() {
               AI Provider 凭证
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              管理 Mountsea / apisale 的 API 凭证。AES-256-GCM 加密存储，DB 缺失时回落 env。
+              管理 Mountsea / apisale / smartfashion / aitokens 的 API 凭证。AES-256-GCM 加密存储，DB 缺失时回落 env。
             </p>
           </div>
           <button

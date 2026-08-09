@@ -313,7 +313,7 @@ export function CharacterPresetEditor({
             <div className="space-y-3 pt-2 border-t border-slate-100">
               <FieldRow
                 label="图片文件 *"
-                hint="PNG / JPG / WEBP，最大 10MB；推荐 1:1 方形，分辨率不低于 1024×1024。"
+                hint="PNG / JPG，最大 10MB；推荐 1:1 方形，分辨率不低于 1024×1024。"
               >
                 <FilePicker file={file} onChange={setFile} />
               </FieldRow>
@@ -450,12 +450,12 @@ function FilePicker({
           <p className="text-[10px] text-slate-400 mt-0.5">
             {file
               ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
-              : 'PNG / JPG / WEBP · 最大 10MB'}
+              : 'PNG / JPG · 最大 10MB'}
           </p>
         </div>
         <input
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept="image/png,image/jpeg"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null;

@@ -553,7 +553,7 @@ function MvWatermarkSection() {
               {uploading ? '上传中…' : '上传水印图片'}
               <input
                 type="file"
-                accept="image/png,image/webp,image/jpeg,image/gif"
+                accept="image/png,image/jpeg,image/gif"
                 className="sr-only"
                 disabled={uploading}
                 onChange={(e) => {

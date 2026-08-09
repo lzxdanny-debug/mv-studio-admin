@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Legend,
@@ -54,6 +56,19 @@ interface CostLine {
   successCalls: number;
   failedCalls: number;
   reconciledCalls: number;
+  failedUsd?: number;
+}
+
+interface CostHealth {
+  calls: number;
+  reconciledCalls: number;
+  reconcileRate: number;
+  estUsd: number;
+  estOnReconciledUsd: number;
+  recUsd: number;
+  deltaUsd: number;
+  failedCalls: number;
+  failedUsd: number;
 }
 
 interface CostSummary {
@@ -64,6 +79,7 @@ interface CostSummary {
   timelineGranularity?: 'hour' | 'day';
   lines: CostLine[];
   totalUsd: number;
+  health?: CostHealth;
   byProvider: { provider: string; usd: number; calls: number }[];
   byModelText?: { model: string; usd: number; calls: number }[];
   byModelVideo?: { model: string; usd: number; calls: number }[];
@@ -88,6 +104,18 @@ interface CostSummary {
     apisaleUsd: number;
     otherUsd: number;
   }[];
+  topUsers?: Array<{
+    userId: string;
+    displayName: string;
+    email: string | null;
+    usd: number;
+    calls: number;
+  }>;
+  topCountries?: Array<{
+    country: string;
+    usd: number;
+    calls: number;
+  }>;
 }
 
 const PIE_COLORS = [
@@ -159,6 +187,10 @@ interface CostDetail {
     successCalls: number;
     failedCalls: number;
     reconciledCalls: number;
+    failedUsd?: number;
+    estOnReconciledUsd?: number;
+    recUsd?: number;
+    deltaUsd?: number;
   };
   byStep: BreakdownRow[];
   byProvider: BreakdownRow[];
@@ -171,6 +203,12 @@ interface CostDetail {
     avgUsdPerSec: number;
     totalCredits?: number;
   } | null;
+  durationBuckets?: Array<{
+    key: string;
+    label: string;
+    count: number;
+    usd: number;
+  }>;
   projects?: {
     page: number;
     pageSize: number;
@@ -185,7 +223,46 @@ interface CostDetail {
   };
   creditUsdRate?: number;
   totalCredits?: number;
+  topUsers?: Array<{
+    userId: string;
+    displayName: string;
+    email: string | null;
+    usd: number;
+    calls: number;
+    credits?: number;
+  }>;
+  topCountries?: Array<{
+    country: string;
+    usd: number;
+    calls: number;
+    credits?: number;
+  }>;
 }
+
+const BONUS_SOURCE_LABEL: Record<string, string> = {
+  signup: '注册',
+  daily_check_in: '每日签到',
+  referral: '邀请',
+  membership: '会员月赠',
+  manual: '手动',
+  other: '其它',
+};
+
+const COUNTRY_LABEL: Record<string, string> = {
+  unknown: '未知',
+  CN: '中国',
+  US: '美国',
+  JP: '日本',
+  KR: '韩国',
+  GB: '英国',
+  HK: '香港',
+  TW: '台湾',
+  SG: '新加坡',
+  AU: '澳大利亚',
+  CA: '加拿大',
+  DE: '德国',
+  FR: '法国',
+};
 
 const PROJECT_ENTITY_META: Record<
   SelectableLine,
@@ -210,7 +287,7 @@ const PROJECT_ENTITY_META: Record<
     listTitle: '音乐任务列表',
     emptyHint: '时间窗内暂无带成本的音乐任务',
     href: (id) => `/admin/music/tasks/${id}`,
-    hasDuration: false,
+    hasDuration: true,
   },
   lyrics: {
     entityLabel: '任务',
@@ -281,6 +358,8 @@ const DETAIL_LINKS: Partial<Record<SelectableLine, { href: string; label: string
 const PROVIDER_LABEL: Record<string, string> = {
   mountsea: 'Mountsea',
   apisale: 'apisale',
+  smartfashion: 'smartfashion',
+  aitokens: 'aitokens',
   mountseaMs: 'Mountsea MS（已下线）',
   cloudflare: 'Cloudflare（已下线）',
   fal: 'Fal.ai（已下线）',
@@ -415,8 +494,27 @@ function BillingCostPageContent() {
   const b = bonus.data;
   const bonusUsd = b?.totalUsd ?? 0;
   const grandTotalUsd = (d?.totalUsd ?? 0) + bonusUsd;
-  const shareOfGrand = (usd: number) =>
-    pct(grandTotalUsd > 0 ? usd / grandTotalUsd : 0);
+  const shareOfGrand = (amount: number) =>
+    pct(grandTotalUsd > 0 ? amount / grandTotalUsd : 0);
+  const bonusSourceLine = useMemo(() => {
+    if (!b?.bySource?.length) return null;
+    const order = [
+      'signup',
+      'daily_check_in',
+      'referral',
+      'membership',
+      'manual',
+      'other',
+    ];
+    const parts = order
+      .map((src) => b.bySource.find((s) => s.source === src))
+      .filter((s): s is NonNullable<typeof s> => !!s && s.credits > 0)
+      .map(
+        (s) =>
+          `${BONUS_SOURCE_LABEL[s.source] ?? s.source} ${s.credits.toLocaleString()}`,
+      );
+    return parts.length ? parts.join(' · ') : null;
+  }, [b?.bySource]);
   const rateText =
     d?.rateSource === 'live'
       ? '实时'
@@ -595,6 +693,9 @@ function BillingCostPageContent() {
                         )}
                       >
                         {l.calls} 次调用 · 成功率 {pct(successRate)}
+                        {(l.failedUsd ?? 0) > 0
+                          ? ` · 失败浪费 ${usdAmount(l.failedUsd)}`
+                          : ''}
                       </p>
                     </button>
                   );
@@ -651,12 +752,14 @@ function BillingCostPageContent() {
                   </div>
                   <p
                     className={cn(
-                      'mt-0.5 text-[11px]',
+                      'mt-0.5 text-[11px] line-clamp-2',
                       selectedLine === 'bonus' ? 'text-blue-100/90' : 'text-slate-400',
                     )}
+                    title={bonusSourceLine ?? undefined}
                   >
                     {(b?.totalCredits ?? 0).toLocaleString()} 积分 · {b?.totalCount ?? 0}{' '}
                     笔
+                    {bonusSourceLine ? ` · ${bonusSourceLine}` : ''}
                   </p>
                 </button>
               </div>
@@ -733,6 +836,31 @@ function BillingCostPageContent() {
                       formatValue={usdAmount}
                     />
                   </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <TopRankTable
+                      title="Top 10 用户"
+                      emptyHint="暂无用户成本数据"
+                      rows={(d.topUsers ?? []).map((u, i) => ({
+                        rank: i + 1,
+                        name: u.displayName,
+                        sub: u.email || u.userId.slice(0, 8),
+                        value: usdAmount(u.usd),
+                        meta: `${u.calls} 次`,
+                        href: u.userId ? `/admin/users/${u.userId}` : null,
+                      }))}
+                    />
+                    <TopRankTable
+                      title="Top 10 国家"
+                      emptyHint="暂无国家数据（无成功支付卡 BIN 时归为未知）"
+                      rows={(d.topCountries ?? []).map((c, i) => ({
+                        rank: i + 1,
+                        name: c.country === 'unknown' ? '未知' : c.country,
+                        value: usdAmount(c.usd),
+                        meta: `${c.calls} 次`,
+                        href: null,
+                      }))}
+                    />
+                  </div>
                 </div>
               )}
             </>
@@ -742,10 +870,11 @@ function BillingCostPageContent() {
         <p className="text-[11px] text-slate-400 leading-relaxed pt-2">
           <strong className="text-slate-500">口径说明：</strong>
           全部金额统一为美元 USD。明细优先真实账单，否则价格表估算；特效表暂无对账字段。
-          Mountsea credits（100 credits = 1 CNY）按汇率 1 USD = ¥
+          赠送含注册 / 每日签到 / 邀请 / 其它（会员·手动·活动）。Top 国家取用户最近成功支付的卡
+          BIN（无支付记为未知）。Mountsea credits（100 credits = 1 CNY）按汇率 1 USD = ¥
           {(d?.usdCnyRate ?? 7.2).toFixed(2)}（{rateText}
           {d?.rateAsOf ? ` · ${new Date(d.rateAsOf).toLocaleString('zh-CN')}` : ''}
-          ）折算。点击业务线卡片下钻；点「总成本」回到总览。模型饼图：视频按秒计费/视频 step·slug，其余归文本（含图/音频）。
+          ）折算。模型饼图：视频按秒计费/视频 step·slug，其余归文本（含图/音频）。
         </p>
       </div>
     </div>
@@ -792,11 +921,13 @@ function LineDetailPanel({
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
             与上方时间窗一致
-            {meta.hasDuration
-              ? ' · 时长取制作区间（end−start），成本为项目内 AI 上游合计'
-              : isBonus
-                ? ' · 按用户赠送流水汇总'
-                : ' · 按任务聚合成本（无可靠成片时长时 $/秒为空）'}
+            {line === 'music'
+              ? ' · 时长优先 Suno 回写 durationSec，否则按成本 quantity 秒；下方为分桶分布'
+              : meta.hasDuration
+                ? ' · 时长取制作区间（end−start）；下方为分桶分布（非仅平均）'
+                : isBonus
+                  ? ' · 按用户赠送流水汇总'
+                  : ' · 按任务聚合成本（无可靠成片时长时 $/秒为空）'}
             {detail?.amountNote ? ` · ${detail.amountNote}` : ''}
           </p>
         </div>
@@ -900,6 +1031,45 @@ function LineDetailPanel({
               )}
             </div>
 
+            {(line === 'mv' || line === 'music') &&
+              (detail.durationBuckets?.length ?? 0) > 0 && (
+                <DurationBucketChart
+                  buckets={detail.durationBuckets ?? []}
+                  lineLabel={detail.label}
+                />
+              )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <TopRankTable
+                title="Top 10 用户"
+                emptyHint="暂无用户成本数据"
+                rows={(detail.topUsers ?? []).map((u, i) => ({
+                  rank: i + 1,
+                  name: u.displayName,
+                  sub: u.email || u.userId.slice(0, 8),
+                  value: usdAmount(u.usd),
+                  meta: isBonus
+                    ? `${(u.credits ?? 0).toLocaleString()} 积分`
+                    : `${u.calls} 次`,
+                  href: u.userId ? `/admin/users/${u.userId}` : null,
+                }))}
+              />
+              <TopRankTable
+                title="Top 10 国家"
+                emptyHint="暂无国家数据（无成功支付卡 BIN 时归为未知）"
+                rows={(detail.topCountries ?? []).map((c, i) => ({
+                  rank: i + 1,
+                  name: COUNTRY_LABEL[c.country] ?? c.country,
+                  sub: c.country === 'unknown' ? undefined : c.country,
+                  value: usdAmount(c.usd),
+                  meta: isBonus
+                    ? `${(c.credits ?? 0).toLocaleString()} 积分`
+                    : `${c.calls} 次`,
+                  href: null,
+                }))}
+              />
+            </div>
+
             <ProjectCostTable
               line={line}
               meta={meta}
@@ -912,6 +1082,142 @@ function LineDetailPanel({
           </>
         ) : null}
       </QueryState>
+    </div>
+  );
+}
+
+function DurationBucketChart({
+  buckets,
+  lineLabel,
+}: {
+  buckets: Array<{ key: string; label: string; count: number; usd: number }>;
+  lineLabel: string;
+}) {
+  const total = buckets.reduce((s, b) => s + b.count, 0);
+  const data = buckets.map((b) => ({
+    ...b,
+    pct: total > 0 ? Math.round((b.count / total) * 1000) / 10 : 0,
+  }));
+
+  return (
+    <div className="rounded-lg border border-slate-100 overflow-hidden">
+      <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+        <h3 className="text-xs font-semibold text-slate-700">
+          {lineLabel} · 时长分布
+        </h3>
+        <span className="text-[10px] text-slate-400">
+          按项目/任务个数 · 共 {total} 个
+        </span>
+      </div>
+      <div className="h-52 p-3">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              axisLine={{ stroke: '#e2e8f0' }}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              axisLine={{ stroke: '#e2e8f0' }}
+            />
+            <Tooltip
+              formatter={(v: number | string, name: string) => {
+                if (name === 'count') return [`${v} 个`, '数量'];
+                if (name === 'usd') return [usdAmount(Number(v)), '成本'];
+                return [String(v), name];
+              }}
+              labelFormatter={(label, payload) => {
+                const p = payload?.[0]?.payload as { pct?: number } | undefined;
+                return `${label}${p?.pct != null ? ` · ${p.pct}%` : ''}`;
+              }}
+              contentStyle={{ fontSize: 11, borderRadius: 8, borderColor: '#e2e8f0' }}
+            />
+            <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={48} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="px-3 pb-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
+        {data.map((b) => (
+          <li key={b.key}>
+            {b.label} {b.count}（{b.pct}% · {usdAmount(b.usd)}）
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function TopRankTable({
+  title,
+  emptyHint,
+  rows,
+}: {
+  title: string;
+  emptyHint: string;
+  rows: Array<{
+    rank: number;
+    name: string;
+    sub?: string;
+    value: string;
+    meta: string;
+    href: string | null;
+  }>;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-100 overflow-hidden">
+      <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
+        <h3 className="text-xs font-semibold text-slate-700">{title}</h3>
+      </div>
+      {rows.length === 0 ? (
+        <div className="px-3 py-8 text-center text-[11px] text-slate-400">
+          {emptyHint}
+        </div>
+      ) : (
+        <table className="w-full text-xs">
+          <thead className="text-[10px] text-slate-400 bg-white border-b border-slate-50">
+            <tr>
+              <th className="text-left px-3 py-1.5 font-medium w-8">#</th>
+              <th className="text-left px-3 py-1.5 font-medium">名称</th>
+              <th className="text-right px-3 py-1.5 font-medium">成本</th>
+              <th className="text-right px-3 py-1.5 font-medium">明细</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {rows.map((r) => (
+              <tr key={`${r.rank}-${r.name}`} className="hover:bg-slate-50/80">
+                <td className="px-3 py-1.5 text-slate-400 tabular-nums">{r.rank}</td>
+                <td className="px-3 py-1.5 text-slate-800 min-w-0">
+                  {r.href ? (
+                    <Link
+                      href={r.href}
+                      className="font-medium text-blue-700 hover:underline line-clamp-1"
+                      title={r.name}
+                    >
+                      {r.name}
+                    </Link>
+                  ) : (
+                    <span className="font-medium line-clamp-1" title={r.name}>
+                      {r.name}
+                    </span>
+                  )}
+                  {r.sub && (
+                    <div className="text-[10px] text-slate-400 truncate">{r.sub}</div>
+                  )}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-slate-900">
+                  {r.value}
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-slate-500">
+                  {r.meta}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
