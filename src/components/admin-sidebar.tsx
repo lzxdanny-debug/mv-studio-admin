@@ -220,15 +220,9 @@ const NAV_SECTIONS: NavSection[] = [
       },
       {
         key: 'karaoke-billing',
-        label: '定价与成本',
+        label: '成本分析',
         icon: Coins,
         items: [
-          {
-            href: '/admin/karaoke/pricing',
-            label: '步骤价格',
-            icon: Coins,
-            permission: 'karaoke.pricing.view',
-          },
           {
             href: '/admin/karaoke/cost',
             label: '成本统计',
@@ -301,15 +295,9 @@ const NAV_SECTIONS: NavSection[] = [
       },
       {
         key: 'dance-billing',
-        label: '定价与成本',
+        label: '成本分析',
         icon: Coins,
         items: [
-          {
-            href: '/admin/dance/pricing',
-            label: '步骤价格',
-            icon: Coins,
-            permission: 'dance.pricing.view',
-          },
           {
             href: '/admin/dance/cost',
             label: '成本统计',
@@ -534,7 +522,7 @@ const NAV_SECTIONS: NavSection[] = [
       },
       {
         key: 'billing-pricing',
-        label: 'MV定价',
+        label: '创作定价',
         icon: Coins,
         items: [
           {
@@ -557,7 +545,7 @@ const NAV_SECTIONS: NavSection[] = [
           },
           {
             href: '/admin/billing/step-prices',
-            label: '步骤价格',
+            label: '业务步骤价格',
             icon: ListOrdered,
             permission: 'billing.manage',
           },

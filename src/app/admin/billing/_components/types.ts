@@ -46,7 +46,11 @@ export interface PlanEntitlement {
   id: string;
   planCode: string;
   name: string;
+  tagline: string;
+  weeklyPriceCents: number;
   monthlyPriceCents: number;
+  yearlyPriceCents: number;
+  weeklyCredits: number;
   monthlyCredits: number;
   creditPurchaseDiscount: number;
   subscriptionPurchaseDiscount: number;
@@ -60,6 +64,8 @@ export interface PlanEntitlement {
   allowMultiCharacter: boolean;
   allowCommercialUse: boolean;
   stripePriceId: string | null;
+  stripeWeeklyPriceId: string | null;
+  stripeYearlyPriceId: string | null;
   sortOrder: number;
   isActive: boolean;
 }

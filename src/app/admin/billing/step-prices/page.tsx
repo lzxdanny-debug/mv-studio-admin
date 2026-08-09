@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, Save, Wand2, HelpCircle, ExternalLink } from 'lucide-react';
+import { Coins, Save, Wand2, HelpCircle, ExternalLink, ShieldCheck } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
@@ -23,13 +23,14 @@ interface StepPriceRow {
   dimension: string;
   step: string;
   resolution: string;
-  priceCredits: number;
+  priceCredits: number | null;
+  configured: boolean;
   recommendedPrice: number | null;
   recommendedAt: string | null;
   enabled: boolean;
   label: string;
   description: string;
-  unit: 'per_project' | 'per_image' | 'per_shot' | 'per_call';
+  unit: 'per_project' | 'per_image' | 'per_shot' | 'per_call' | 'per_second';
   perResolution: boolean;
   sortOrder: number;
   isAddon: boolean;
@@ -37,9 +38,6 @@ interface StepPriceRow {
   billable: boolean;
   nonBillableReason: string | null;
   routingModels: RoutingModelInfo[];
-  derivedPrice: number | null;
-  derivedBasis: string | null;
-  overridden: boolean;
   alwaysBillInPerDuration: boolean;
 }
 
@@ -52,6 +50,7 @@ interface VPResolution {
   code: string;
   name: string;
   priceFactor: number;
+  durationPriceFactor: number;
   enabled: boolean;
   sortOrder: number;
 }
@@ -59,6 +58,7 @@ interface VPQuality {
   code: string;
   name: string;
   priceFactor: number;
+  durationPriceFactor: number;
   enabled: boolean;
   sortOrder: number;
 }
@@ -89,6 +89,8 @@ interface ModelConfigView {
 
 const DIM_TABS: Array<{ key: string; label: string }> = [
   { key: 'mv', label: 'MV' },
+  { key: 'dance', label: '舞蹈视频' },
+  { key: 'karaoke', label: 'Photo Karaoke' },
   { key: 'music', label: '音乐' },
   { key: 'lyrics', label: '歌词' },
 ];
@@ -98,6 +100,16 @@ const UNIT_LABEL: Record<StepPriceRow['unit'], string> = {
   per_image: '每张',
   per_shot: '每镜头',
   per_call: '每次',
+  per_second: '每秒',
+};
+
+type BudgetDimension = 'mv' | 'dance' | 'karaoke';
+type CreationBudgets = Record<BudgetDimension, number>;
+
+const BUDGET_LABEL: Record<BudgetDimension, string> = {
+  mv: 'MV',
+  dance: '舞蹈视频',
+  karaoke: 'Photo Karaoke',
 };
 
 const RES_LABEL: Record<string, string> = {
@@ -127,6 +139,10 @@ function frontendStepBadge(step: string | null): string | null {
 
 function rowKey(r: { dimension: string; step: string; resolution: string }) {
   return `${r.dimension}|${r.step}|${r.resolution}`;
+}
+
+function rowsMissingConfiguration(rows: StepPriceRow[]): number {
+  return rows.filter((row) => row.billable && !row.configured).length;
 }
 
 // ─── 路由模型展示 ────────────────────────────────────────────────────────
@@ -179,9 +195,9 @@ function PriceTable({
   showRecommended = true,
 }: {
   rows: StepPriceRow[];
-  edits: Record<string, { priceCredits: number; enabled: boolean }>;
+  edits: Record<string, { priceCredits: number | null; enabled: boolean }>;
   setEdits: React.Dispatch<
-    React.SetStateAction<Record<string, { priceCredits: number; enabled: boolean }>>
+    React.SetStateAction<Record<string, { priceCredits: number | null; enabled: boolean }>>
   >;
   openHelp: string | null;
   setOpenHelp: (v: string | null) => void;
@@ -206,20 +222,10 @@ function PriceTable({
           <th className="text-left px-3 py-2 font-medium w-[22%]">当前模型</th>
           <th className="text-left px-3 py-2 font-medium w-[7%]">单位</th>
           <th className="text-right px-3 py-2 font-medium w-[12%]">
-            <span className="inline-flex items-center gap-1 justify-end">
-              当前价(积分)
-              <span
-                className="text-slate-400 cursor-help"
-                title={
-                  '默认跟随「模型定价」：当前价(积分) = 实际价格($/次) × 盈利系数 ÷ 积分单价($/积分)，向上取整、不低于单步最低收费。\n手动改价后该行冻结（以手填值扣费，不再跟随）；把值改回派生值即恢复跟随。'
-                }
-              >
-                <HelpCircle className="h-3 w-3" />
-              </span>
-            </span>
+            实扣价格(积分)
           </th>
           {showRecommended && (
-            <th className="text-right px-3 py-2 font-medium w-[12%]">推荐价(模型定价)</th>
+            <th className="text-right px-3 py-2 font-medium w-[12%]">历史成本参考</th>
           )}
           <th className="text-center px-3 py-2 font-medium w-[8%]">启用</th>
         </tr>
@@ -262,6 +268,11 @@ function PriceTable({
                   >
                     {r.label}
                   </span>
+                  {!r.configured && r.billable && (
+                    <span className="rounded bg-red-50 px-1 py-0.5 text-[10px] font-medium text-red-600">
+                      未配置
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setOpenHelp(openHelp === key ? null : key)}
@@ -310,36 +321,26 @@ function PriceTable({
                     <input
                       type="number"
                       min={0}
-                      value={e.priceCredits}
+                      value={e.priceCredits ?? ''}
+                      placeholder="必填"
                       onChange={(ev) =>
                         setEdits((m) => ({
                           ...m,
                           [key]: {
                             ...e,
-                            priceCredits: Math.max(
-                              0,
-                              Math.round(Number(ev.target.value)),
-                            ),
+                            priceCredits:
+                              ev.target.value === ''
+                                ? null
+                                : Math.max(0, Math.round(Number(ev.target.value))),
                           },
                         }))
                       }
                       className="w-24 px-2 py-1 text-sm text-right border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
                     />
-                    <p className="text-[10px] mt-0.5">
-                      {r.overridden ? (
-                        <span className="text-amber-600" title="已手动改价并冻结，不再跟随模型定价">
-                          已覆盖
-                        </span>
-                      ) : (
-                        <span className="text-emerald-600" title="未手改，跟随模型定价派生值">
-                          跟随模型定价
-                        </span>
-                      )}
-                    </p>
                   </td>
                   {showRecommended && (
                     <td className="px-3 py-2.5 text-right align-top">
-                      {r.derivedPrice !== null ? (
+                      {r.recommendedPrice !== null ? (
                         <button
                           type="button"
                           onClick={() =>
@@ -347,31 +348,18 @@ function PriceTable({
                               ...m,
                               [key]: {
                                 ...e,
-                                priceCredits: r.derivedPrice as number,
+                                priceCredits: r.recommendedPrice as number,
                               },
                             }))
                           }
                           className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                          title={r.derivedBasis ?? '点击采用推荐价'}
+                          title="按历史实际成本计算，仅供运营参考"
                         >
-                          {r.derivedPrice}
+                          {r.recommendedPrice}
                           <span className="text-[10px] text-slate-400">采用</span>
                         </button>
                       ) : (
-                        <span
-                          className="text-xs text-slate-300"
-                          title={r.derivedBasis ?? undefined}
-                        >
-                          —
-                        </span>
-                      )}
-                      {r.recommendedPrice !== null && (
-                        <p
-                          className="text-[10px] text-slate-400 mt-0.5"
-                          title="按历史成本均值×系数（仅参考）"
-                        >
-                          历史参考 {r.recommendedPrice}
-                        </p>
+                        <span className="text-xs text-slate-300">—</span>
                       )}
                     </td>
                   )}
@@ -616,6 +604,144 @@ function VideoPerSecondCard({
   );
 }
 
+function CreationBudgetCard({
+  dimension,
+  video,
+}: {
+  dimension: BudgetDimension;
+  video?: VideoPricingView;
+}) {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState('0');
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const { data, isLoading } = useQuery<CreationBudgets>({
+    queryKey: ['admin', 'billing', 'creation-budgets'],
+    queryFn: () => apiClient.get('/admin/billing/creation-budgets') as any,
+  });
+
+  useEffect(() => {
+    if (data) setDraft(String(data[dimension] ?? 0));
+  }, [data, dimension]);
+
+  const saveBudget = useMutation({
+    mutationFn: () =>
+      apiClient.patch('/admin/billing/creation-budgets', {
+        [dimension]: Math.max(0, Number(draft) || 0),
+      }) as any,
+    onSuccess: (saved: CreationBudgets) => {
+      qc.setQueryData(['admin', 'billing', 'creation-budgets'], saved);
+      setMessage({ ok: true, text: '创建页预估秒价已保存。' });
+    },
+    onError: () => setMessage({ ok: false, text: '预算保存失败，请重试。' }),
+  });
+
+  const current = data?.[dimension] ?? 0;
+  const parsedDraft = Math.max(0, Number(draft) || 0);
+  const mvBudgetCells =
+    dimension === 'mv' && video
+      ? video.resolutions
+          .filter((resolution) => resolution.enabled)
+          .flatMap((resolution) =>
+            video.qualityProfiles
+              .filter((quality) => quality.enabled)
+              .map((quality) => ({
+                key: `${resolution.code}|${quality.code}`,
+                label: `${resolution.name || resolution.code} · ${quality.name || quality.code}`,
+                creditsPerSecond:
+                  parsedDraft *
+                  (resolution.durationPriceFactor ?? 1) *
+                  (quality.durationPriceFactor ?? 1),
+              })),
+          )
+      : [];
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-3.5 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <ShieldCheck className="h-4 w-4" />
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                1
+              </span>
+              <h2 className="text-sm font-semibold text-slate-800">创建页预估价格</h2>
+              <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                {BUDGET_LABEL[dimension]} · 展示价
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">
+              决定用户创建前看到的“预计所需积分”，同时用于余额校验；不会按此数值直接扣费
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <label className="text-xs font-medium text-slate-600" htmlFor={`budget-${dimension}`}>
+            预估基础秒价
+          </label>
+          <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-400">
+            <input
+              id={`budget-${dimension}`}
+              type="number"
+              min={0}
+              step={0.1}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              className="w-24 border-0 px-3 py-2 text-right text-sm font-semibold text-slate-800 focus:outline-none"
+            />
+            <span className="flex items-center border-l border-slate-100 bg-slate-50 px-2 text-[11px] text-slate-500">
+              积分/秒
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setMessage(null);
+              saveBudget.mutate();
+            }}
+            disabled={saveBudget.isPending || isLoading || parsedDraft === current}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+          >
+            {saveBudget.isPending ? '保存中…' : '保存'}
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 py-3">
+        <div className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+          <span className="font-medium text-slate-700">创建页展示公式：</span>
+          {dimension === 'mv'
+            ? '用户选择时长 × 基础预算秒价 × 清晰度预算系数 × 品质预算系数'
+            : '用户选择时长 × 本业务基础预算秒价'}
+        </div>
+        {message && (
+          <p className={cn('mt-2 text-xs font-medium', message.ok ? 'text-emerald-600' : 'text-red-600')}>
+            {message.text}
+          </p>
+        )}
+        {mvBudgetCells.length > 0 && (
+          <div className="mt-3">
+            <p className="mb-2 text-[11px] font-medium text-slate-400">用户在不同输出组合下看到的预估秒价</p>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {mvBudgetCells.map((cell) => (
+                <div key={cell.key} className="rounded-lg border border-slate-100 bg-white px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{cell.label}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {Number(cell.creditsPerSecond.toFixed(2))}
+                    <span className="ml-1 text-[10px] font-normal text-slate-400">积分/秒</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── 主页面 ──────────────────────────────────────────────────────────────
 
 export default function StepPricesPage() {
@@ -623,9 +749,16 @@ export default function StepPricesPage() {
   const [tab, setTab] = useState('mv');
   const [openHelp, setOpenHelp] = useState<string | null>(null);
   const [edits, setEdits] = useState<
-    Record<string, { priceCredits: number; enabled: boolean }>
+    Record<string, { priceCredits: number | null; enabled: boolean }>
   >({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('tab');
+    if (requested && DIM_TABS.some((item) => item.key === requested)) {
+      setTab(requested);
+    }
+  }, []);
 
   const { data, isLoading, isError, error } = useQuery<StepPricesView>({
     queryKey: ['admin', 'billing', 'step-prices'],
@@ -633,7 +766,7 @@ export default function StepPricesPage() {
       const res = (await apiClient.get(
         '/admin/billing/step-prices',
       )) as unknown as StepPricesView;
-      const map: Record<string, { priceCredits: number; enabled: boolean }> = {};
+      const map: Record<string, { priceCredits: number | null; enabled: boolean }> = {};
       for (const d of res.dimensions) {
         for (const r of d.rows) {
           map[rowKey(r)] = { priceCredits: r.priceCredits, enabled: r.enabled };
@@ -652,7 +785,7 @@ export default function StepPricesPage() {
     queryKey: ['admin', 'billing', 'model-config'],
     queryFn: () => apiClient.get('/admin/billing/model-config') as any,
   });
-  // 当前统一按步实扣；整片秒价仅用于创建页估算（见定价策略 · 创建估算秒价）
+  // 当前统一按步实扣；步骤价格与视频每秒矩阵是唯一售价来源。
   const save = useMutation({
     mutationFn: (items: unknown[]) =>
       apiClient.patch('/admin/billing/step-prices', { items }) as any,
@@ -718,18 +851,19 @@ export default function StepPricesPage() {
 
   const handleSave = () => {
     setMsg(null);
-    const items = allRows.map((r) => {
+    const items = allRows.flatMap((r) => {
       const e = edits[rowKey(r)] ?? {
         priceCredits: r.priceCredits,
         enabled: r.enabled,
       };
-      return {
+      if (e.priceCredits === null) return [];
+      return [{
         dimension: r.dimension,
         step: r.step,
         resolution: r.resolution,
         priceCredits: e.priceCredits,
         enabled: e.enabled,
-      };
+      }];
     });
     save.mutate(items);
   };
@@ -743,15 +877,7 @@ export default function StepPricesPage() {
             步骤价格
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            与前端 MV 流程一一对应。默认按步实扣：创建页仅做时长估算预检（见
-            <Link
-              href="/admin/billing/pricing"
-              className="inline-flex items-center gap-0.5 mx-1 text-blue-600 hover:underline font-medium"
-            >
-              定价策略 · 创建估算秒价
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-            ），各步骤完成后按下方价格实扣。当前价默认跟随定价策略 · 模型定价（实际价格 × 盈利系数 ÷ 积分单价），手改后冻结。第 9 步视频按秒计费（清晰度 × 品质），在下方矩阵独立维护。「当前模型」读取
+            统一管理 MV、舞蹈视频与 Photo Karaoke 的创建页预估价格和实际扣费价格。预估价格决定创建前展示与余额校验，实际扣费价格决定任务成功后的真实积分消耗；渠道成本变化不会自动修改用户售价。「当前模型」读取
             <Link
               href="/admin/ai-routing"
               className="inline-flex items-center gap-0.5 mx-1 text-blue-600 hover:underline font-medium"
@@ -763,33 +889,19 @@ export default function StepPricesPage() {
           </p>
         </div>
 
-        {tab === 'mv' && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
-            <div className="leading-relaxed">
-              当前为<strong className="font-semibold">按步实扣</strong>模式：创建时仅做余额预检（
-              <Link
-                href="/admin/billing/pricing"
-                className="inline-flex items-center gap-0.5 mx-1 font-semibold text-blue-900 underline decoration-blue-300 hover:decoration-blue-600"
-              >
-                整片秒价估算
-                <ExternalLink className="h-3 w-3" />
-              </Link>
-              ），不实扣；各步骤完成后按下方表格实扣。AI 推荐、Agent 对话在「创建相关」区块单独计费。
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center gap-1 border-b border-slate-200">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
           {DIM_TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => {
+                setTab(t.key);
+                window.history.replaceState(null, '', `?tab=${t.key}`);
+              }}
               className={cn(
-                'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
                 tab === t.key
-                  ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800',
+                  ? 'bg-blue-50 text-blue-700 shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
               )}
             >
               {t.label}
@@ -805,6 +917,20 @@ export default function StepPricesPage() {
           height="h-48"
         >
           <div className="space-y-4">
+            {(tab === 'mv' || tab === 'dance' || tab === 'karaoke') && (
+              <CreationBudgetCard
+                dimension={tab}
+                video={tab === 'mv' ? videoPricing : undefined}
+              />
+            )}
+            {tab === 'mv' && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-sm text-blue-800">
+                <Coins className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+                <div className="leading-relaxed">
+                  创建按钮展示上方按时长计算的<strong className="font-semibold">预计所需积分</strong>；创建时不一次性扣除。真实费用仍由下方步骤价格与视频每秒价格决定，并在各步骤成功后分别扣除。
+                </div>
+              </div>
+            )}
             {tab === 'music' && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 「音乐生成」已迁移至{' '}
@@ -814,13 +940,42 @@ export default function StepPricesPage() {
                 ，按各模型差异化积分扣费；本页仅保留 AI 歌词步价编辑。
               </div>
             )}
+            {tab === 'dance' && rowsMissingConfiguration(allRows) > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                还有 {rowsMissingConfiguration(allRows)} 项舞蹈价格未配置。配置完成前，舞蹈报价和生成会被服务端暂停，不会回退到代码默认价。
+              </div>
+            )}
+            {(tab === 'mv' || tab === 'dance' || tab === 'karaoke') && (
+              <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+                    2
+                  </span>
+                  <div>
+                    <h2 className="text-sm font-semibold text-emerald-950">实际扣费价格</h2>
+                    <p className="mt-0.5 text-xs leading-relaxed text-emerald-800/80">
+                      下方配置会真实影响用户积分扣减。任务成功后按实际完成的步骤和数量分别扣费，失败步骤不结算。
+                    </p>
+                  </div>
+                </div>
+                <span className="self-start rounded-md border border-emerald-200 bg-white px-2 py-1 text-[10px] font-medium text-emerald-700 sm:self-auto">
+                  {tab === 'mv'
+                    ? '步骤单价 + 视频秒价矩阵'
+                    : '步骤单价 × 实际数量/秒数'}
+                </span>
+              </div>
+            )}
             {/* A. 创建相关（AI 推荐、Agent 对话 — 始终生效） */}
-            {tab === 'mv' && perDurationAddonRows.length > 0 && (
+            {(tab === 'mv' || tab === 'dance') && perDurationAddonRows.length > 0 && (
               <div className="bg-white border border-blue-200 rounded-2xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-blue-100 bg-blue-50/60">
-                  <h2 className="text-sm font-semibold text-blue-900">A. 创建相关（始终生效）</h2>
+                  <h2 className="text-sm font-semibold text-blue-900">
+                    {tab === 'mv' ? 'A. 创建相关（始终生效）' : '独立操作价格'}
+                  </h2>
                   <p className="text-xs text-blue-800/80 mt-0.5 leading-relaxed">
-                    AI 推荐、Agent 对话等与主流程独立计费。AI 推荐单价在「AI 推荐方向」行编辑；遗留整片模式下 MV 主流程步价不扣费，但本区块仍生效。
+                    {tab === 'mv'
+                      ? 'AI 推荐、Agent 对话等与主流程独立计费。AI 推荐单价在「AI 推荐方向」行编辑。'
+                      : 'Agent 对话等操作不属于首次创建预算，触发成功后按次独立扣费。'}
                   </p>
                 </div>
                 <PriceTable
@@ -868,7 +1023,7 @@ export default function StepPricesPage() {
                 setEdits={setEdits}
                 openHelp={openHelp}
                 setOpenHelp={setOpenHelp}
-                showResolution={tab === 'mv'}
+                showResolution={tab === 'mv' || tab === 'dance' || tab === 'karaoke'}
               />
             </div>
 
@@ -881,9 +1036,13 @@ export default function StepPricesPage() {
             {addonRows.length > 0 && (
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-100">
-                  <h2 className="text-sm font-semibold text-slate-700">D. 对口型附加</h2>
+                  <h2 className="text-sm font-semibold text-slate-700">
+                    {tab === 'mv' ? 'D. 对口型附加' : `${DIM_TABS.find((t) => t.key === tab)?.label} 附加项`}
+                  </h2>
                   <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                    当前实扣已合并入 Step ⑨ 视频按秒价（对口型镜头不另扣本表单价）。本表仅供运营对照或后续独立计价扩展。
+                    {tab === 'mv'
+                      ? '当前实扣已合并入 Step ⑨ 视频按秒价（对口型镜头不另扣本表单价）。本表仅供运营对照或后续独立计价扩展。'
+                      : '附加项仅在对应业务模式开放且启用后参与报价；尚未开放的模式会明确标记为不计费。'}
                   </p>
                 </div>
                 <PriceTable
@@ -913,7 +1072,7 @@ export default function StepPricesPage() {
                   setEdits={setEdits}
                   openHelp={openHelp}
                   setOpenHelp={setOpenHelp}
-                  showResolution={tab === 'mv'}
+                  showResolution={tab === 'mv' || tab === 'dance' || tab === 'karaoke'}
                 />
               </div>
             )}

@@ -31,7 +31,11 @@ export type PlansSectionVariant = 'full' | 'pricing' | 'entitlements';
 const EMPTY_PLAN: Partial<PlanEntitlement> = {
   planCode: '',
   name: '',
+  tagline: '',
+  weeklyPriceCents: 0,
   monthlyPriceCents: 0,
+  yearlyPriceCents: 0,
+  weeklyCredits: 0,
   monthlyCredits: 0,
   creditPurchaseDiscount: 1,
   subscriptionPurchaseDiscount: 1,
@@ -42,7 +46,6 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   allowUltron: false,
   allowSeedance: false,
   videoPriceCoefficient: 1,
-  allowMultiCharacter: false,
   allowCommercialUse: false,
   sortOrder: 0,
   isActive: true,
@@ -69,7 +72,11 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
   return {
     planCode: local.planCode,
     name: local.name,
+    tagline: local.tagline,
+    weeklyPriceCents: local.weeklyPriceCents,
     monthlyPriceCents: local.monthlyPriceCents,
+    yearlyPriceCents: local.yearlyPriceCents,
+    weeklyCredits: local.weeklyCredits,
     monthlyCredits: local.monthlyCredits,
     creditPurchaseDiscount: local.creditPurchaseDiscount,
     subscriptionPurchaseDiscount: local.subscriptionPurchaseDiscount,
@@ -80,9 +87,10 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     allowUltron: local.allowUltron,
     allowSeedance: local.allowSeedance,
     videoPriceCoefficient: local.videoPriceCoefficient,
-    allowMultiCharacter: local.allowMultiCharacter,
     allowCommercialUse: local.allowCommercialUse,
     stripePriceId: local.stripePriceId,
+    stripeWeeklyPriceId: local.stripeWeeklyPriceId,
+    stripeYearlyPriceId: local.stripeYearlyPriceId,
     sortOrder: local.sortOrder,
     isActive: local.isActive,
   };
@@ -475,11 +483,29 @@ function PlanCard({
                 onChange={(e) => patch({ name: e.target.value })}
               />
             </FormField>
+            <FormField label="一句话定位" description="定价页套餐名称下方的用户定位文案。">
+              <Input
+                size="sm"
+                value={local.tagline ?? ''}
+                placeholder="例如：1080P 电影感 MV 的主力创作方案"
+                onChange={(e) => patch({ tagline: e.target.value })}
+              />
+            </FormField>
           </FieldGroup>
         )}
 
         {showPricing && (
           <FieldGroup title="价格与折扣">
+            <FormField label="周费" description="Basic 等周付计划使用；0 表示不提供周付。">
+              <NumberInput
+                size="sm"
+                unit="USD"
+                min={0}
+                step={0.01}
+                value={(local.weeklyPriceCents ?? 0) / 100}
+                onChange={(n) => patch({ weeklyPriceCents: Math.round(n * 100) })}
+              />
+            </FormField>
             <FormField label="月费" description="订阅月价格，单位美元。">
               <NumberInput
                 size="sm"
@@ -488,6 +514,52 @@ function PlanCard({
                 step={0.01}
                 value={(local.monthlyPriceCents ?? 0) / 100}
                 onChange={(n) => patch({ monthlyPriceCents: Math.round(n * 100) })}
+              />
+            </FormField>
+            <FormField label="年费" description="年度一次性支付总价；0 表示不提供年付。">
+              <NumberInput
+                size="sm"
+                unit="USD"
+                min={0}
+                step={0.01}
+                value={(local.yearlyPriceCents ?? 0) / 100}
+                onChange={(n) => patch({ yearlyPriceCents: Math.round(n * 100) })}
+              />
+            </FormField>
+            <FormField label="Stripe 周付 Price ID" description="生产环境建议填写；留空时结账会按当前周费动态创建价格。">
+              <Input
+                size="sm"
+                mono
+                value={local.stripeWeeklyPriceId ?? ''}
+                placeholder="price_..."
+                onChange={(e) => patch({ stripeWeeklyPriceId: e.target.value.trim() || null })}
+              />
+            </FormField>
+            <FormField label="Stripe 月付 Price ID" description="对应 Stripe 中 interval=month 的循环价格。">
+              <Input
+                size="sm"
+                mono
+                value={local.stripePriceId ?? ''}
+                placeholder="price_..."
+                onChange={(e) => patch({ stripePriceId: e.target.value.trim() || null })}
+              />
+            </FormField>
+            <FormField label="Stripe 年付 Price ID" description="对应 Stripe 中 interval=year 的循环价格。">
+              <Input
+                size="sm"
+                mono
+                value={local.stripeYearlyPriceId ?? ''}
+                placeholder="price_..."
+                onChange={(e) => patch({ stripeYearlyPriceId: e.target.value.trim() || null })}
+              />
+            </FormField>
+            <FormField label="周度赠送积分" description="周付订阅每次成功扣款后发放。">
+              <NumberInput
+                size="sm"
+                unit="积分"
+                min={0}
+                value={local.weeklyCredits ?? 0}
+                onChange={(n) => patch({ weeklyCredits: Math.round(n) })}
               />
             </FormField>
             <FormField label="月度赠送积分" description="订阅周期发放的积分数。">
@@ -601,8 +673,8 @@ function PlanCard({
                 />
               </FormField>
               <FormField
-                label="视频价格系数"
-                description="1 = 原价，0.9 = 九折。"
+                label="会员视频扣费系数"
+                description="直接乘到视频实扣积分上。建议固定为 1；低于 1 会与充值折扣叠加。"
               >
                 <DecimalFieldInput
                   className={DECIMAL_INPUT_CLS}
@@ -621,11 +693,11 @@ function PlanCard({
                   label="无水印"
                 />
               </FormField>
-              <FormField label="Ultron 模式" description="是否开放 Ultron 画质档。">
+              <FormField label="高品质生成权限" description="开放后台配置的高品质档；前台会结合最高清晰度展示为专业或电影感 MV 品质。">
                 <Switch
                   checked={!!local.allowUltron}
                   onChange={(v) => patch({ allowUltron: v })}
-                  label="Ultron 模式"
+                  label="高品质生成"
                 />
               </FormField>
               <FormField label="Seedance 引擎" description="是否允许使用 Seedance 视频引擎。">
@@ -633,13 +705,6 @@ function PlanCard({
                   checked={!!local.allowSeedance}
                   onChange={(v) => patch({ allowSeedance: v })}
                   label="Seedance 引擎"
-                />
-              </FormField>
-              <FormField label="多角色" description="是否支持多角色参考图。">
-                <Switch
-                  checked={!!local.allowMultiCharacter}
-                  onChange={(v) => patch({ allowMultiCharacter: v })}
-                  label="多角色"
                 />
               </FormField>
               <FormField label="商业授权" description="是否授予商业使用权益。">

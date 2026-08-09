@@ -12,7 +12,6 @@ import {
   fetchCnyPerUsd,
   mountseaCreditUsdPerCredit,
 } from '@/lib/mountsea-pricing';
-import { ModelPricingSection } from '../_components/model-pricing-section';
 import { useConfirm } from '@/components/ui/dialog-provider';
 
 import type { PricingConfigView, PricingParam } from '../_components/types';
@@ -25,7 +24,7 @@ function coerceBoolean(v: FormValue | undefined): boolean {
   return v === true || v === 'true' || v === 1 || v === '1';
 }
 
-/** 整片定价专属参数，由 DurationPricingTop 单独管理 */
+/** 已废弃的旧整片定价参数，不再展示。 */
 const MV_DURATION_KEYS = [
   'mvPricingMode',
   'mvDurationBaseCreditsPerSecond',
@@ -181,7 +180,7 @@ export default function PricingConfigPage() {
     onSuccess: (res) => {
       setCoeffMsg({ ok: true, text: '计费系数已保存。' });
       syncFormFromView(setForm, res);
-      // 全局系数变化会影响步骤价格推荐值，刷新它
+      // 成本折算参数只影响下一次生成的历史成本参考值。
       qc.invalidateQueries({ queryKey: ['admin', 'billing', 'step-prices'] });
       qc.setQueryData(['admin', 'billing', 'pricing-config'], res);
     },
@@ -246,7 +245,7 @@ export default function PricingConfigPage() {
             定价策略
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            用户实扣由步骤价格与视频每秒价格矩阵决定；盈利系数只用于从模型美元标价派生未覆盖步骤的建议售价。
+            本页只管理计费开关和成本分析换算参数。用户售价与完整流程预算统一在“步骤价格”页面管理。
           </p>
         </div>
 
@@ -457,9 +456,6 @@ export default function PricingConfigPage() {
           </div>
 
         </QueryState>
-
-        {/* MV 模型定价 */}
-        <ModelPricingSection />
       </div>
     </div>
   );

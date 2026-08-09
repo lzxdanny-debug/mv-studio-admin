@@ -28,7 +28,6 @@ interface QualityProfile {
   priceFactor: number;
   durationPriceFactor: number;
   minPlan: string;
-  providerHint: string;
   enabled: boolean;
   sortOrder: number;
 }
@@ -40,7 +39,13 @@ interface VideoPricingView {
 
 const INPUT =
   'w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50';
-const PLAN_OPTIONS = ['free', 'creator', 'pro'];
+const PLAN_OPTIONS = [
+  { value: 'free', label: '免费版' },
+  { value: 'creator', label: 'Basic' },
+  { value: 'pro', label: 'Pro' },
+  { value: 'ultimate', label: 'Ultimate' },
+  { value: 'studio', label: 'Creator' },
+];
 
 const NEW_RES: VideoResolution = {
   code: '',
@@ -60,7 +65,6 @@ const NEW_QUALITY: QualityProfile = {
   priceFactor: 1,
   durationPriceFactor: 1,
   minPlan: 'free',
-  providerHint: '',
   enabled: true,
   sortOrder: 99,
 };
@@ -117,8 +121,16 @@ export default function VideoPricingPage() {
             清晰度与品质
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            管理 C 端可选的清晰度与生成品质档：输出规格、会员门槛、启用状态与排序。
+            管理用户可选择的输出规格和生成品质。最低会员、启用状态会在服务端强制校验，不能由前端绕过。
           </p>
+          <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2">
+              实际视频扣费以“步骤价格 → 视频每秒价矩阵”为准；这里的系数保存后会重算该矩阵。
+            </div>
+            <div className="rounded-xl border border-violet-100 bg-violet-50 px-3 py-2">
+              品质对应的实际模型由“AI 路由配置”管理，本页不再重复配置模型。
+            </div>
+          </div>
         </div>
 
         <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-48">
@@ -176,7 +188,7 @@ export default function VideoPricingPage() {
                 生成品质（标准 / Ultron）
                 <span
                   className="text-slate-400 cursor-help"
-                  title="Ultron 需同时满足「会员权益 → Ultron 模式」开关开启，且会员档位 ≥ 此处设置的最低档位。"
+                  title="高品质需同时满足会员的“高品质生成权限”，且会员档位达到这里设置的最低档位。"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                 </span>
@@ -237,8 +249,8 @@ function PlanSelect({ value, onChange }: { value: string; onChange: (v: string) 
   return (
     <select className={INPUT} value={value} onChange={(e) => onChange(e.target.value)}>
       {PLAN_OPTIONS.map((p) => (
-        <option key={p} value={p}>
-          {p}
+        <option key={p.value} value={p.value}>
+          {p.label}
         </option>
       ))}
     </select>
