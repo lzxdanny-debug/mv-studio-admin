@@ -36,7 +36,7 @@ import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { SimpleSelect } from '@/components/ui/select';
 
-type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'minimax';
+type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
@@ -141,15 +141,9 @@ const PROVIDER_META: Record<RoutingProvider, ProviderMetaItem> = {
     iconWrap: 'bg-teal-50',
     iconColor: 'text-teal-700',
   },
-  minimax: {
-    label: 'minimax',
-    icon: Film,
-    iconWrap: 'bg-violet-50',
-    iconColor: 'text-violet-700',
-  },
 };
 
-/** 历史调用记录里可能仍出现已下线渠道（mountseaMs / fal / cloudflare） */
+/** 历史调用记录里可能仍出现已下线渠道（mountseaMs / fal / cloudflare / minimax） */
 const LEGACY_PROVIDER_META: Record<string, ProviderMetaItem> = {
   mountseaMs: {
     label: 'Mountsea MS（已下线）',
@@ -166,6 +160,12 @@ const LEGACY_PROVIDER_META: Record<string, ProviderMetaItem> = {
   cloudflare: {
     label: 'Cloudflare（已下线）',
     icon: Cloud,
+    iconWrap: 'bg-slate-100',
+    iconColor: 'text-slate-500',
+  },
+  minimax: {
+    label: 'MiniMax（已下线）',
+    icon: Film,
     iconWrap: 'bg-slate-100',
     iconColor: 'text-slate-500',
   },

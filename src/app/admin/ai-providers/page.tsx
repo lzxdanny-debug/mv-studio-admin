@@ -17,7 +17,6 @@ import {
   Database,
   ServerCog,
   Layers,
-  Film,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
@@ -41,14 +40,13 @@ const CONTROL_WIDE = 'sm:w-[360px] w-[220px]';
 // 类型 —— 与后端 CredentialView / 字段定义一一对应
 // ──────────────────────────────────────────────────────────────────────
 
-type AiProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'minimax';
+type AiProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens';
 
 const ALL_AI_PROVIDERS: AiProvider[] = [
   'mountsea',
   'apisale',
   'smartfashion',
   'aitokens',
-  'minimax',
 ];
 
 interface CredentialView {
@@ -225,27 +223,6 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     ],
     hasBaseUrl: true,
     baseUrlPlaceholder: 'https://seedance.ai-tokens.app (默认)',
-  },
-  minimax: {
-    provider: 'minimax',
-    title: 'MiniMax',
-    icon: Film,
-    iconWrap: 'bg-violet-50',
-    iconColor: 'text-violet-700',
-    desc:
-      '官方 Video V2：Bearer + POST /v2/video_generation（MiniMax-H3）。支持单图 i2va / 多图 r2va / 对口型 reference_audio。',
-    consoleUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
-    secretFields: [
-      {
-        key: 'apiKey',
-        label: 'API Key',
-        placeholder: 'xxxxxxxxxxxxxxxxxxxx',
-        secret: true,
-        hint: '环境变量 MINIMAX_API_KEY；Authorization: Bearer …（国内开放平台按量 Key）',
-      },
-    ],
-    hasBaseUrl: true,
-    baseUrlPlaceholder: 'https://api.minimaxi.com (默认；国际可用 https://api.minimax.io)',
   },
 };
 
