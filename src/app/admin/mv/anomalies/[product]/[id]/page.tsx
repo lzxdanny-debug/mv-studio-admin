@@ -114,7 +114,8 @@ function Section({
 export default function AnomalyDetailPage() {
   const params = useParams<{ product: string; id: string }>();
   const searchParams = useSearchParams();
-  const product = params.product === 'karaoke' ? 'karaoke' : 'mv';
+  const product =
+    params.product === 'karaoke' || params.product === 'dance' ? params.product : 'mv';
   const id = params.id;
   const kind = searchParams.get('kind') || undefined;
 
@@ -132,10 +133,21 @@ export default function AnomalyDetailPage() {
       ? '/admin/mv/anomalies/storyboards'
       : '/admin/mv/anomalies/failed-shots';
 
+  const productLabel =
+    product === 'karaoke' ? 'Karaoke' : product === 'dance' ? 'Dance' : 'MV';
+  const productBadgeClass =
+    product === 'karaoke'
+      ? 'bg-violet-100 text-violet-700'
+      : product === 'dance'
+        ? 'bg-emerald-100 text-emerald-700'
+        : 'bg-slate-100 text-slate-600';
+
   const projectHref =
     product === 'karaoke'
       ? `/admin/karaoke/projects/${data?.projectId || id}`
-      : `/admin/mv/projects/${data?.projectId || ''}`;
+      : product === 'dance'
+        ? `/admin/dance/projects`
+        : `/admin/mv/projects/${data?.projectId || ''}`;
 
   const detailText =
     data?.failureDetail?.trim() ||
@@ -162,7 +174,7 @@ export default function AnomalyDetailPage() {
               错误详情
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {product === 'karaoke' ? 'Karaoke' : 'MV'} · 排查任务 ID、渠道、模型与完整错误信息
+              {productLabel} · 排查任务 ID、渠道、模型与完整错误信息
             </p>
           </div>
           {data && (
@@ -202,12 +214,10 @@ export default function AnomalyDetailPage() {
                     <span
                       className={cn(
                         'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                        product === 'karaoke'
-                          ? 'bg-violet-100 text-violet-700'
-                          : 'bg-slate-100 text-slate-600',
+                        productBadgeClass,
                       )}
                     >
-                      {product === 'karaoke' ? 'Karaoke' : 'MV'}
+                      {productLabel}
                     </span>
                     <span
                       className={cn(

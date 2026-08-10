@@ -164,6 +164,42 @@ export default function LlmAnomaliesPage() {
     [page, pageSize, filters],
   );
 
+  const { data: facets } = useQuery<{
+    products: Array<{ product: string; count: number }>;
+  }>({
+    queryKey: [
+      'admin',
+      'mv',
+      'anomalies',
+      'llm',
+      'facets',
+      filters.dateFrom,
+      filters.dateTo,
+      filters.search,
+      filters.errorReason,
+      filters.failureReason,
+      filters.taskId,
+      filters.provider,
+      filters.model,
+    ],
+    queryFn: () =>
+      apiClient.get('/admin/mv/anomalies/llm/facets', {
+        params: {
+          search: filters.search || undefined,
+          errorReason: filters.errorReason || undefined,
+          failureReason: filters.failureReason || undefined,
+          taskId: filters.taskId || undefined,
+          provider: filters.provider || undefined,
+          model: filters.model || undefined,
+          dateFrom: filters.dateFrom || undefined,
+          dateTo: filters.dateTo || undefined,
+        },
+      }) as any,
+  });
+
+  const facetCount = (key: string) =>
+    facets?.products?.find((p) => p.product === key)?.count;
+
   const { data: stepOptions } = useQuery<{
     items: Array<{ stepKey: string; product: string; label: string; count: number }>;
   }>({
@@ -265,9 +301,13 @@ export default function LlmAnomaliesPage() {
             className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[120px]"
           >
             <option value="">全部产品</option>
-            <option value="mv">MV</option>
-            <option value="karaoke">Karaoke</option>
-            <option value="dance">Dance</option>
+            <option value="mv">MV{facetCount('mv') != null ? ` (${facetCount('mv')})` : ''}</option>
+            <option value="karaoke">
+              Karaoke{facetCount('karaoke') != null ? ` (${facetCount('karaoke')})` : ''}
+            </option>
+            <option value="dance">
+              Dance{facetCount('dance') != null ? ` (${facetCount('dance')})` : ''}
+            </option>
           </select>
           <select
             value={stepKey}

@@ -40,13 +40,14 @@ const CONTROL_WIDE = 'sm:w-[360px] w-[220px]';
 // 类型 —— 与后端 CredentialView / 字段定义一一对应
 // ──────────────────────────────────────────────────────────────────────
 
-type AiProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens';
+type AiProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
 
 const ALL_AI_PROVIDERS: AiProvider[] = [
   'mountsea',
   'apisale',
   'smartfashion',
   'aitokens',
+  'google',
 ];
 
 interface CredentialView {
@@ -223,6 +224,27 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     ],
     hasBaseUrl: true,
     baseUrlPlaceholder: 'https://seedance.ai-tokens.app (默认)',
+  },
+  google: {
+    provider: 'google',
+    title: 'Google Gemini（官 key）',
+    icon: Cloud,
+    iconWrap: 'bg-amber-50',
+    iconColor: 'text-amber-700',
+    desc:
+      'Google AI Studio / Generative Language API 官方密钥。用于 textGemini、Dance 规划/视觉等；失败回落 Mountsea。音频旁路暂仍走 Mountsea。',
+    consoleUrl: 'https://aistudio.google.com/apikey',
+    secretFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key',
+        placeholder: 'AIza…',
+        secret: true,
+        hint: '环境变量 GOOGLE_AI_API_KEY；Header x-goog-api-key',
+      },
+    ],
+    hasBaseUrl: true,
+    baseUrlPlaceholder: 'https://generativelanguage.googleapis.com (默认)',
   },
 };
 

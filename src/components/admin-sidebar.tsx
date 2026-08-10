@@ -52,6 +52,7 @@ import {
   Headphones,
   FlaskConical,
   Wand2,
+  Gauge,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -674,6 +675,12 @@ const NAV_SECTIONS: NavSection[] = [
             href: '/admin/ai-routing',
             label: 'AI 路由配置',
             icon: Cable,
+            permission: 'ai.routing.view',
+          },
+          {
+            href: '/admin/ai-model-concurrency',
+            label: '模型并发中心',
+            icon: Gauge,
             permission: 'ai.routing.view',
           },
         ],

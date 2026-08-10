@@ -36,7 +36,7 @@ import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { SimpleSelect } from '@/components/ui/select';
 
-type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens';
+type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
@@ -140,6 +140,12 @@ const PROVIDER_META: Record<RoutingProvider, ProviderMetaItem> = {
     icon: Cloud,
     iconWrap: 'bg-teal-50',
     iconColor: 'text-teal-700',
+  },
+  google: {
+    label: 'Google Gemini',
+    icon: Cloud,
+    iconWrap: 'bg-amber-50',
+    iconColor: 'text-amber-700',
   },
 };
 
@@ -300,7 +306,6 @@ export default function AiRoutingPage() {
     queryKey: ['admin', 'ai-routing', 'meta'],
     queryFn: () => apiClient.get('/admin/ai-routing/meta') as Promise<MetaResp>,
   });
-
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admin', 'ai-routing'] });
   };

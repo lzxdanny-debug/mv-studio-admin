@@ -10,9 +10,9 @@ export default function FailedShotsAnomalyPage() {
         kind: 'failed-shots',
         title: '镜头视频失败',
         description:
-          'MV / Karaoke：故事板（场景图）已就绪但视频失败，或视频生成卡住超过 30 分钟',
+          'MV / Karaoke / Dance：故事板（场景图）已就绪但视频失败，或视频生成卡住超过 30 分钟',
         icon: VideoOff,
-        emptyMessage: '暂无视频失败或卡住的镜头（含 Karaoke）',
+        emptyMessage: '暂无视频失败或卡住的镜头（含 Karaoke / Dance）',
         showStoryboardCol: true,
         showVideoCol: true,
       }}

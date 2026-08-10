@@ -85,13 +85,34 @@ export interface AnomalyShotItem {
   userId: string;
   userDisplayName: string | null;
   userEmail: string | null;
-  /** mv | karaoke；旧数据缺省按 mv */
-  product?: 'mv' | 'karaoke' | string | null;
+  /** mv | karaoke | dance；旧数据缺省按 mv */
+  product?: 'mv' | 'karaoke' | 'dance' | string | null;
 }
 
-export function resolveAnomalyProduct(row: Pick<AnomalyShotItem, 'product' | 'metadata'>): 'mv' | 'karaoke' {
+export function resolveAnomalyProduct(
+  row: Pick<AnomalyShotItem, 'product' | 'metadata'>,
+): 'mv' | 'karaoke' | 'dance' {
   if (row.product === 'karaoke' || row.metadata?.product === 'karaoke') return 'karaoke';
+  if (row.product === 'dance' || row.metadata?.product === 'dance') return 'dance';
   return 'mv';
+}
+
+function productBadgeClass(product: string) {
+  if (product === 'karaoke') return 'bg-violet-100 text-violet-700';
+  if (product === 'dance') return 'bg-emerald-100 text-emerald-700';
+  return 'bg-slate-100 text-slate-600';
+}
+
+function productLabel(product: string) {
+  if (product === 'karaoke') return 'Karaoke';
+  if (product === 'dance') return 'Dance';
+  return 'MV';
+}
+
+function projectHrefFor(product: string, projectId: string) {
+  if (product === 'karaoke') return `/admin/karaoke/projects/${projectId}`;
+  if (product === 'dance') return `/admin/dance/projects`;
+  return `/admin/mv/projects/${projectId}`;
 }
 
 interface ListResponse {
@@ -116,6 +137,7 @@ function buildQueryParams(
   pageSize: number,
   filters: {
     search: string;
+    product: string;
     errorReason: string;
     failureReason: string;
     genType: string;
@@ -131,6 +153,7 @@ function buildQueryParams(
     page,
     pageSize,
     search: filters.search || undefined,
+    product: filters.product || undefined,
     errorReason: filters.errorReason || undefined,
     failureReason: filters.failureReason || undefined,
     genType: filters.genType || undefined,
@@ -167,6 +190,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
 
   const [search, setSearch] = useState('');
+  const [product, setProduct] = useState('');
   const [errorReason, setErrorReason] = useState('');
   const [failureReason, setFailureReason] = useState('');
   const [genType, setGenType] = useState('');
@@ -181,6 +205,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
   const filters = useMemo(
     () => ({
       search,
+      product,
       errorReason,
       failureReason,
       genType,
@@ -193,6 +218,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
     }),
     [
       search,
+      product,
       errorReason,
       failureReason,
       genType,
@@ -205,11 +231,51 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
     ],
   );
 
+  const { data: facets } = useQuery<{
+    products: Array<{ product: string; count: number }>;
+  }>({
+    queryKey: [
+      'admin',
+      'mv',
+      'anomalies',
+      'facets',
+      config.kind,
+      filters.dateFrom,
+      filters.dateTo,
+      filters.search,
+      filters.errorReason,
+      filters.failureReason,
+      filters.genType,
+      filters.shotType,
+      filters.taskId,
+      filters.provider,
+      filters.model,
+    ],
+    queryFn: () =>
+      apiClient.get(`/admin/mv/anomalies/${config.kind}/facets`, {
+        params: {
+          search: filters.search || undefined,
+          errorReason: filters.errorReason || undefined,
+          failureReason: filters.failureReason || undefined,
+          genType: filters.genType || undefined,
+          shotType: filters.shotType || undefined,
+          taskId: filters.taskId || undefined,
+          provider: filters.provider || undefined,
+          model: filters.model || undefined,
+          dateFrom: filters.dateFrom || undefined,
+          dateTo: filters.dateTo || undefined,
+        },
+      }) as any,
+  });
+
+  const facetCount = (key: string) =>
+    facets?.products?.find((p) => p.product === key)?.count;
+
   const { data: reasonOptions } = useQuery<{ items: Array<{ code: string; count: number }> }>({
-    queryKey: ['admin', 'mv', 'anomalies', 'failure-reasons', config.kind],
+    queryKey: ['admin', 'mv', 'anomalies', 'failure-reasons', config.kind, filters.product],
     queryFn: () =>
       apiClient.get('/admin/mv/anomalies/failure-reasons', {
-        params: { kind: config.kind },
+        params: { kind: config.kind, product: filters.product || undefined },
       }) as any,
   });
 
@@ -287,6 +353,25 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
             />
           </div>
           <select
+            value={product}
+            onChange={(e) => {
+              setProduct(e.target.value);
+              setErrorReason('');
+              setPage(1);
+            }}
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[120px]"
+            title="产品"
+          >
+            <option value="">全部产品</option>
+            <option value="mv">MV{facetCount('mv') != null ? ` (${facetCount('mv')})` : ''}</option>
+            <option value="karaoke">
+              Karaoke{facetCount('karaoke') != null ? ` (${facetCount('karaoke')})` : ''}
+            </option>
+            <option value="dance">
+              Dance{facetCount('dance') != null ? ` (${facetCount('dance')})` : ''}
+            </option>
+          </select>
+          <select
             value={errorReason}
             onChange={(e) => {
               setErrorReason(e.target.value);
@@ -324,6 +409,7 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
             <option value="start_end">start_end</option>
             <option value="text2video">text2video</option>
             <option value="karaoke">karaoke</option>
+            <option value="dance">dance</option>
           </select>
           <select
             value={shotType}
@@ -427,25 +513,20 @@ export function AnomalyShotsPageView({ config }: { config: AnomalyShotsPageConfi
                   {data?.items.map((row) => {
                     const lastVideoError =
                       row.failureDetail?.trim() || getLastVideoError(row.metadata);
-                    const product = resolveAnomalyProduct(row);
-                    const projectHref =
-                      product === 'karaoke'
-                        ? `/admin/karaoke/projects/${row.projectId}`
-                        : `/admin/mv/projects/${row.projectId}`;
-                    const detailHref = `/admin/mv/anomalies/${product}/${row.id}?kind=${config.kind}`;
+                    const rowProduct = resolveAnomalyProduct(row);
+                    const projectHref = projectHrefFor(rowProduct, row.projectId);
+                    const detailHref = `/admin/mv/anomalies/${rowProduct}/${row.id}?kind=${config.kind}`;
                     return (
-                      <tr key={`${product}-${row.id}`} className="hover:bg-slate-50 align-top">
+                      <tr key={`${rowProduct}-${row.id}`} className="hover:bg-slate-50 align-top">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5 mb-0.5">
                             <span
                               className={cn(
                                 'inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold',
-                                product === 'karaoke'
-                                  ? 'bg-violet-100 text-violet-700'
-                                  : 'bg-slate-100 text-slate-600',
+                                productBadgeClass(rowProduct),
                               )}
                             >
-                              {product === 'karaoke' ? 'Karaoke' : 'MV'}
+                              {productLabel(rowProduct)}
                             </span>
                           </div>
                           <Link

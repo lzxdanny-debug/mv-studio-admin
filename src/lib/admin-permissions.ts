@@ -47,6 +47,7 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/risk/config', permission: 'risk.view' },
   { prefix: '/admin/billing', permission: 'billing.overview.view', exact: true },
   { prefix: '/admin/ai-providers', permission: 'provider.manage' },
+  { prefix: '/admin/ai-model-concurrency', permission: 'ai.routing.view' },
   { prefix: '/admin/ai-routing', permission: 'ai.routing.view' },
   { prefix: '/admin/logs', permission: 'logs.view' },
   { prefix: '/admin/settings', permission: 'system.manage' },

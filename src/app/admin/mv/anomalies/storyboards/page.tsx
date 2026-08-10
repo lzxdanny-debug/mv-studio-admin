@@ -10,9 +10,9 @@ export default function StoryboardAnomalyPage() {
         kind: 'storyboards',
         title: '故事板异常',
         description:
-          'MV 故事板 / Karaoke 场景图生成失败，或生成中卡住超过 30 分钟且无图',
+          'MV 故事板 / Karaoke 场景图 / Dance clip 故事板失败，或生成中卡住超过 30 分钟且无图',
         icon: ImageOff,
-        emptyMessage: '暂无故事板/场景图异常（含 Karaoke）',
+        emptyMessage: '暂无故事板/场景图异常（含 Karaoke / Dance）',
         showStoryboardCol: true,
         showVideoCol: false,
       }}
