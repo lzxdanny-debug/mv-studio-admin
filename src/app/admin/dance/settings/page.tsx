@@ -126,7 +126,7 @@ const FIELD_GROUPS: Array<{ title: string; fields: SettingFieldDef[] }> = [
     fields: [
       { key: 'maxSections', label: '最大段落数', description: '单个项目允许拆分的音乐段落上限。', type: 'number', unit: '段', min: 1 },
       { key: 'maxClips', label: '最大片段数', description: '单个项目允许生成的视频片段总数上限，直接影响成本天花板。', type: 'number', unit: '个', min: 1 },
-      { key: 'targetClipSec', label: '片段目标时长', description: '编排时优先采用的单片段时长。', type: 'number', unit: '秒', min: 1, step: 0.1 },
+      { key: 'targetClipSec', label: '表演 Take 目标时长', description: '优先生成完整 6–8 秒表演 Take，而不是 2–4 秒碎片。', type: 'number', unit: '秒', min: 6, step: 0.1 },
       { key: 'minClipSec', label: '片段最短时长', description: '低于此时长的片段会被合并，避免碎片化动作。', type: 'number', unit: '秒', min: 0, step: 0.1 },
       { key: 'maxClipSec', label: '片段最长时长', description: '受视频模型单次生成上限约束。', type: 'number', unit: '秒', min: 1, step: 0.1 },
       { key: 'sectionTimeToleranceSec', label: '段落时间容差', description: '段落边界与音乐分析结果允许的偏差，超出会触发重新编排。', type: 'number', unit: '秒', min: 0, step: 0.05 },
@@ -135,7 +135,7 @@ const FIELD_GROUPS: Array<{ title: string; fields: SettingFieldDef[] }> = [
   {
     title: '镜头与画面约束',
     fields: [
-      { key: 'maxHeroSpaces', label: '最大主场景数', description: '同一支舞允许出现的主要空间数量，过多会破坏空间连贯性。', type: 'number', unit: '个', min: 1 },
+      { key: 'maxHeroSpaces', label: '最大 MV 空间数', description: '允许室内、室外和生活方式场景；系统按歌曲时长选择实际数量，并用统一美术世界保持连续。', type: 'number', unit: '个', min: 1, max: 6 },
       {
         key: 'fullBodyMinRatio',
         label: '全身镜头最低占比',

@@ -166,7 +166,10 @@ export default function LlmAnomaliesPage() {
 
   const { data: facets } = useQuery<{
     products: Array<{ product: string; count: number }>;
+    providers: Array<{ provider: string; count: number }>;
+    models: Array<{ model: string; count: number }>;
   }>({
+    // facets 不含当前 provider/model，避免下拉选项被自身筛选滤没
     queryKey: [
       'admin',
       'mv',
@@ -179,23 +182,39 @@ export default function LlmAnomaliesPage() {
       filters.errorReason,
       filters.failureReason,
       filters.taskId,
-      filters.provider,
-      filters.model,
+      filters.stepKey,
+      filters.product,
     ],
     queryFn: () =>
       apiClient.get('/admin/mv/anomalies/llm/facets', {
         params: {
           search: filters.search || undefined,
+          product: filters.product || undefined,
+          stepKey: filters.stepKey || undefined,
           errorReason: filters.errorReason || undefined,
           failureReason: filters.failureReason || undefined,
           taskId: filters.taskId || undefined,
-          provider: filters.provider || undefined,
-          model: filters.model || undefined,
           dateFrom: filters.dateFrom || undefined,
           dateTo: filters.dateTo || undefined,
         },
       }) as any,
   });
+
+  const providerOptions = useMemo(() => {
+    const items = facets?.providers ?? [];
+    if (provider && !items.some((p) => p.provider === provider)) {
+      return [{ provider, count: 0 }, ...items];
+    }
+    return items;
+  }, [facets?.providers, provider]);
+
+  const modelOptions = useMemo(() => {
+    const items = facets?.models ?? [];
+    if (model && !items.some((m) => m.model === model)) {
+      return [{ model, count: 0 }, ...items];
+    }
+    return items;
+  }, [facets?.models, model]);
 
   const facetCount = (key: string) =>
     facets?.products?.find((p) => p.product === key)?.count;
@@ -358,24 +377,40 @@ export default function LlmAnomaliesPage() {
             placeholder="Task ID"
             className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[160px] font-mono"
           />
-          <input
+          <select
             value={provider}
             onChange={(e) => {
               setProvider(e.target.value);
               setPage(1);
             }}
-            placeholder="渠道"
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[100px]"
-          />
-          <input
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[120px]"
+            title="按渠道筛选"
+          >
+            <option value="">全部渠道</option>
+            {providerOptions.map((item) => (
+              <option key={item.provider} value={item.provider}>
+                {item.provider}
+                {item.count > 0 ? ` (${item.count})` : ''}
+              </option>
+            ))}
+          </select>
+          <select
             value={model}
             onChange={(e) => {
               setModel(e.target.value);
               setPage(1);
             }}
-            placeholder="模型"
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[140px] font-mono"
-          />
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white min-w-[160px] font-mono max-w-[240px]"
+            title="按模型筛选"
+          >
+            <option value="">全部模型</option>
+            {modelOptions.map((item) => (
+              <option key={item.model} value={item.model}>
+                {item.model}
+                {item.count > 0 ? ` (${item.count})` : ''}
+              </option>
+            ))}
+          </select>
           <input
             type="date"
             value={dateFrom}

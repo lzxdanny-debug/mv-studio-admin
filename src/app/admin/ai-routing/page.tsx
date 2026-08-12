@@ -41,7 +41,9 @@ type AiCapability =
   | 'textGpt'
   | 'textGemini'
   | 'textAgent'
-  | 'dancePlanning'
+  | 'danceAgentText'
+  | 'danceCreativeDirector'
+  | 'danceSectionPlanning'
   | 'danceVision'
   | 'danceImage'
   | 'danceVideoSingleRef'
@@ -224,7 +226,9 @@ const CAP_GROUPS: CapGroup[] = [
     title: 'Dance Video',
     icon: Sparkles,
     caps: [
-      'dancePlanning',
+      'danceAgentText',
+      'danceCreativeDirector',
+      'danceSectionPlanning',
       'danceVision',
       'danceImage',
       'danceVideoSingleRef',
@@ -274,7 +278,9 @@ const VIDEO_TAB_LABEL: Partial<Record<AiCapability, string>> = {
   karaokeVideoSolo: 'Solo',
   karaokeVideoPet: 'Pet',
   karaokeVideoDuet: 'Duet',
-  dancePlanning: '策划',
+  danceAgentText: '交互',
+  danceCreativeDirector: '创意导演',
+  danceSectionPlanning: '分段编舞',
   danceVision: '人物识别',
   danceImage: '图片',
   danceVideoSingleRef: '单图视频',
@@ -288,15 +294,20 @@ const INLINE_SUB_LABEL: Partial<Record<AiCapability, string>> = {
   textGpt: 'GPT',
   textGemini: 'Gemini',
   textAgent: 'Agent 对话',
-  dancePlanning: '导演与编舞',
+  danceAgentText: '交互与短文本',
+  danceCreativeDirector: '视觉导演与总编舞',
+  danceSectionPlanning: '逐段动作与结构规划',
   danceVision: '人物参考图分析',
   audioTranscribe: '转写',
   audioAnalyze: '分析',
 };
 
+const PAGE_TAB_TELEMETRY = 'telemetry';
+
 export default function AiRoutingPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<AiCapability | null>(null);
+  const [activePageTab, setActivePageTab] = useState<string>(CAP_GROUPS[0]?.key ?? PAGE_TAB_TELEMETRY);
 
   const listQ = useQuery<ListResp>({
     queryKey: ['admin', 'ai-routing'],
@@ -310,11 +321,43 @@ export default function AiRoutingPage() {
     qc.invalidateQueries({ queryKey: ['admin', 'ai-routing'] });
   };
 
+  const pageGroups = useMemo(() => {
+    const data = listQ.data;
+    if (!data) return [...CAP_GROUPS];
+    const grouped = new Set(CAP_GROUPS.flatMap((g) => g.caps));
+    const leftover = data.capabilities.filter((c) => !grouped.has(c));
+    const groups: CapGroup[] = CAP_GROUPS.filter((g) =>
+      g.caps.some((c) => data.capabilities.includes(c)),
+    );
+    if (leftover.length > 0) {
+      groups.push({
+        key: 'other',
+        title: '其他',
+        icon: ServerCog,
+        caps: leftover,
+      });
+    }
+    return groups;
+  }, [listQ.data]);
+
+  useEffect(() => {
+    if (activePageTab === PAGE_TAB_TELEMETRY) return;
+    if (pageGroups.some((g) => g.key === activePageTab)) return;
+    setActivePageTab(pageGroups[0]?.key ?? PAGE_TAB_TELEMETRY);
+  }, [activePageTab, pageGroups]);
+
+  const selectPageTab = (key: string) => {
+    setActivePageTab(key);
+    setEditing(null);
+  };
+
+  const activeGroup = pageGroups.find((g) => g.key === activePageTab) ?? null;
+
   return (
     <div className="admin-page">
       <div className="p-6 space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Cable className="h-5 w-5 text-blue-600" />
               AI 路由配置
@@ -324,15 +367,14 @@ export default function AiRoutingPage() {
               修改后立即生效，无须重启。
             </p>
             <p className="text-xs text-slate-500 mt-2 leading-relaxed rounded-lg border border-slate-200 bg-white px-3 py-2 max-w-3xl">
-              <strong className="text-slate-700">Mountsea</strong>（Hub）走 /v1 聊天与 Hub 视频/图像名，负责
-              <strong className="text-slate-700"> 文本、音频、视觉理解</strong> 等能力。
-              <strong className="text-slate-700"> Mountsea MS</strong> 走 /ms/v1 按 endpoint slug 调用，仅开放给
-              <strong className="text-slate-700"> 图像 / 视频 / 对口型</strong>——因此「文本生成」等不会出现 MS 选项，这是 API 能力边界，不是遗漏。
+              <strong className="text-slate-700">Mountsea</strong> 负责文本 / Agent / 视觉分析 / 音频；
+              <strong className="text-slate-700"> apisale / smartfashion / aitokens</strong> 负责媒体与口型等能力。
+              文本类不会出现媒体渠道选项，这是能力矩阵边界，不是遗漏。
             </p>
           </div>
           <button
             onClick={refresh}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 shrink-0"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             刷新
@@ -383,48 +425,80 @@ export default function AiRoutingPage() {
           </div>
         )}
 
-        <QueryState
-          isLoading={listQ.isLoading || metaQ.isLoading}
-          isError={listQ.isError || metaQ.isError}
-          error={listQ.error ?? metaQ.error}
-          isEmpty={false}
-          height="h-64"
-        >
-          {listQ.data && metaQ.data && (
-            <div className="space-y-5">
-              {(() => {
-                const data = listQ.data!;
-                const meta = metaQ.data!;
-                const grouped = new Set(CAP_GROUPS.flatMap((g) => g.caps));
-                const leftover = data.capabilities.filter(
-                  (c) => !grouped.has(c),
-                );
-                const groups: CapGroup[] = [...CAP_GROUPS];
-                if (leftover.length > 0) {
-                  groups.push({
-                    key: 'other',
-                    title: '其他',
-                    icon: ServerCog,
-                    caps: leftover,
-                  });
-                }
-                return groups.map((g) => (
-                  <CapabilityGroup
-                    key={g.key}
-                    group={g}
-                    listData={data}
-                    meta={meta}
-                    editing={editing}
-                    setEditing={setEditing}
-                  />
-                ));
-              })()}
-            </div>
-          )}
-        </QueryState>
+        <div className="rounded-2xl border border-slate-200 bg-white p-1.5 overflow-x-auto">
+          <div className="flex items-center gap-1 min-w-max">
+            {pageGroups.map((g) => {
+              const Icon = g.icon;
+              const active = activePageTab === g.key;
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => selectPageTab(g.key)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap',
+                    active
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                  )}
+                >
+                  <Icon className={cn('h-3.5 w-3.5', active ? 'text-white' : 'text-slate-400')} />
+                  {g.title}
+                </button>
+              );
+            })}
+            <span className="mx-1 h-5 w-px bg-slate-200" aria-hidden />
+            <button
+              type="button"
+              onClick={() => selectPageTab(PAGE_TAB_TELEMETRY)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap',
+                activePageTab === PAGE_TAB_TELEMETRY
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+              )}
+            >
+              <Activity
+                className={cn(
+                  'h-3.5 w-3.5',
+                  activePageTab === PAGE_TAB_TELEMETRY ? 'text-white' : 'text-slate-400',
+                )}
+              />
+              调用埋点
+            </button>
+          </div>
+        </div>
 
-        {listQ.data && (
-          <RouterTelemetrySection labels={listQ.data.labels} />
+        {activePageTab === PAGE_TAB_TELEMETRY ? (
+          <QueryState
+            isLoading={listQ.isLoading}
+            isError={listQ.isError}
+            error={listQ.error}
+            isEmpty={!listQ.data}
+            emptyMessage="暂无路由数据"
+            height="h-64"
+          >
+            {listQ.data && <RouterTelemetrySection labels={listQ.data.labels} />}
+          </QueryState>
+        ) : (
+          <QueryState
+            isLoading={listQ.isLoading || metaQ.isLoading}
+            isError={listQ.isError || metaQ.isError}
+            error={listQ.error ?? metaQ.error}
+            isEmpty={false}
+            height="h-64"
+          >
+            {listQ.data && metaQ.data && activeGroup && (
+              <CapabilityGroup
+                key={activeGroup.key}
+                group={activeGroup}
+                listData={listQ.data}
+                meta={metaQ.data}
+                editing={editing}
+                setEditing={setEditing}
+              />
+            )}
+          </QueryState>
         )}
       </div>
     </div>
@@ -533,7 +607,7 @@ function RouterTelemetrySection({
   };
 
   return (
-    <div className="space-y-4 pt-6 border-t border-slate-200">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
@@ -868,19 +942,18 @@ function CapabilityGroup({
     </section>
   );
 
-  /** 子 capability 固定占 50% 宽，不平铺整行 */
-  const capGrid = (items: React.ReactNode) => (
-    <div className="grid grid-cols-2 gap-4 items-start">{items}</div>
+  /** 一行只展示一个 capability，整宽排列 */
+  const capStack = (items: React.ReactNode) => (
+    <div className="flex flex-col gap-4">{items}</div>
   );
 
-  const renderCap = (c: AiCapability, opts?: { compact?: boolean; subLabel?: string }) => {
+  const renderCap = (c: AiCapability, opts?: { subLabel?: string }) => {
     const row = listData.rows.find((r) => r.capability === c);
     if (!row) return null;
     return (
       <CapabilityRow
         key={c}
         bare
-        compact={opts?.compact}
         row={row}
         meta={meta}
         label={listData.labels[c]}
@@ -897,14 +970,14 @@ function CapabilityGroup({
     const row = listData.rows.find((r) => r.capability === activeCap);
     return cardShell(
       <>
-        <div className="flex gap-1 mb-3 bg-slate-100 p-1 rounded-xl max-w-[50%]">
+        <div className="flex flex-wrap gap-1 mb-4 bg-slate-100 p-1 rounded-xl w-full">
           {caps.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setActiveTab(c)}
               className={cn(
-                'flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-center',
+                'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-center',
                 activeCap === c
                   ? 'bg-white text-blue-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700',
@@ -915,31 +988,23 @@ function CapabilityGroup({
           ))}
         </div>
         {row && (
-          <div className="w-1/2">
-            <CapabilityRow
-              key={activeCap}
-              bare
-              row={row}
-              meta={meta}
-              label={listData.labels[activeCap]}
-              subLabel={VIDEO_TAB_LABEL[activeCap]}
-              editing={editing === activeCap}
-              onEnterEdit={() => setEditing(activeCap)}
-              onExitEdit={() => setEditing(null)}
-            />
-          </div>
+          <CapabilityRow
+            key={activeCap}
+            bare
+            row={row}
+            meta={meta}
+            label={listData.labels[activeCap]}
+            subLabel={VIDEO_TAB_LABEL[activeCap]}
+            editing={editing === activeCap}
+            onEnterEdit={() => setEditing(activeCap)}
+            onExitEdit={() => setEditing(null)}
+          />
         )}
       </>,
     );
   }
 
-  if (group.inline && caps.length >= 2) {
-    return cardShell(
-      capGrid(caps.map((c) => renderCap(c, { compact: true }))),
-    );
-  }
-
-  return cardShell(capGrid(caps.map((c) => renderCap(c))));
+  return cardShell(capStack(caps.map((c) => renderCap(c))));
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -968,7 +1033,18 @@ function CapabilityRow({
   compact?: boolean;
 }) {
   const qc = useQueryClient();
-  const supportedProviders = meta.support[row.capability];
+  // 后台不再按 capability 锁渠道；meta.support 应含全部，这里再兜底一次
+  const allProviders: RoutingProvider[] = [
+    'mountsea',
+    'apisale',
+    'smartfashion',
+    'aitokens',
+    'google',
+  ];
+  const supportedProviders =
+    meta.support[row.capability]?.length > 0
+      ? meta.support[row.capability]
+      : allProviders;
   const defaultModelsForCap = meta.defaultModels[row.capability];
   const modelOptionsForCap = meta.modelOptions?.[row.capability] ?? {};
 
@@ -1043,8 +1119,6 @@ function CapabilityRow({
     });
   };
 
-  const onlyOneProvider = supportedProviders.length === 1;
-
   if (!editing) {
     const displayChain = row.chain.length > 0 ? row.chain : [row.primary];
     return (
@@ -1067,11 +1141,6 @@ function CapabilityRow({
               {!row.isActive && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-200 text-slate-600">
                   已禁用
-                </span>
-              )}
-              {onlyOneProvider && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
-                  锁 {PROVIDER_META[supportedProviders[0]].label}
                 </span>
               )}
             </div>

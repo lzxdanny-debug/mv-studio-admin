@@ -8,6 +8,7 @@ import { AllowedOriginsSection } from './_components/allowed-origins-section';
 import { StorageProviderSection } from './_components/storage-provider-section';
 import { SupportSettingsSection } from './_components/support-settings-section';
 import { MvSettingsTab } from './_components/mv-settings-tab';
+import { MediaOutputTab } from './_components/media-output-tab';
 import { TaskPollingSection } from './_components/task-polling-section';
 import { AccountTab } from './_components/account-tab';
 import { DatabaseSection } from './_components/database-section';
@@ -20,6 +21,7 @@ type SettingsTab =
   | 'account'
   | 'database'
   | 'mv'
+  | 'media'
   | 'polling'
   | 'billing'
   | 'rewardful'
@@ -29,6 +31,7 @@ const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '通用设置' },
   { id: 'account', label: '账号设置' },
   { id: 'mv', label: 'MV设置' },
+  { id: 'media', label: '成片资源' },
   { id: 'polling', label: '任务轮询' },
   { id: 'billing', label: '充值设置' },
   { id: 'support', label: '智能客服' },
@@ -66,6 +69,7 @@ function SettingsPageContent() {
       raw === 'database' ||
       raw === 'general' ||
       raw === 'mv' ||
+      raw === 'media' ||
       raw === 'polling' ||
       raw === 'billing' ||
       raw === 'rewardful' ||
@@ -110,6 +114,7 @@ function SettingsPageContent() {
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'polling' && <TaskPollingSection />}
           {activeTab === 'mv' && <MvSettingsTab />}
+          {activeTab === 'media' && <MediaOutputTab />}
           {activeTab === 'billing' && <BillingRechargeTab />}
           {activeTab === 'support' && <SupportTab />}
           {activeTab === 'rewardful' && <RewardfulSection />}

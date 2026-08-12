@@ -142,7 +142,7 @@ const NAV_SECTIONS: NavSection[] = [
           },
           {
             href: '/admin/mv/defaults',
-            label: 'MV 默认配置',
+            label: 'MV 字幕默认',
             icon: SlidersHorizontal,
             permission: 'system.manage',
           },
