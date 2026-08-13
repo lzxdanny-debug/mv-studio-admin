@@ -18,11 +18,12 @@ out/
 .env.local
 .env.*.local
 .env.development
-.env.production
 .env.staging
-# 保留示例文件（无密钥，供参考）
+# .env.production 仅含 NEXT_PUBLIC_*（无密钥），须入库供 Cloudflare Builds 内联
+# 保留示例 / 生产公开配置
 !.env.example
 !.env.local.example
+!.env.production
 
 # ── 日志 ─────────────────────────────────────────────────────────────────────
 *.log
