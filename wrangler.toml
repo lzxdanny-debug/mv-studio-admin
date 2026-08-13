@@ -1,7 +1,11 @@
-name = "ai-studio-admin"
+name = "mv-studio-admin"
 main = ".open-next/worker.js"
 compatibility_date = "2025-04-15"
 compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NEXT_PUBLIC_API_URL = "https://api.aimv.video/api"
+NEXT_PUBLIC_MAIN_APP_URL = "https://aimv.video"
 
 [assets]
 directory = ".open-next/assets"

@@ -1124,7 +1124,7 @@ function DurationBucketChart({
               axisLine={{ stroke: '#e2e8f0' }}
             />
             <Tooltip
-              formatter={(v: number | string, name: string) => {
+              formatter={(v, name) => {
                 if (name === 'count') return [`${v} 个`, '数量'];
                 if (name === 'usd') return [usdAmount(Number(v)), '成本'];
                 return [String(v), name];
@@ -1527,7 +1527,7 @@ function CostTrend({
                 tickFormatter={(v) => usdAmountCompact(Number(v))}
               />
               <Tooltip
-                formatter={(v: number | string, name: string) => [
+                formatter={(v, name) => [
                   usdAmount(Number(v)),
                   name,
                 ]}
@@ -1617,7 +1617,7 @@ function CostPieCard({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v: number | string, name: string) => [
+                  formatter={(v, name) => [
                     formatValue(Number(v)),
                     name,
                   ]}

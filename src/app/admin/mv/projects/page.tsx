@@ -167,6 +167,9 @@ export default function AdminMvProjectsPage() {
    */
   const reconcileNowMutation = useMutation<{
     mountsea: number;
+    apisale?: number;
+    smartfashion?: number;
+    aitokens?: number;
     total: number;
     reconciled: number;
     unmatched: number;

@@ -412,7 +412,7 @@ function ProfitTrend({
                 tickFormatter={(v) => usdAmountCompact(Number(v))}
               />
               <Tooltip
-                formatter={(v: number | string, name: string) => [
+                formatter={(v, name) => [
                   usdAmount(Number(v)),
                   name,
                 ]}
@@ -510,7 +510,7 @@ function CostStructurePie({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(v: number | string, name: string) => [
+                  formatter={(v, name) => [
                     usdAmount(Number(v)),
                     name,
                   ]}
