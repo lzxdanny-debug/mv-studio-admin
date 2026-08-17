@@ -60,6 +60,7 @@ import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import { resolveRoutePermission, hasPermission } from '@/lib/admin-permissions';
 import apiClient from '@/lib/api';
+import { AdminBuildVersion } from '@/components/admin-build-version';
 
 // ─── 导航类型 ────────────────────────────────────────────────────────────
 
@@ -415,14 +416,8 @@ const NAV_SECTIONS: NavSection[] = [
         items: [
           {
             href: '/admin/billing/membership/plans',
-            label: '会员套餐',
+            label: '会员计划',
             icon: Crown,
-            permission: 'billing.manage',
-          },
-          {
-            href: '/admin/billing/membership/entitlements',
-            label: '会员权益',
-            icon: Sparkles,
             permission: 'billing.manage',
           },
         ],
@@ -1096,6 +1091,9 @@ export function AdminSidebar() {
           />
         ))}
       </nav>
+
+      {/* 部署版本 */}
+      <AdminBuildVersion />
 
       {/* User footer */}
       <div className="px-3 pb-4 flex-shrink-0 border-t border-slate-200/80 pt-3 bg-white/60">

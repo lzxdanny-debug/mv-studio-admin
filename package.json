@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 4002",
-    "build": "next build",
-    "build:cf": "opennextjs-cloudflare build",
-    "deploy:cf": "opennextjs-cloudflare build && wrangler deploy --minify",
+    "build": "node scripts/write-build-info.mjs && next build",
+    "build:cf": "node scripts/write-build-info.mjs && opennextjs-cloudflare build",
+    "deploy:cf": "node scripts/write-build-info.mjs && opennextjs-cloudflare build && wrangler deploy --minify",
+    "hooks:install": "bash scripts/install-git-hooks.sh",
     "start": "next start --port 4002",
     "lint": "next lint"
   },
