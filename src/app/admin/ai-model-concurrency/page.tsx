@@ -13,6 +13,7 @@ import {
 import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
 import { cn } from '@/lib/utils';
+import { AdminConfigSync } from '@/components/admin-config-sync';
 
 type RoutingProvider =
   | 'mountsea'
@@ -239,6 +240,14 @@ export default function AiModelConcurrencyPage() {
             刷新
           </button>
         </div>
+
+        <AdminConfigSync
+          kind="ai-model-concurrency"
+          title="模型并发配置"
+          endpoint="/admin/ai-routing/model-concurrency/sync"
+          description="同步已保存的渠道默认并发和模型族覆盖。运行中、排队中等实时数据不会导出；目标环境原有但文件未包含的配置会保留。"
+          onImported={() => qc.invalidateQueries({ queryKey })}
+        />
 
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryCard label="渠道数" value={summary.channels} />

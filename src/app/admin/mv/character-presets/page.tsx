@@ -16,6 +16,8 @@ import {
   Loader2,
   Sprout,
   Repeat,
+  Download,
+  Upload,
 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
@@ -90,6 +92,78 @@ export default function AdminCharacterPresetsPage() {
     preset?: CharacterPreset;
   }>({ open: false, mode: 'create' });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [importFileName, setImportFileName] = useState<string | null>(null);
+  const [importContent, setImportContent] = useState<string | null>(null);
+
+  // ─── 导出 / 导入（跨环境迁移） ─────────────────────────────
+  const exportPresets = useMutation({
+    mutationFn: () =>
+      apiClient.get('/admin/mv/character-presets/export') as unknown as Promise<{
+        filename: string;
+        content: string;
+      }>,
+    onSuccess: (data) => {
+      setMsg({ ok: true, text: '导出成功，请保存 JSON 文件' });
+      const blob = new Blob([data.content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename || 'character-presets.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
+    onError: (err: any) => setMsg({ ok: false, text: err?.message || '导出失败' }),
+  });
+
+  const importPresets = useMutation({
+    mutationFn: (payload: { content: string; mode: 'skip' | 'replace' }) =>
+      apiClient.post('/admin/mv/character-presets/import', payload) as any,
+    onSuccess: (res: any) => {
+      const failed = Array.isArray(res?.failed) ? res.failed.length : 0;
+      setMsg({
+        ok: failed === 0,
+        text: `导入完成：新建 ${res?.created ?? 0}，更新 ${res?.updated ?? 0}，跳过 ${res?.skipped ?? 0}${
+          failed ? `，失败 ${failed} 个` : ''
+        }`,
+      });
+      setImportFileName(null);
+      setImportContent(null);
+      qc.invalidateQueries({ queryKey: ['admin', 'mv', 'character-presets'] });
+    },
+    onError: (err: any) => setMsg({ ok: false, text: err?.message || '导入失败' }),
+  });
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const text = await file.text();
+    setImportFileName(file.name);
+    setImportContent(text);
+    setMsg(null);
+  };
+
+  const handleImportConfirm = async (mode: 'skip' | 'replace') => {
+    if (!importContent?.trim()) {
+      setMsg({ ok: false, text: '请先选择 JSON 文件' });
+      return;
+    }
+    const title =
+      mode === 'replace' ? '覆盖导入默认角色图？' : '导入默认角色图？';
+    const description =
+      mode === 'replace'
+        ? '重名预设会被覆盖，图片会从 JSON 中的 URL 重新下载并上传到当前主存储。'
+        : '重名预设会跳过；新预设的图片会从 JSON 中的 URL 下载并上传到当前主存储。';
+    const ok = await confirm({
+      title,
+      description,
+      variant: mode === 'replace' ? 'warning' : 'default',
+      confirmText: mode === 'replace' ? '覆盖导入' : '开始导入',
+    });
+    if (ok) importPresets.mutate({ content: importContent, mode });
+  };
 
   // ─── 列表查询：有 pending 时 6s 自动轮询 ─────────────────────
   const queryKey = useMemo(
@@ -239,7 +313,56 @@ export default function AdminCharacterPresetsPage() {
               管理用户在 /create 第二步选用的预生成角色形象，由 Nano Banana 生图或后台直传
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <button
+              type="button"
+              onClick={() => exportPresets.mutate()}
+              disabled={exportPresets.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              <Download className={cn('h-4 w-4', exportPresets.isPending && 'animate-pulse')} />
+              导出 JSON
+            </button>
+            <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer">
+              <Upload className="h-4 w-4" />
+              选择导入文件
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+            </label>
+            {importContent && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleImportConfirm('skip')}
+                  disabled={importPresets.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                >
+                  {importPresets.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  导入（跳过重名）
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleImportConfirm('replace')}
+                  disabled={importPresets.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+                >
+                  覆盖导入
+                </button>
+                {importFileName && (
+                  <span className="text-xs text-slate-500 max-w-[140px] truncate" title={importFileName}>
+                    {importFileName}
+                  </span>
+                )}
+              </>
+            )}
             {/* 生成中徽章：仅信息展示（自动轮询会推进进度，不需要手动刷新按钮） */}
             {hasPending && (
               <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-amber-50 border border-amber-200 text-amber-700">

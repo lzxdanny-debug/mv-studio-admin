@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { WebBaseUrlSection } from './_components/web-base-url-section';
 import { AllowedOriginsSection } from './_components/allowed-origins-section';
+import { JwtSecretSection } from './_components/jwt-secret-section';
+import { CredentialEncryptionSection } from './_components/credential-encryption-section';
+import { MailLogEncryptionSection } from './_components/mail-log-encryption-section';
 import { StorageProviderSection } from './_components/storage-provider-section';
 import { SupportSettingsSection } from './_components/support-settings-section';
 import { MvSettingsTab } from './_components/mv-settings-tab';
@@ -12,36 +15,35 @@ import { MediaOutputTab } from './_components/media-output-tab';
 import { TaskPollingSection } from './_components/task-polling-section';
 import { AccountTab } from './_components/account-tab';
 import { DatabaseSection } from './_components/database-section';
-import { RewardfulSection } from './_components/rewardful-section';
 import { BillingRechargeTab } from './_components/billing-recharge-tab';
 import { LineTabs } from './_components/line-tabs';
 
 type SettingsTab =
   | 'general'
+  | 'secrets'
   | 'account'
   | 'database'
   | 'mv'
   | 'media'
   | 'polling'
   | 'billing'
-  | 'rewardful'
   | 'support';
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '通用设置' },
+  { id: 'secrets', label: '密钥' },
   { id: 'account', label: '账号设置' },
   { id: 'mv', label: 'MV设置' },
   { id: 'media', label: '成片资源' },
   { id: 'polling', label: '任务轮询' },
   { id: 'billing', label: '充值设置' },
   { id: 'support', label: '智能客服' },
-  { id: 'rewardful', label: 'Rewardful' },
   { id: 'database', label: '数据库' },
 ];
 
 function GeneralTab() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <WebBaseUrlSection />
       <AllowedOriginsSection />
       <StorageProviderSection />
@@ -64,15 +66,19 @@ function SettingsPageContent() {
   const activeTab = useMemo<SettingsTab>(() => {
     const raw = searchParams.get('tab');
     if (raw === 'worker') return 'mv';
+    // 兼容旧链接 ?tab=jwt / ?tab=credential
+    if (raw === 'jwt' || raw === 'credential') return 'secrets';
+    // Rewardful 配置已从后台隐藏，旧链接回退到通用设置
+    if (raw === 'rewardful') return 'general';
     if (
       raw === 'account' ||
       raw === 'database' ||
       raw === 'general' ||
+      raw === 'secrets' ||
       raw === 'mv' ||
       raw === 'media' ||
       raw === 'polling' ||
       raw === 'billing' ||
-      raw === 'rewardful' ||
       raw === 'support'
     ) {
       return raw;
@@ -111,13 +117,19 @@ function SettingsPageContent() {
 
         <div>
           {activeTab === 'general' && <GeneralTab />}
+          {activeTab === 'secrets' && (
+            <div className="space-y-3">
+              <JwtSecretSection />
+              <CredentialEncryptionSection />
+              <MailLogEncryptionSection />
+            </div>
+          )}
           {activeTab === 'account' && <AccountTab />}
           {activeTab === 'polling' && <TaskPollingSection />}
           {activeTab === 'mv' && <MvSettingsTab />}
           {activeTab === 'media' && <MediaOutputTab />}
           {activeTab === 'billing' && <BillingRechargeTab />}
           {activeTab === 'support' && <SupportTab />}
-          {activeTab === 'rewardful' && <RewardfulSection />}
           {activeTab === 'database' && <DatabaseSection />}
         </div>
       </div>

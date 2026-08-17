@@ -28,6 +28,7 @@ import { SecretInput } from '@/components/secret-input';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { AdminConfigSync } from '@/components/admin-config-sync';
 
 const SECRET_INPUT_CLS = cn(
   'rounded-[10px] border-slate-200/90 bg-white',
@@ -284,6 +285,15 @@ export default function AiProvidersPage() {
             刷新
           </button>
         </div>
+
+        <AdminConfigSync
+          kind="ai-providers"
+          title="AI Provider 配置"
+          endpoint="/admin/ai-providers/sync"
+          description="同步供应商启用状态、接口地址和非敏感元数据。适合从测试环境导出后导入线上环境。"
+          securityNote="不会导出密钥，也不会覆盖目标环境已有密钥；目标环境必须先配置对应密钥。"
+          onImported={refresh}
+        />
 
         <QueryState
           isLoading={isLoading}

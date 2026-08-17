@@ -7,6 +7,7 @@ import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { useAlert, useConfirm } from '@/components/ui/dialog-provider';
+import { AdminConfigSync } from '@/components/admin-config-sync';
 
 interface RoleRow {
   id: string;
@@ -170,6 +171,18 @@ export default function AdminRolesPage() {
             新建角色
           </button>
         </div>
+
+        <AdminConfigSync
+          kind="admin-roles"
+          title="角色权限配置"
+          endpoint="/admin/roles/sync"
+          description="按角色 code 同步名称、说明和权限。不会同步管理员账号或角色绑定，也不会删除目标环境中未包含的角色。"
+          securityNote="目标环境缺少文件引用的权限点时会拒绝整次导入。"
+          onImported={() => {
+            qc.invalidateQueries({ queryKey: ['admin', 'roles'] });
+            qc.invalidateQueries({ queryKey: ['admin', 'permissions'] });
+          }}
+        />
 
         <QueryState isLoading={isLoading} isError={isError} error={error} height="h-48">
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">

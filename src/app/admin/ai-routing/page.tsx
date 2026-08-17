@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
 import { PaginationBar } from '@/components/pagination-bar';
 import { SimpleSelect } from '@/components/ui/select';
+import { AdminConfigSync } from '@/components/admin-config-sync';
 
 type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
 type AiCapability =
@@ -380,6 +381,14 @@ export default function AiRoutingPage() {
             刷新
           </button>
         </div>
+
+        <AdminConfigSync
+          kind="ai-routing"
+          title="AI 路由配置"
+          endpoint="/admin/ai-routing/sync"
+          description="同步每项 AI 能力的路由优先级、模型、启用状态和超时时间；调用记录与运行统计不会进入文件。"
+          onImported={refresh}
+        />
 
         {listQ.data && (
           <div
