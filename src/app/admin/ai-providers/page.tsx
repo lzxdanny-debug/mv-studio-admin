@@ -290,8 +290,10 @@ export default function AiProvidersPage() {
           kind="ai-providers"
           title="AI Provider 配置"
           endpoint="/admin/ai-providers/sync"
-          description="同步供应商启用状态、接口地址和非敏感元数据。适合从测试环境导出后导入线上环境。"
-          securityNote="不会导出密钥，也不会覆盖目标环境已有密钥；目标环境必须先配置对应密钥。"
+          description="完整同步供应商密钥、启用状态、接口地址和元数据。导入会以文件中的明文密钥覆盖目标环境对应渠道。"
+          securityNote="导出文件包含全部 Provider 明文密钥，请仅通过安全渠道保存和传输，使用后及时删除。"
+          exportWarning="导出文件将包含全部 Provider 的明文 API Key。任何获得该文件的人都可能调用相关服务，请确认当前设备和保存位置安全。"
+          importWarning="文件中的明文密钥将整体覆盖当前环境对应 Provider 的现有密钥，并立即影响后续调用。请确认当前页面是正确的目标环境。"
           onImported={refresh}
         />
 

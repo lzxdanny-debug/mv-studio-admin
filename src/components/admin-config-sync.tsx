@@ -26,6 +26,8 @@ export function AdminConfigSync({
   endpoint,
   description,
   securityNote,
+  exportWarning,
+  importWarning,
   onImported,
 }: {
   kind: SyncKind;
@@ -33,6 +35,8 @@ export function AdminConfigSync({
   endpoint: string;
   description: string;
   securityNote?: string;
+  exportWarning?: string;
+  importWarning?: string;
   onImported: () => void;
 }) {
   const confirm = useConfirm();
@@ -61,7 +65,7 @@ export function AdminConfigSync({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `mv-studio-${kind}-${date}.json`;
+      anchor.download = `mv-studio-${kind}${exportWarning ? '-sensitive' : ''}-${date}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -110,7 +114,9 @@ export function AdminConfigSync({
 
     const accepted = await confirm({
       title: `导入 ${title}？`,
-      description: `将把文件中的 ${payload.data.length} 项配置写入当前环境。写入后立即生效，请确认当前页面确实是目标环境。`,
+      description:
+        importWarning ??
+        `将把文件中的 ${payload.data.length} 项配置写入当前环境。写入后立即生效，请确认当前页面确实是目标环境。`,
       confirmText: '确认导入',
       cancelText: '取消',
       variant: 'danger',
@@ -123,6 +129,21 @@ export function AdminConfigSync({
   if (!visible) return null;
 
   const pending = exportMutation.isPending || importMutation.isPending;
+  const handleExport = async () => {
+    if (exportWarning) {
+      const accepted = await confirm({
+        title: `导出${title}？`,
+        description: exportWarning,
+        confirmText: '确认导出',
+        cancelText: '取消',
+        variant: 'danger',
+      });
+      if (!accepted) return;
+    }
+    setMessage(null);
+    exportMutation.mutate();
+  };
+
   return (
     <section className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-cyan-50 p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -151,10 +172,7 @@ export function AdminConfigSync({
           <button
             type="button"
             disabled={pending}
-            onClick={() => {
-              setMessage(null);
-              exportMutation.mutate();
-            }}
+            onClick={handleExport}
             className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm hover:bg-indigo-50 disabled:opacity-50"
           >
             {exportMutation.isPending ? (
