@@ -14,6 +14,8 @@ interface FeedbackRow {
   category: 'bug' | 'suggestion' | 'other';
   content: string;
   contactEmail: string | null;
+  contactName: string | null;
+  subject: string | null;
   screenshotUrl: string | null;
   userId: string | null;
   isRead: boolean;
@@ -90,9 +92,9 @@ export default function AdminFeedbackPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-blue-600" />
-            用户反馈
+            联系反馈
           </h1>
-          <p className="text-sm text-slate-500 mt-1">共 {data?.total ?? 0} 条反馈</p>
+          <p className="text-sm text-slate-500 mt-1">查看联系表单与站内用户反馈，共 {data?.total ?? 0} 条</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -159,7 +161,7 @@ export default function AdminFeedbackPage() {
                         CATEGORY_BADGE[fb.category] ?? CATEGORY_BADGE.other,
                       )}
                     >
-                      {CATEGORY_LABELS[fb.category] ?? fb.category}
+                      {fb.contactName ? '联系表单' : (CATEGORY_LABELS[fb.category] ?? fb.category)}
                     </span>
                     {!fb.isRead && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-red-500 text-white">
@@ -173,13 +175,10 @@ export default function AdminFeedbackPage() {
                           <span className="text-slate-400"> · {fb.user.email}</span>
                         )}
                       </span>
+                    ) : fb.contactName ? (
+                      <span className="text-xs text-slate-500">访客 · {fb.contactName}</span>
                     ) : (
                       <span className="text-xs text-slate-400">匿名</span>
-                    )}
-                    {fb.pagePath && (
-                      <span className="text-[11px] text-slate-400 font-mono truncate">
-                        {fb.pagePath}
-                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -201,14 +200,35 @@ export default function AdminFeedbackPage() {
                     </button>
                   </div>
                 </div>
+                {fb.subject && (
+                  <h2 className="mb-1.5 text-sm font-semibold text-slate-900 break-words">
+                    {fb.subject}
+                  </h2>
+                )}
                 <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
                   {fb.content}
                 </p>
-                {(fb.contactEmail || fb.screenshotUrl) && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-3 text-xs">
+                {(fb.contactEmail || fb.pagePath || fb.screenshotUrl) && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs">
                     {fb.contactEmail && (
                       <span className="text-slate-500">
                         联系：<span className="text-slate-700">{fb.contactEmail}</span>
+                      </span>
+                    )}
+                    {fb.pagePath && /^https?:\/\//i.test(fb.pagePath) && (
+                      <a
+                        href={fb.pagePath}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex max-w-xl items-center gap-1 truncate text-blue-600 hover:text-blue-700"
+                      >
+                        来源页面：{fb.pagePath}
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    )}
+                    {fb.pagePath && !/^https?:\/\//i.test(fb.pagePath) && (
+                      <span className="max-w-xl truncate font-mono text-slate-500">
+                        来源页面：{fb.pagePath}
                       </span>
                     )}
                     {fb.screenshotUrl && (

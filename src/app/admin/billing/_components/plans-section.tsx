@@ -35,6 +35,9 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   weeklyPriceCents: 0,
   monthlyPriceCents: 0,
   yearlyPriceCents: 0,
+  availableBillingCycles: ['month'],
+  defaultBillingCycle: 'month',
+  marketingBadge: 'none',
   weeklyCredits: 0,
   monthlyCredits: 0,
   creditPurchaseDiscount: 1,
@@ -46,6 +49,7 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   allowUltron: false,
   allowSeedance: false,
   videoPriceCoefficient: 1,
+  allowMultiCharacter: false,
   allowCommercialUse: false,
   sortOrder: 0,
   isActive: true,
@@ -76,6 +80,9 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     weeklyPriceCents: local.weeklyPriceCents,
     monthlyPriceCents: local.monthlyPriceCents,
     yearlyPriceCents: local.yearlyPriceCents,
+    availableBillingCycles: local.availableBillingCycles,
+    defaultBillingCycle: local.defaultBillingCycle,
+    marketingBadge: local.marketingBadge,
     weeklyCredits: local.weeklyCredits,
     monthlyCredits: local.monthlyCredits,
     creditPurchaseDiscount: local.creditPurchaseDiscount,
@@ -87,6 +94,7 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     allowUltron: local.allowUltron,
     allowSeedance: local.allowSeedance,
     videoPriceCoefficient: local.videoPriceCoefficient,
+    allowMultiCharacter: local.allowMultiCharacter,
     allowCommercialUse: local.allowCommercialUse,
     stripePriceId: local.stripePriceId,
     stripeWeeklyPriceId: local.stripeWeeklyPriceId,
@@ -398,6 +406,19 @@ function PlanCard({
   const showIdentity =
     variant === 'full' || variant === 'pricing' || (variant === 'entitlements' && isNew);
   const active = local.isActive ?? true;
+  const billingCycles = local.availableBillingCycles ?? [];
+  const toggleBillingCycle = (cycle: 'week' | 'month' | 'year', enabled: boolean) => {
+    const next = enabled
+      ? Array.from(new Set([...billingCycles, cycle]))
+      : billingCycles.filter((item) => item !== cycle);
+    const ordered = (['week', 'month', 'year'] as const).filter((item) => next.includes(item));
+    patch({
+      availableBillingCycles: ordered,
+      ...(!ordered.includes(local.defaultBillingCycle ?? 'month') && ordered[0]
+        ? { defaultBillingCycle: ordered[0] }
+        : {}),
+    });
+  };
 
   return (
     <div
@@ -495,7 +516,40 @@ function PlanCard({
         )}
 
         {showPricing && (
-          <FieldGroup title="价格与折扣">
+          <>
+          <FieldGroup title="售卖方式与营销展示">
+            <FormField label="开放订阅周期" description="只有开启的周期才会出现在 C 端定价页；历史订阅续费不受影响。">
+              <div className="flex flex-wrap justify-end gap-4">
+                <Switch checked={billingCycles.includes('week')} onChange={(v) => toggleBillingCycle('week', v)} label="周付" />
+                <Switch checked={billingCycles.includes('month')} onChange={(v) => toggleBillingCycle('month', v)} label="月付" />
+                <Switch checked={billingCycles.includes('year')} onChange={(v) => toggleBillingCycle('year', v)} label="年付" />
+              </div>
+            </FormField>
+            <FormField label="默认展示周期" description="当全局周期不适用于该套餐时，卡片使用这里的周期。">
+              <SimpleSelect
+                size="sm"
+                value={local.defaultBillingCycle ?? billingCycles[0] ?? 'month'}
+                onValueChange={(value) => patch({ defaultBillingCycle: value as 'week' | 'month' | 'year' })}
+                options={(billingCycles.length ? billingCycles : ['week', 'month', 'year']).map((cycle) => ({
+                  value: cycle,
+                  label: { week: '周付', month: '月付', year: '年付' }[cycle],
+                }))}
+              />
+            </FormField>
+            <FormField label="套餐徽标" description="由后台控制最受欢迎和最佳性价比，不再依赖 Plan Code。">
+              <SimpleSelect
+                size="sm"
+                value={local.marketingBadge ?? 'none'}
+                onValueChange={(value) => patch({ marketingBadge: value as 'none' | 'popular' | 'best_value' })}
+                options={[
+                  { value: 'none', label: '无徽标' },
+                  { value: 'popular', label: '最受欢迎' },
+                  { value: 'best_value', label: '最佳性价比' },
+                ]}
+              />
+            </FormField>
+          </FieldGroup>
+          <FieldGroup title="价格、积分与折扣">
             <FormField label="周费" description="Basic 等周付计划使用；0 表示不提供周付。">
               <NumberInput
                 size="sm"
@@ -526,7 +580,7 @@ function PlanCard({
                 onChange={(n) => patch({ yearlyPriceCents: Math.round(n * 100) })}
               />
             </FormField>
-            <FormField label="Stripe 周付 Price ID" description="生产环境建议填写；留空时结账会按当前周费动态创建价格。">
+            <FormField label="Stripe 周付 Price ID" description="新开订阅留空可动态创建；会员在线升档必须填写固定 Price ID。">
               <Input
                 size="sm"
                 mono
@@ -535,7 +589,7 @@ function PlanCard({
                 onChange={(e) => patch({ stripeWeeklyPriceId: e.target.value.trim() || null })}
               />
             </FormField>
-            <FormField label="Stripe 月付 Price ID" description="对应 Stripe 中 interval=month 的循环价格。">
+            <FormField label="Stripe 月付 Price ID" description="对应 interval=month；开放在线升档前必须填写。">
               <Input
                 size="sm"
                 mono
@@ -544,7 +598,7 @@ function PlanCard({
                 onChange={(e) => patch({ stripePriceId: e.target.value.trim() || null })}
               />
             </FormField>
-            <FormField label="Stripe 年付 Price ID" description="对应 Stripe 中 interval=year 的循环价格。">
+            <FormField label="Stripe 年付 Price ID" description="对应 interval=year；开放在线升档前必须填写。">
               <Input
                 size="sm"
                 mono
@@ -595,7 +649,7 @@ function PlanCard({
                 onChange={(n) => patch({ subscriptionPurchaseDiscount: n })}
               />
             </FormField>
-            {variant === 'pricing' && (
+            {(variant === 'pricing' || variant === 'full') && (
               <FormField label="排序" description="越小越靠前。">
                 <NumberInput
                   size="sm"
@@ -605,6 +659,7 @@ function PlanCard({
               </FormField>
             )}
           </FieldGroup>
+          </>
         )}
 
         {showEntitlements && (
@@ -656,7 +711,7 @@ function PlanCard({
                   options={RESOLUTION_OPTIONS}
                 />
               </FormField>
-              <FormField label="并发任务数" description="同时进行的生成任务上限。">
+              <FormField label="同时合成任务上限" description="只限制最终成片合成任务，不限制 AI 图片或视频生成任务。">
                 <NumberInput
                   size="sm"
                   unit="路"
@@ -665,7 +720,7 @@ function PlanCard({
                   onChange={(n) => patch({ maxConcurrentJobs: Math.max(1, Math.round(n)) })}
                 />
               </FormField>
-              <FormField label="队列优先级" description="数值越小优先级越高。">
+              <FormField label="成片合成队列优先级" description="只作用于合成队列，数值越小优先级越高。">
                 <NumberInput
                   size="sm"
                   value={local.queuePriority ?? 10}
@@ -673,8 +728,8 @@ function PlanCard({
                 />
               </FormField>
               <FormField
-                label="会员视频扣费系数"
-                description="直接乘到视频实扣积分上。建议固定为 1；低于 1 会与充值折扣叠加。"
+                label="MV 视频扣费系数"
+                description="主要乘到普通 MV 视频步骤实扣和产能估算。建议固定为 1；低于 1 会与充值折扣叠加。"
               >
                 <DecimalFieldInput
                   className={DECIMAL_INPUT_CLS}
@@ -686,7 +741,7 @@ function PlanCard({
             </FieldGroup>
 
             <FieldGroup title="功能权益">
-              <FormField label="无水印" description="开启后成片默认不带平台水印。">
+              <FormField label="MV / 舞蹈成片无水印" description="当前真实接入普通 MV 和舞蹈；Karaoke 与视频特效另有独立规则。">
                 <Switch
                   checked={!local.watermarkRequired}
                   onChange={(v) => patch({ watermarkRequired: !v })}
@@ -707,7 +762,14 @@ function PlanCard({
                   label="Seedance 引擎"
                 />
               </FormField>
-              <FormField label="商业授权" description="是否授予商业使用权益。">
+              <FormField label="舞蹈双角色" description="允许舞蹈视频上传第二个角色；普通 MV 双角色入口目前已隐藏。">
+                <Switch
+                  checked={!!local.allowMultiCharacter}
+                  onChange={(v) => patch({ allowMultiCharacter: v })}
+                  label="舞蹈双角色"
+                />
+              </FormField>
+              <FormField label="商业使用展示" description="当前仅用于定价页说明，不会自动生成授权凭证或执行技术门控。">
                 <Switch
                   checked={!!local.allowCommercialUse}
                   onChange={(v) => patch({ allowCommercialUse: v })}

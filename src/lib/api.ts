@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api';
 
 /**
  * Resets the Zustand-persisted admin auth state without importing the store

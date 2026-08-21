@@ -30,7 +30,7 @@ interface AdminUserRow {
   createdAt: string;
 }
 
-export const STATUS_META: Record<UserStatus, { label: string; cls: string }> = {
+const STATUS_META: Record<UserStatus, { label: string; cls: string }> = {
   active: { label: '正常', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
   suspended: { label: '已暂停', cls: 'bg-amber-50 text-amber-700 border-amber-100' },
   banned: { label: '已封禁', cls: 'bg-red-50 text-red-700 border-red-100' },

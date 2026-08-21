@@ -177,6 +177,24 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    key: 'ai-music-video',
+    title: 'AI Music Video',
+    items: [
+      {
+        href: '/admin/ai-music-video/projects',
+        label: '生成内容',
+        icon: Film,
+        permission: 'project.view',
+      },
+      {
+        href: '/admin/ai-music-video/styles',
+        label: '风格库',
+        icon: Palette,
+        permission: 'marketing.view',
+      },
+    ],
+  },
+  {
     key: 'music',
     title: '音乐业务',
     items: [
@@ -388,7 +406,7 @@ const NAV_SECTIONS: NavSection[] = [
           },
           {
             href: '/admin/feedback',
-            label: '用户反馈',
+            label: '联系反馈',
             icon: MessageCircle,
             badgeKey: 'feedbackUnread',
             permission: 'feedback.view',

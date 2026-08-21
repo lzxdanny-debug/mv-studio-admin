@@ -50,6 +50,9 @@ export interface PlanEntitlement {
   weeklyPriceCents: number;
   monthlyPriceCents: number;
   yearlyPriceCents: number;
+  availableBillingCycles: Array<'week' | 'month' | 'year'>;
+  defaultBillingCycle: 'week' | 'month' | 'year';
+  marketingBadge: 'none' | 'popular' | 'best_value';
   weeklyCredits: number;
   monthlyCredits: number;
   creditPurchaseDiscount: number;

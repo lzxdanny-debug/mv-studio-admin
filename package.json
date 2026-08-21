@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 4002",
+    "dev": "next dev -H 0.0.0.0 --port 4002",
     "build": "node scripts/write-build-info.mjs && next build",
     "build:cf": "node scripts/write-build-info.mjs && opennextjs-cloudflare build",
     "deploy:cf": "node scripts/write-build-info.mjs && opennextjs-cloudflare build && wrangler deploy --minify",
