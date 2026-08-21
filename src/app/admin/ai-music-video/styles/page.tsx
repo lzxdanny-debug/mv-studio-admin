@@ -39,11 +39,18 @@ const defaultStyles = (): StyleItem[] => STYLE_NAMES.map((name, index) => ({
   sortOrder: index,
 }));
 
+function createStyleId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+}
+
 function normalizeStyles(page?: MarketingPage): StyleItem[] {
   const rows = page?.draftContent?.styles?.items;
   if (!Array.isArray(rows) || !rows.length) return defaultStyles();
   return rows.map((row: Partial<StyleItem>, index: number) => ({
-    id: row.id || `style-${crypto.randomUUID()}`,
+    id: row.id || `style-${createStyleId()}`,
     title: { zh: row.title?.zh || '', en: row.title?.en || '' },
     description: { zh: row.description?.zh || '', en: row.description?.en || '' },
     mediaUrl: row.mediaUrl || '',
@@ -164,6 +171,19 @@ export default function AiMusicVideoStylesAdminPage() {
     [next[index], next[target]] = [next[target], next[index]];
     setStyles(next);
   };
+  const addStyle = () => {
+    const next: StyleItem = {
+      id: `style-${createStyleId()}`,
+      title: { zh: '新风格', en: 'New Style' },
+      description: { zh: '', en: '' },
+      mediaUrl: '',
+      previewPrompt: '',
+      enabled: true,
+      sortOrder: styles.length,
+    };
+    setStyles([...styles, next]);
+    setEditing(next);
+  };
 
   const save = useMutation({
     mutationFn: () => apiClient.patch(`/admin/marketing/pages/${query.data?.id}/draft`, { content: contentForSave() }),
@@ -197,7 +217,7 @@ export default function AiMusicVideoStylesAdminPage() {
       <div className="flex flex-wrap gap-2">
         <a href={`${PUBLIC_WEB_URL}/ai-music-video-generator`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"><Eye className="h-4 w-4" />预览页面</a>
         <button disabled={!canManage || generatingIds.length > 0} onClick={() => void generateMissing()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${generatingIds.length ? 'animate-spin' : ''}`} />补齐缺失封面</button>
-        <button onClick={() => setStyles([...styles, { id: `style-${crypto.randomUUID()}`, title: { zh: '新风格', en: 'New Style' }, description: { zh: '', en: '' }, mediaUrl: '', previewPrompt: '', enabled: true, sortOrder: styles.length }])} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"><Plus className="h-4 w-4" />新增风格</button>
+        <button type="button" onClick={addStyle} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"><Plus className="h-4 w-4" />新增风格</button>
         <button disabled={!canManage || save.isPending || !query.data?.id} onClick={() => save.mutate()} className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 disabled:opacity-50"><Save className="h-4 w-4" />保存草稿</button>
         <button disabled={!canManage || publish.isPending || !query.data?.id} onClick={() => publish.mutate()} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{publish.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}发布风格库</button>
       </div>
