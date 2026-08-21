@@ -73,7 +73,8 @@ export default function AiMusicVideoStylesAdminPage() {
         return (await apiClient.post('/admin/marketing/pages', {
           slug: PAGE_SLUG,
           nameI18n: { zh: 'AI Music Video 页面', en: 'AI Music Video Page' },
-          content: { styles: { items: defaultStyles() } },
+          // 落地页 Banner 由 C 端写死，风格库只维护 styles；hero 给空对象即可通过通用校验
+          content: { hero: {}, styles: { items: defaultStyles() } },
         })) as any;
       }
     },
