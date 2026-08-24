@@ -36,6 +36,7 @@ export function StripeConfigSection() {
   const qc = useQueryClient();
   const [form, setForm] = useState({
     secretKey: '',
+    publishableKey: '',
     webhookSecret: '',
     successUrl: '',
     cancelUrl: '',
@@ -64,7 +65,7 @@ export function StripeConfigSection() {
       apiClient.patch('/admin/billing/stripe-config', payload) as any,
     onSuccess: () => {
       setMsg({ ok: true, text: 'Stripe 配置已保存。' });
-      setForm((f) => ({ ...f, secretKey: '', webhookSecret: '' }));
+      setForm((f) => ({ ...f, secretKey: '', publishableKey: '', webhookSecret: '' }));
       qc.invalidateQueries({ queryKey: ['admin', 'billing', 'stripe-config'] });
     },
     onError: () => setMsg({ ok: false, text: '保存失败，请重试。' }),
@@ -99,11 +100,27 @@ export function StripeConfigSection() {
       currency: form.currency,
     };
     if (form.secretKey) payload.secretKey = form.secretKey;
+    if (form.publishableKey) payload.publishableKey = form.publishableKey;
     if (form.webhookSecret) payload.webhookSecret = form.webhookSecret;
     save.mutate(payload);
   };
 
   const enabled = !!data?.enabled;
+  const revealSecret = async (field: 'secretKey' | 'publishableKey' | 'webhookSecret') => {
+    setMsg(null);
+    try {
+      const result = (await apiClient.post('/admin/billing/stripe-config/reveal', {
+        field,
+      })) as unknown as { value: string };
+      return result.value;
+    } catch (error) {
+      setMsg({
+        ok: false,
+        text: error instanceof Error ? `读取密钥失败：${error.message}` : '读取密钥失败。',
+      });
+      throw error;
+    }
+  };
   const currencyOptions = CURRENCY_OPTIONS.some((o) => o.value === form.currency)
     ? CURRENCY_OPTIONS
     : [{ value: form.currency, label: form.currency.toUpperCase() }, ...CURRENCY_OPTIONS];
@@ -171,6 +188,25 @@ export function StripeConfigSection() {
                 onChange={(secretKey) => setForm((f) => ({ ...f, secretKey }))}
                 placeholder="sk_test_..."
                 showToggle
+                copyable
+                onReveal={() => revealSecret('secretKey')}
+                className={SECRET_INPUT_CLS}
+              />
+            </FormField>
+            <FormField
+              label="Publishable Key"
+              description="pk_test_… / pk_live_…，用于站内 Embedded Checkout。留空不修改。"
+              controlClassName="sm:w-[320px] w-[220px]"
+            >
+              <SecretInput
+                configured={data?.publishableKeyConfigured}
+                maskedPreview={data?.publishableKeyMasked}
+                value={form.publishableKey}
+                onChange={(publishableKey) => setForm((f) => ({ ...f, publishableKey }))}
+                placeholder="pk_test_..."
+                showToggle
+                copyable
+                onReveal={() => revealSecret('publishableKey')}
                 className={SECRET_INPUT_CLS}
               />
             </FormField>
@@ -185,6 +221,9 @@ export function StripeConfigSection() {
                 value={form.webhookSecret}
                 onChange={(webhookSecret) => setForm((f) => ({ ...f, webhookSecret }))}
                 placeholder="whsec_..."
+                showToggle
+                copyable
+                onReveal={() => revealSecret('webhookSecret')}
                 className={SECRET_INPUT_CLS}
               />
             </FormField>

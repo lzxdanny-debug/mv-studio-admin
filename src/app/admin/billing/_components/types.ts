@@ -21,6 +21,9 @@ export interface StripeConfigView {
   secretKeyMasked: string;
   secretKeyConfigured: boolean;
   secretKeyFromEnv: boolean;
+  publishableKeyMasked: string;
+  publishableKeyConfigured: boolean;
+  publishableKeyFromEnv: boolean;
   webhookSecretMasked: string;
   webhookSecretConfigured: boolean;
   webhookSecretFromEnv: boolean;
