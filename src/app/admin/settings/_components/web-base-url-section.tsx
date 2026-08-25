@@ -6,7 +6,6 @@ import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { FromEnvBadge } from './from-env-badge';
 import { CONTROL_WIDE } from './settings-form-styles';
 import {
   SettingsPanel,
@@ -16,7 +15,6 @@ import {
 
 interface GeneralConfigView {
   webBaseUrl: string;
-  webBaseUrlFromEnv: boolean;
   configured: boolean;
 }
 
@@ -39,7 +37,7 @@ export function WebBaseUrlSection() {
     mutationFn: (payload: { webBaseUrl: string }) =>
       apiClient.patch('/admin/settings/general', payload) as Promise<GeneralConfigView>,
     onSuccess: (cfg) => {
-      setMsg({ ok: true, text: '已保存，密码重置与邀请链接将使用新地址。' });
+      setMsg({ ok: true, text: '已保存，购买邮件、密码设置、密码重置与邀请链接将使用该域名。' });
       setWebBaseUrl(cfg.webBaseUrl);
       qc.setQueryData(['admin', 'settings', 'general'], (prev: any) => ({
         ...prev,
@@ -68,20 +66,15 @@ export function WebBaseUrlSection() {
         }}
       >
         <SettingsPanel
-          title="前端站点地址"
+          title="站点域名"
           tone="sky"
           badge={
-            <SettingsStatusBadge
-              ok={!!data?.configured}
-              extra={
-                data ? <FromEnvBadge fromEnv={data.webBaseUrlFromEnv} /> : null
-              }
-            />
+            <SettingsStatusBadge ok={!!data?.configured} />
           }
           summary={
             data?.configured
               ? data.webBaseUrl
-              : '未配置时使用默认 localhost · WEB_BASE_URL'
+              : '尚未配置；仅本地开发会临时回退到 localhost'
           }
           footer={
             <SettingsSaveBar
@@ -92,8 +85,8 @@ export function WebBaseUrlSection() {
           }
         >
           <FormField
-            label="前端根地址"
-            description="C 端根地址，不含尾斜杠"
+            label="C 端站点根地址"
+            description="写入数据库；用于购买邮件、设置/重置密码和邀请链接，不含路径及尾斜杠"
             controlClassName={CONTROL_WIDE}
             className="py-1"
           >
@@ -102,7 +95,7 @@ export function WebBaseUrlSection() {
               type="url"
               value={webBaseUrl}
               onChange={(e) => setWebBaseUrl(e.target.value)}
-              placeholder="https://mv.offoff.ai"
+              placeholder="https://test.aimv.video"
             />
           </FormField>
         </SettingsPanel>
