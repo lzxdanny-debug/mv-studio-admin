@@ -22,11 +22,14 @@ import {
 
 interface AdminPaymentRow {
   id: string;
-  userId: string;
+  userId: string | null;
   userEmail: string | null;
   userDisplayName: string | null;
   type: string;
   status: string;
+  rawStatus: string;
+  manualStatus: string | null;
+  isValid: boolean;
   amountCents: number;
   refundedCents: number;
   netCents: number;
@@ -38,6 +41,7 @@ interface AdminPaymentRow {
   paymentMethod: string | null;
   riskLevel: string | null;
   providerPaymentId: string | null;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -96,18 +100,27 @@ export default function AdminPaymentsPage() {
     {
       key: 'user',
       header: '用户',
-      render: (row) => (
-        <div className="min-w-0">
-          <Link
-            href={`/admin/users/${row.userId}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-sm font-medium text-blue-700 hover:underline truncate block"
-          >
-            {row.userDisplayName || '—'}
-          </Link>
-          <p className="text-xs text-slate-400 truncate">{row.userEmail || row.userId.slice(0, 8)}</p>
-        </div>
-      ),
+      render: (row) => {
+        const primaryLabel = row.userDisplayName || (row.userId ? '—' : '游客订单');
+        const secondaryLabel = row.userEmail || row.userId?.slice(0, 8) || '未绑定账号';
+
+        return (
+          <div className="min-w-0">
+            {row.userId ? (
+              <Link
+                href={`/admin/users/${row.userId}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm font-medium text-blue-700 hover:underline truncate block"
+              >
+                {primaryLabel}
+              </Link>
+            ) : (
+              <p className="truncate text-sm font-medium text-slate-700">{primaryLabel}</p>
+            )}
+            <p className="truncate text-xs text-slate-400">{secondaryLabel}</p>
+          </div>
+        );
+      },
     },
     {
       key: 'type',
@@ -177,6 +190,21 @@ export default function AdminPaymentsPage() {
         );
       },
     },
+    {
+      key: 'validity',
+      header: '订单效力',
+      width: 'w-20',
+      render: (row) => (
+        <span className={cn(
+          'inline-flex rounded-md border px-2 py-0.5 text-xs',
+          row.isValid
+            ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+            : 'border-red-100 bg-red-50 text-red-700',
+        )}>
+          {row.isValid ? '有效' : '无效'}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -228,9 +256,12 @@ export default function AdminPaymentsPage() {
           >
             <option value="">全部状态</option>
             <option value="pending">待支付</option>
-            <option value="succeeded">已支付</option>
-            <option value="failed">失败</option>
-            <option value="refunded">已退款</option>
+            <option value="failed">支付失败</option>
+            <option value="succeeded">支付成功</option>
+            <option value="expired">过期</option>
+            <option value="refunded">全额退款</option>
+            <option value="partially_refunded">部分退款</option>
+            <option value="chargeback">CB</option>
           </select>
           <select
             value={type}

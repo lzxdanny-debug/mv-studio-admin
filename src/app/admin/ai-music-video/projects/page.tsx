@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Film } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -13,13 +12,16 @@ import { formatDate } from '@/lib/utils';
 
 type ProjectRow = {
   id: string;
+  mvId: string;
   title: string;
   status: string;
-  currentStep: number;
-  styleTag: string;
-  mvType: string;
+  stage: string;
+  progressPercent: number;
+  productModelCode: string;
   aspectRatio: string;
-  videoProvider: string;
+  resolution: string;
+  reservedCredits: number;
+  chargedCredits: number;
   resultUrl: string | null;
   errorMessage: string | null;
   createdAt: string;
@@ -30,13 +32,12 @@ type ListResponse = { items: ProjectRow[]; total: number; page: number; pageSize
 
 const STATUS_OPTIONS = [
   { label: '全部', value: '' },
-  { label: '待开始', value: 'pending' },
-  { label: '规划中', value: 'planning' },
-  { label: '等待确认', value: 'reviewing' },
+  { label: '排队中', value: 'queued' },
   { label: '生成中', value: 'generating' },
   { label: '合成中', value: 'composing' },
-  { label: '已完成', value: 'done' },
+  { label: '已完成', value: 'succeeded' },
   { label: '失败', value: 'failed' },
+  { label: '已取消', value: 'cancelled' },
 ];
 
 export default function AiMusicVideoProjectsPage() {
@@ -49,18 +50,18 @@ export default function AiMusicVideoProjectsPage() {
       const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
       if (status) params.set('status', status);
       if (search) params.set('search', search);
-      return apiClient.get(`/admin/mv/projects?${params.toString()}`) as any;
+      return apiClient.get(`/admin/aimv-generator/projects?${params.toString()}`) as any;
     },
     placeholderData: (previous) => previous,
   });
 
   const columns: DataTableColumn<ProjectRow>[] = [
-    { key: 'title', header: '内容', render: (row) => <div className="min-w-0"><Link href={`/admin/mv/projects/${row.id}`} className="truncate font-medium text-slate-900 hover:text-blue-600">{row.title || '(未命名)'}</Link><p className="truncate text-xs text-slate-400">{row.id}</p></div> },
+    { key: 'title', header: '内容', render: (row) => <div className="min-w-0"><p className="truncate font-medium text-slate-900">{row.title || '(未命名)'}</p><p className="truncate font-mono text-xs text-slate-400">{row.mvId}</p></div> },
     { key: 'user', header: '用户', render: (row) => <div className="min-w-0"><p className="truncate text-sm text-slate-700">{row.userDisplayName || '—'}</p><p className="truncate text-xs text-slate-400">{row.userEmail || '—'}</p></div> },
-    { key: 'status', header: '状态', width: 'w-32', render: (row) => <div className="space-y-1"><StatusBadge status={row.status} kind="mvProject" /><p className="text-[10px] text-slate-400">Step {row.currentStep}/10</p></div> },
-    { key: 'config', header: '生成配置', width: 'w-48', render: (row) => <div className="space-y-0.5 text-xs text-slate-500"><p>{row.styleTag || '—'} · {row.mvType || '—'}</p><p className="text-slate-400">{row.aspectRatio || '—'} · {row.videoProvider || '—'}</p></div> },
+    { key: 'status', header: '状态', width: 'w-32', render: (row) => <div className="space-y-1"><StatusBadge status={row.status} kind="mvProject" /><p className="text-[10px] text-slate-400">{row.stage} · {row.progressPercent}%</p></div> },
+    { key: 'config', header: '生成配置', width: 'w-48', render: (row) => <div className="space-y-0.5 text-xs text-slate-500"><p>{row.productModelCode || '—'} · {row.resolution || '—'}</p><p className="text-slate-400">{row.aspectRatio || '—'} · 预扣 {row.reservedCredits} / 实扣 {row.chargedCredits}</p></div> },
     { key: 'createdAt', header: '创建时间', width: 'w-40', render: (row) => <span className="text-xs text-slate-500">{formatDate(row.createdAt)}</span> },
-    { key: 'actions', header: '操作', width: 'w-32', render: (row) => <div className="flex flex-col items-start gap-1"><Link href={`/admin/mv/projects/${row.id}`} className="text-xs font-medium text-blue-600 hover:text-blue-700">管理详情</Link>{row.resultUrl && <a href={row.resultUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">查看成片<ExternalLink className="h-3 w-3" /></a>}</div> },
+    { key: 'actions', header: '操作', width: 'w-32', render: (row) => <div className="flex flex-col items-start gap-1">{row.resultUrl && <a href={row.resultUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">查看成片<ExternalLink className="h-3 w-3" /></a>} {!row.resultUrl && <span className="text-xs text-slate-400">暂无成片</span>}</div> },
   ];
 
   return <div className="admin-page p-6 space-y-4">

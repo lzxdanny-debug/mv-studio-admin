@@ -1,12 +1,14 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { useAlert } from '@/components/ui/dialog-provider';
+import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import {
   usd,
   TYPE_LABEL,
@@ -30,13 +32,18 @@ interface RefundRow {
 interface PaymentDetail {
   id: string;
   user: {
-    id: string;
+    id: string | null;
     email: string | null;
     displayName: string | null;
     stripeCustomerId: string | null;
   };
   type: string;
   status: string;
+  rawStatus: string;
+  manualStatus: string | null;
+  manualStatusNote: string | null;
+  manualStatusUpdatedAt: string | null;
+  isValid: boolean;
   amountCents: number;
   refundedCents: number;
   netCents: number;
@@ -53,6 +60,7 @@ interface PaymentDetail {
   providerPaymentId: string | null;
   providerSessionId: string | null;
   paidAt: string | null;
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   refunds: RefundRow[];
@@ -77,6 +85,67 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 
 const mono = 'font-mono text-xs text-slate-600';
+
+function ManualStatusCard({ data }: { data: PaymentDetail }) {
+  const qc = useQueryClient();
+  const alert = useAlert();
+  const canManage = useAdminAuthStore((s) => s.hasPermission('billing.manage'));
+  const [status, setStatus] = useState(data.manualStatus ?? '');
+  const [note, setNote] = useState(data.manualStatusNote ?? '');
+  const save = useMutation({
+    mutationFn: () => apiClient.patch(`/admin/billing/payments/${data.id}/status`, {
+      status: status || null,
+      note: note || undefined,
+    }) as any,
+    onSuccess: async (result: any) => {
+      setStatus(result.manualStatus ?? '');
+      await qc.invalidateQueries({ queryKey: ['admin', 'billing', 'payment', data.id] });
+      await qc.invalidateQueries({ queryKey: ['admin', 'billing', 'payments'] });
+      await alert({ title: '订单状态已更新', description: '本次操作仅更新运营标记，不会触发 Stripe 退款。' });
+    },
+    onError: async (error: any) => {
+      await alert({ title: '更新失败', description: error?.message ?? String(error), variant: 'danger' });
+    },
+  });
+
+  return (
+    <Card title="运营状态设置">
+      <p className="mb-3 text-xs text-slate-500">
+        全额退款、部分退款和 CB 由运营人工设置；过期由系统根据订单有效期自动判断。
+      </p>
+      <div className="grid gap-3 md:grid-cols-[220px_1fr_auto]">
+        <select
+          value={status}
+          disabled={!canManage || save.isPending}
+          onChange={(event) => setStatus(event.target.value)}
+          className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 disabled:bg-slate-50"
+        >
+          <option value="">系统自动判断</option>
+          <option value="refunded">全额退款</option>
+          <option value="partially_refunded">部分退款</option>
+          <option value="chargeback">CB</option>
+        </select>
+        <input
+          value={note}
+          disabled={!canManage || save.isPending}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="运营备注（可选）"
+          maxLength={1000}
+          className="h-10 rounded-lg border border-slate-200 px-3 text-sm text-slate-700 disabled:bg-slate-50"
+        />
+        <button
+          type="button"
+          disabled={!canManage || save.isPending}
+          onClick={() => save.mutate()}
+          className="h-10 rounded-lg bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {save.isPending ? '保存中…' : '保存状态'}
+        </button>
+      </div>
+      {!canManage && <p className="mt-2 text-xs text-amber-600">当前账号没有订单状态管理权限。</p>}
+    </Card>
+  );
+}
 
 export default function PaymentDetailPage({
   params,
@@ -135,6 +204,9 @@ export default function PaymentDetailPage({
                   >
                     {PAYMENT_STATUS_META[data.status]?.label ?? data.status}
                   </span>
+                  <p className={cn('mt-1 text-xs font-medium', data.isValid ? 'text-emerald-600' : 'text-red-600')}>
+                    {data.isValid ? '订单有效' : '订单无效'}
+                  </p>
                 </div>
                 <div className="ml-auto text-right">
                   <p className="text-xs text-slate-500">支付时间</p>
@@ -147,12 +219,13 @@ export default function PaymentDetailPage({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card title="用户与积分">
                   <Row label="用户">
-                    <Link
-                      href={`/admin/users/${data.user.id}`}
-                      className="text-blue-700 hover:underline"
-                    >
-                      {data.user.displayName || data.user.email || data.user.id.slice(0, 8)}
-                    </Link>
+                    {data.user.id ? (
+                      <Link href={`/admin/users/${data.user.id}`} className="text-blue-700 hover:underline">
+                        {data.user.displayName || data.user.email || data.user.id.slice(0, 8)}
+                      </Link>
+                    ) : (
+                      data.user.email || '游客订单'
+                    )}
                   </Row>
                   <Row label="邮箱">{data.user.email ?? '—'}</Row>
                   <Row label="发放积分">
@@ -189,8 +262,13 @@ export default function PaymentDetailPage({
                       '—'
                     )}
                   </Row>
+                  <Row label="订单有效期">
+                    {data.expiresAt ? formatDate(data.expiresAt) : '长期有效'}
+                  </Row>
                 </Card>
               </div>
+
+              <ManualStatusCard data={data} />
 
               <Card title="Stripe 标识">
                 <Row label="Provider">{data.provider}</Row>
