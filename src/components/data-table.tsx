@@ -9,6 +9,10 @@ export interface DataTableColumn<T> {
   header: React.ReactNode;
   /** Tailwind width like "w-32" or "w-[160px]" */
   width?: string;
+  /** Additional classes for this column's header cell. */
+  headerClassName?: string;
+  /** Additional classes for this column's body cells. */
+  cellClassName?: string;
   /** Right-align (numeric) */
   align?: 'left' | 'center' | 'right';
   render: (row: T) => React.ReactNode;
@@ -18,6 +22,8 @@ interface DataTableProps<T> {
   columns: DataTableColumn<T>[];
   rows: T[] | undefined;
   rowKey: (row: T) => string;
+  /** Optional page-specific table sizing, e.g. a minimum width for horizontal scrolling. */
+  tableClassName?: string;
   isLoading?: boolean;
   isError?: boolean;
   error?: any;
@@ -36,6 +42,7 @@ export function DataTable<T>({
   columns,
   rows,
   rowKey,
+  tableClassName,
   isLoading,
   isError,
   error,
@@ -60,7 +67,7 @@ export function DataTable<T>({
         height="h-64"
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className={cn('w-full text-sm', tableClassName)}>
             <thead className="bg-slate-100/80 border-b border-slate-200">
               <tr>
                 {columns.map((col) => (
@@ -69,6 +76,7 @@ export function DataTable<T>({
                     className={cn(
                       'px-4 py-3 text-xs font-semibold text-slate-500 whitespace-nowrap',
                       col.width,
+                      col.headerClassName,
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center',
                       (!col.align || col.align === 'left') && 'text-left',
@@ -94,6 +102,7 @@ export function DataTable<T>({
                       key={col.key}
                       className={cn(
                         'px-4 py-3 text-slate-700',
+                        col.cellClassName,
                         col.align === 'right' && 'text-right',
                         col.align === 'center' && 'text-center',
                       )}

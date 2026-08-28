@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Eye, Loader2, Plus, Route, Save, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckCircle2, Eye, Loader2, LockKeyhole, Plus, Route, Save, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -105,13 +105,12 @@ function DisplayModels() {
     mutationFn: (selectedFamily: string) => apiClient.post('/admin/aimv-generator/models', { code: selectedFamily, nameEn: displayName(selectedFamily), descriptionEn: `${displayName(selectedFamily)} video model` }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['aimv-models'] }); },
   });
-  const selectedFamilyIsPending = create.isPending && create.variables === family;
   if (catalog.isLoading || models.isLoading) return <Loading />;
   return <>
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-[280px] max-w-xl flex-1"><Label>展示模型</Label><select value={family} onChange={(event) => setFamily(event.target.value)} className="control"><option value="">暂无可添加模型</option>{available.map((item) => <option key={item} value={item}>{displayName(item)}</option>)}</select></div>
-        {canEdit && <button disabled={!family || selectedFamilyIsPending} onClick={() => create.mutate(family)} className="primary-button h-10">{selectedFamilyIsPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{selectedFamilyIsPending ? '添加中' : '加入展示'}</button>}
+        <div className="min-w-[280px] max-w-xl flex-1"><Label>展示模型</Label><select disabled={create.isPending} value={family} onChange={(event) => setFamily(event.target.value)} className="control"><option value="">暂无可添加模型</option>{available.map((item) => <option key={item} value={item}>{displayName(item)}</option>)}</select></div>
+        {canEdit && <button disabled={!family || create.isPending} onClick={() => { if (!create.isPending) create.mutate(family); }} className="primary-button h-10">{create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{create.isPending ? '添加中' : '加入展示'}</button>}
       </div>
       <p className="mt-3 text-xs text-slate-500">展示模型只决定用户端看到的名称，与实际调用渠道没有绑定关系。候选名称来自已配置渠道中的视频模型，并合并 fast、版本号和生成方式。</p>
       {create.isError && <ErrorText error={create.error} />}
@@ -140,7 +139,7 @@ function DisplayRow({ model, catalog, canEdit }: { model: ProductModel; catalog:
     apiClient.patch(`/admin/aimv-generator/models/${model.id}`, { nameEn, sortOrder, enabled }),
     apiClient.put(`/admin/aimv-generator/models/${model.id}/routes`, { routes: selectedRoute ? [{ ...selectedRoute, priority: 0, timeoutSec: 900, maxAttempts: 1, enabled: true }] : [] }),
   ]), onSuccess: () => qc.invalidateQueries({ queryKey: ['aimv-models'] }) });
-  return <tr><td className="px-5 py-4"><div className="font-semibold text-slate-900">{displayName(model.code)}</div><code className="text-xs text-slate-400">{model.code}</code></td><td className="px-3 py-4"><input disabled={!canEdit} value={nameEn} onChange={(event) => setNameEn(event.target.value)} className="control max-w-[220px]" /></td><td className="px-3 py-4"><input disabled={!canEdit} type="number" value={sortOrder} onChange={(event) => setSortOrder(Number(event.target.value))} className="control w-20" /></td><td className="px-3 py-4"><select disabled={!canEdit} value={primaryKey} onChange={(event) => setPrimaryKey(event.target.value)} className="control min-w-[300px]"><option value="">请选择首选渠道</option>{routeOptions.map((route) => <option key={routeKey(route)} value={routeKey(route)}>{route.provider} · {route.exactModel} · {CAPABILITY_LABELS[route.capability]}</option>)}</select></td><td className="px-3 py-4"><Status ok={!!model.price?.enabled}>{model.price?.enabled ? '已配置' : '待配置'}</Status></td><td className="px-5 py-4"><div className="flex items-center justify-end gap-4"><Switch checked={enabled} onChange={setEnabled} disabled={!canEdit} label={`${model.nameEn} 展示开关`} />{canEdit && <button disabled={save.isPending || !nameEn.trim() || !selectedRoute} onClick={() => save.mutate()} className="secondary-button"><Save className="h-4 w-4" />保存</button>}</div>{save.isError && <ErrorText error={save.error} />}</td></tr>;
+  return <tr><td className="px-5 py-4"><div className="font-semibold text-slate-900">{displayName(model.code)}</div><code className="text-xs text-slate-400">{model.code}</code></td><td className="px-3 py-4"><input disabled={!canEdit || save.isPending} value={nameEn} onChange={(event) => setNameEn(event.target.value)} className="control max-w-[220px]" /></td><td className="px-3 py-4"><input disabled={!canEdit || save.isPending} type="number" value={sortOrder} onChange={(event) => setSortOrder(Number(event.target.value))} className="control w-20" /></td><td className="px-3 py-4"><select disabled={!canEdit || save.isPending} value={primaryKey} onChange={(event) => setPrimaryKey(event.target.value)} className="control min-w-[300px]"><option value="">请选择首选渠道</option>{routeOptions.map((route) => <option key={routeKey(route)} value={routeKey(route)}>{route.provider} · {route.exactModel} · {CAPABILITY_LABELS[route.capability]}</option>)}</select></td><td className="px-3 py-4"><Status ok={!!model.price?.enabled}>{model.price?.enabled ? '已配置' : '待配置'}</Status></td><td className="px-5 py-4"><div className="flex items-center justify-end gap-4"><Switch checked={enabled} onChange={setEnabled} disabled={!canEdit || save.isPending} label={`${model.nameEn} 展示开关`} />{canEdit && <button disabled={save.isPending || !nameEn.trim() || !selectedRoute} onClick={() => { if (!save.isPending) save.mutate(); }} className="secondary-button"><Save className="h-4 w-4" />保存</button>}</div>{save.isError && <ErrorText error={save.error} />}</td></tr>;
 }
 
 function RoutingPriority() {
@@ -157,7 +156,13 @@ function RoutingPriority() {
 function RouteCard({ initialRows, catalog, canEdit }: { initialRows: ModelRoute[]; catalog: Catalog; canEdit: boolean }) {
   const qc = useQueryClient();
   const [rows, setRows] = useState<ModelRoute[]>(initialRows.map((item) => ({ ...item, capability: item.capability || 'videoSingleRef' })));
+  const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => setRows(initialRows.map((item) => ({ ...item, capability: item.capability || 'videoSingleRef' }))), [initialRows]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   const options = (capability: Capability, provider: Provider) => catalog.capabilityModels[capability]?.[provider] ?? [];
   const add = () => {
     const capability = catalog.capabilities[0] ?? 'videoSingleRef';
@@ -166,18 +171,25 @@ function RouteCard({ initialRows, catalog, canEdit }: { initialRows: ModelRoute[
     setRows([...rows, { capability, provider, exactModel: options(capability, provider)[0] ?? '', priority: rows.length, timeoutSec: 900, maxAttempts: 1, enabled: true }]);
   };
   const move = (index: number, delta: number) => { const target = index + delta; if (target < 0 || target >= rows.length) return; const next = [...rows]; [next[index], next[target]] = [next[target], next[index]]; setRows(next); };
-  const save = useMutation({ mutationFn: () => apiClient.put('/admin/aimv-generator/routing', { routes: rows.map((row, index) => ({ ...row, priority: index })) }), onSuccess: () => qc.invalidateQueries({ queryKey: ['aimv-routing'] }) });
-  return <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-semibold text-slate-900">AI MV 全局调用链</h2><p className="mt-1 text-xs text-slate-500">每个优先级可以独立选择视频能力、渠道和精确模型</p></div>{canEdit && <button onClick={add} disabled={!catalog.providers.length} className="secondary-button"><Plus className="h-4 w-4" />添加优先级</button>}</div>
+  const save = useMutation({
+    mutationFn: () => apiClient.put('/admin/aimv-generator/routing', { routes: rows.map((row, index) => ({ ...row, priority: index })) }),
+    onSuccess: () => { setNotice('路由优先级已保存'); qc.invalidateQueries({ queryKey: ['aimv-routing'] }); },
+  });
+  const locked = save.isPending;
+  return <section className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-busy={locked}>
+    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-semibold text-slate-900">AI MV 全局调用链</h2><p className="mt-1 text-xs text-slate-500">每个优先级可以独立选择视频能力、渠道和精确模型</p></div>{canEdit && <button onClick={add} disabled={locked || !catalog.providers.length} className="secondary-button"><Plus className="h-4 w-4" />添加优先级</button>}</div>
     <div className="space-y-2 p-4">{rows.map((row, index) => <div key={`${index}-${row.capability}-${row.provider}-${row.exactModel}`} className="grid items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 xl:grid-cols-[44px_130px_130px_minmax(260px,1fr)_110px_90px]">
       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 font-semibold text-violet-700">{index + 1}</div>
-      <select disabled={!canEdit} value={row.capability} onChange={(event) => { const capability = event.target.value as Capability; const provider = catalog.providers.find((item) => options(capability, item).length) ?? row.provider; const next = [...rows]; next[index] = { ...row, capability, provider, exactModel: options(capability, provider)[0] ?? '' }; setRows(next); }} className="control">{catalog.capabilities.map((item) => <option key={item} value={item}>{CAPABILITY_LABELS[item]}</option>)}</select>
-      <select disabled={!canEdit} value={row.provider} onChange={(event) => { const provider = event.target.value as Provider; const next = [...rows]; next[index] = { ...row, provider, exactModel: options(row.capability, provider)[0] ?? '' }; setRows(next); }} className="control">{catalog.providers.map((item) => <option key={item} disabled={!options(row.capability, item).length}>{item}</option>)}</select>
-      <select disabled={!canEdit} value={row.exactModel} onChange={(event) => { const next = [...rows]; next[index] = { ...row, exactModel: event.target.value }; setRows(next); }} className="control">{options(row.capability, row.provider).map((item) => <option key={item} value={item}>{item}</option>)}</select>
-      <label className="text-xs text-slate-500">超时（秒）<input disabled={!canEdit} type="number" min={1} value={row.timeoutSec} onChange={(event) => { const next = [...rows]; next[index] = { ...row, timeoutSec: Number(event.target.value) }; setRows(next); }} className="control mt-1" /></label>
-      <div className="flex items-center justify-end gap-1"><button onClick={() => move(index, -1)} disabled={!canEdit || index === 0} className="icon-button"><ArrowUp className="h-4 w-4" /></button><button onClick={() => move(index, 1)} disabled={!canEdit || index === rows.length - 1} className="icon-button"><ArrowDown className="h-4 w-4" /></button><button onClick={() => setRows(rows.filter((_, itemIndex) => itemIndex !== index))} disabled={!canEdit} className="icon-button text-red-600"><Trash2 className="h-4 w-4" /></button></div>
+      <select disabled={!canEdit || locked} value={row.capability} onChange={(event) => { const capability = event.target.value as Capability; const provider = catalog.providers.find((item) => options(capability, item).length) ?? row.provider; const next = [...rows]; next[index] = { ...row, capability, provider, exactModel: options(capability, provider)[0] ?? '' }; setRows(next); }} className="control">{catalog.capabilities.map((item) => <option key={item} value={item}>{CAPABILITY_LABELS[item]}</option>)}</select>
+      <select disabled={!canEdit || locked} value={row.provider} onChange={(event) => { const provider = event.target.value as Provider; const next = [...rows]; next[index] = { ...row, provider, exactModel: options(row.capability, provider)[0] ?? '' }; setRows(next); }} className="control">{catalog.providers.map((item) => <option key={item} disabled={!options(row.capability, item).length}>{item}</option>)}</select>
+      <select disabled={!canEdit || locked} value={row.exactModel} onChange={(event) => { const next = [...rows]; next[index] = { ...row, exactModel: event.target.value }; setRows(next); }} className="control">{options(row.capability, row.provider).map((item) => <option key={item} value={item}>{item}</option>)}</select>
+      <label className="text-xs text-slate-500">超时（秒）<input disabled={!canEdit || locked} type="number" min={1} value={row.timeoutSec} onChange={(event) => { const next = [...rows]; next[index] = { ...row, timeoutSec: Number(event.target.value) }; setRows(next); }} className="control mt-1" /></label>
+      <div className="flex items-center justify-end gap-1"><button onClick={() => move(index, -1)} disabled={!canEdit || locked || index === 0} className="icon-button"><ArrowUp className="h-4 w-4" /></button><button onClick={() => move(index, 1)} disabled={!canEdit || locked || index === rows.length - 1} className="icon-button"><ArrowDown className="h-4 w-4" /></button><button onClick={() => setRows(rows.filter((_, itemIndex) => itemIndex !== index))} disabled={!canEdit || locked} className="icon-button text-red-600"><Trash2 className="h-4 w-4" /></button></div>
     </div>)}{!rows.length && <Empty text="暂无候选渠道" />}</div>
-    {canEdit && <div className="flex justify-end border-t border-slate-100 px-5 py-4"><button disabled={save.isPending || !rows.length} onClick={() => save.mutate()} className="primary-button"><Save className="h-4 w-4" />保存优先级</button></div>}{save.isError && <div className="px-5 pb-4"><ErrorText error={save.error} /></div>}
+    {notice && <div role="status" className="fixed right-6 top-6 z-50 flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-medium text-emerald-700 shadow-xl"><CheckCircle2 className="h-4 w-4" />{notice}</div>}
+    {save.isError && <div className="px-5 pt-4"><ErrorText error={save.error} /></div>}
+    {canEdit && <div className="flex justify-end border-t border-slate-100 px-5 py-4"><button disabled={locked || !rows.length} onClick={() => { setNotice(null); save.mutate(); }} className="primary-button">{locked ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{locked ? '正在保存，请勿重复提交' : '保存优先级'}</button></div>}
+    {locked && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/45 backdrop-blur-[1px]"><div className="flex items-center gap-2 rounded-lg border border-violet-200 bg-white px-4 py-2 text-sm font-medium text-violet-700 shadow"><LockKeyhole className="h-4 w-4" />配置保存中，已锁定编辑</div></div>}
   </section>;
 }
 

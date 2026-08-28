@@ -15,6 +15,7 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/ai-music-video/projects', permission: 'aimv.queue.view' },
   { prefix: '/admin/ai-music-video/styles', permission: 'marketing.view' },
   { prefix: '/admin/aimv-generator/models', permission: 'aimv.routing.view' },
+  { prefix: '/admin/aimv-generator/singers', permission: 'aimv.content.view' },
   { prefix: '/admin/aimv-generator', permission: 'aimv.settings.view' },
   { prefix: '/admin/content/articles', permission: 'blog.view' },
   { prefix: '/admin/mv/cost-stats', permission: 'billing.cost.view' },

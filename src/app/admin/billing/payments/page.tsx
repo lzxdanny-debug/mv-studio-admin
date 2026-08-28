@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Receipt } from 'lucide-react';
+import { Check, Copy, Receipt } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
@@ -55,6 +55,27 @@ interface ListResponse {
 
 const PRESETS: Array<RangePreset | 'all'> = ['all', '7d', '30d', '90d'];
 
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // HTTP 管理后台等非安全上下文会拒绝 Clipboard API，继续使用兼容方案。
+    }
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  document.execCommand('copy');
+  textarea.remove();
+}
+
 export default function AdminPaymentsPage() {
   const router = useRouter();
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
@@ -63,6 +84,7 @@ export default function AdminPaymentsPage() {
   const [type, setType] = useState('');
   const [method, setMethod] = useState('');
   const [rangePreset, setRangePreset] = useState<RangePreset | 'all'>('all');
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
   const window = useMemo(
     () => (rangePreset === 'all' ? null : computeRange(rangePreset)),
@@ -90,6 +112,36 @@ export default function AdminPaymentsPage() {
 
   const columns: DataTableColumn<AdminPaymentRow>[] = [
     {
+      key: 'orderId',
+      header: '订单号',
+      width: 'w-[360px]',
+      render: (row) => (
+        <div className="flex items-center gap-1.5" title={row.id}>
+          <span className="font-mono text-xs text-slate-600">{row.id}</span>
+          <button
+            type="button"
+            onClick={async (event) => {
+              event.stopPropagation();
+              await copyText(row.id);
+              setCopiedOrderId(row.id);
+              globalThis.setTimeout(() => {
+                setCopiedOrderId((current) => (current === row.id ? null : current));
+              }, 1500);
+            }}
+            className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600"
+            title={copiedOrderId === row.id ? '已复制' : '复制完整订单号'}
+            aria-label={copiedOrderId === row.id ? '订单号已复制' : '复制完整订单号'}
+          >
+            {copiedOrderId === row.id ? (
+              <Check className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+      ),
+    },
+    {
       key: 'time',
       header: '时间',
       width: 'w-36',
@@ -98,34 +150,45 @@ export default function AdminPaymentsPage() {
       ),
     },
     {
-      key: 'user',
-      header: '用户',
+      key: 'userName',
+      header: '用户名',
+      width: 'w-36',
       render: (row) => {
         const primaryLabel = row.userDisplayName || (row.userId ? '—' : '游客订单');
-        const secondaryLabel = row.userEmail || row.userId?.slice(0, 8) || '未绑定账号';
 
+        return row.userId ? (
+          <Link
+            href={`/admin/users/${row.userId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="block truncate text-sm font-medium text-blue-700 hover:underline"
+            title={primaryLabel}
+          >
+            {primaryLabel}
+          </Link>
+        ) : (
+          <span className="block truncate text-sm font-medium text-slate-700" title={primaryLabel}>
+            {primaryLabel}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'email',
+      header: '邮箱',
+      width: 'w-56',
+      render: (row) => {
+        const email = row.userEmail || '—';
         return (
-          <div className="min-w-0">
-            {row.userId ? (
-              <Link
-                href={`/admin/users/${row.userId}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-sm font-medium text-blue-700 hover:underline truncate block"
-              >
-                {primaryLabel}
-              </Link>
-            ) : (
-              <p className="truncate text-sm font-medium text-slate-700">{primaryLabel}</p>
-            )}
-            <p className="truncate text-xs text-slate-400">{secondaryLabel}</p>
-          </div>
+          <span className="block truncate text-sm text-slate-500" title={email}>
+            {email}
+          </span>
         );
       },
     },
     {
       key: 'type',
       header: '类型',
-      width: 'w-28',
+      width: 'w-32',
       render: (row) => (
         <span className="text-sm text-slate-700">
           {TYPE_LABEL[row.type] ?? row.type}
@@ -166,7 +229,7 @@ export default function AdminPaymentsPage() {
     {
       key: 'method',
       header: '渠道 / 国家',
-      width: 'w-28',
+      width: 'w-36',
       render: (row) => (
         <span className="text-xs text-slate-500">
           {row.paymentMethod ? METHOD_LABEL[row.paymentMethod] ?? row.paymentMethod : '—'}
@@ -177,14 +240,14 @@ export default function AdminPaymentsPage() {
     {
       key: 'status',
       header: '状态',
-      width: 'w-24',
+      width: 'w-28',
       render: (row) => {
         const meta = PAYMENT_STATUS_META[row.status] ?? {
           label: row.status,
           cls: 'bg-slate-100 text-slate-600',
         };
         return (
-          <span className={cn('inline-flex px-2 py-0.5 rounded-md text-xs border', meta.cls)}>
+          <span className={cn('inline-flex whitespace-nowrap px-2 py-0.5 rounded-md text-xs border', meta.cls)}>
             {meta.label}
           </span>
         );
@@ -193,7 +256,7 @@ export default function AdminPaymentsPage() {
     {
       key: 'validity',
       header: '订单效力',
-      width: 'w-20',
+      width: 'w-24',
       render: (row) => (
         <span className={cn(
           'inline-flex rounded-md border px-2 py-0.5 text-xs',
@@ -203,6 +266,23 @@ export default function AdminPaymentsPage() {
         )}>
           {row.isValid ? '有效' : '无效'}
         </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '操作',
+      width: 'w-24',
+      align: 'center',
+      headerClassName: 'sticky right-0 z-20 border-l border-slate-200 bg-slate-100',
+      cellClassName: 'sticky right-0 z-10 border-l border-slate-100 bg-white',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => router.push(`/admin/billing/payments/${row.id}`)}
+          className="inline-flex h-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-3 text-xs font-medium text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
+        >
+          详情
+        </button>
       ),
     },
   ];
@@ -215,7 +295,7 @@ export default function AdminPaymentsPage() {
             <Receipt className="h-5 w-5 text-blue-600" />
             充值记录
           </h1>
-          <p className="text-sm text-slate-500 mt-1">全站 Stripe 充值与会员订阅支付流水（点击行查看详情）</p>
+          <p className="text-sm text-slate-500 mt-1">全站 Stripe 充值与会员订阅支付流水</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -226,7 +306,7 @@ export default function AdminPaymentsPage() {
                 setSearch(v);
                 setPage(1);
               }}
-              placeholder="搜索邮箱 / 昵称 / Stripe ID"
+              placeholder="搜索订单号 / 邮箱 / Stripe ID"
             />
           </div>
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
@@ -295,11 +375,11 @@ export default function AdminPaymentsPage() {
           columns={columns}
           rows={data?.data}
           rowKey={(r) => r.id}
+          tableClassName="min-w-[1840px] [&_td]:whitespace-nowrap"
           isLoading={isLoading}
           isError={isError}
           error={error}
           emptyMessage="暂无支付记录"
-          onRowClick={(r) => router.push(`/admin/billing/payments/${r.id}`)}
           page={page}
           pageSize={data?.pageSize ?? pageSize}
           total={data?.total}
