@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
-import { ArrowDown, ArrowUp, CheckCircle2, CircleHelp, Languages, Loader2, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckCircle2, CircleHelp, Languages, Loader2, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
@@ -11,6 +11,7 @@ import { CapacityTab, PricingTab, QueueTab } from '@/components/aimv-runtime-tab
 import { AimvAssetsTab, AimvResolversTab, AimvRetentionTab } from '@/components/aimv-content-tabs';
 import { AimvCreationStylesTab } from '@/components/aimv-creation-styles-tab';
 import { Switch } from '@/components/ui/switch';
+import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
 
 type TabKey =
   | 'settings'
@@ -136,7 +137,16 @@ interface TemplateCreationConfig {
   resolution?: string;
 }
 
-interface TemplateLibraryAsset { id: string; kind: 'singer_photo' | 'hot_music' | 'mv_style'; nameEn: string; code: string; enabled: boolean }
+interface TemplateLibraryAsset {
+  id: string;
+  kind: 'singer_photo' | 'hot_music' | 'mv_style';
+  nameEn: string;
+  code: string;
+  enabled: boolean;
+  assetUrl: string;
+  thumbnailUrl?: string;
+  metadata?: Record<string, unknown>;
+}
 interface TemplateModel { code: string; name: string; supportedDurations: number[]; supportedAspectRatios: string[]; supportedResolutions: string[] }
 interface TemplateDraft {
   code: string; nameEn: string; descriptionEn: string; category: 'landscape' | 'portrait';
@@ -377,8 +387,39 @@ function TemplatesTab() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isSingerPickerOpen, setIsSingerPickerOpen] = useState(false);
   const [editorTab, setEditorTab] = useState<TemplateEditorTab>('basic');
   const [draft, setDraft] = useState<TemplateDraft>(EMPTY_TEMPLATE);
+  const uploadSingerReference = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('kind', 'singer_photo');
+      const uploaded = await apiClient.post('/admin/aimv-generator/library-assets/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }) as { url: string };
+      const originalName = file.name.replace(/\.[^.]+$/, '').trim();
+      const code = `template-singer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      return apiClient.post('/admin/aimv-generator/library-assets', {
+        kind: 'singer_photo',
+        code,
+        nameEn: originalName ? `Custom reference - ${originalName}` : 'Custom template singer reference',
+        descriptionEn: 'Custom singer reference image uploaded for an AI MV template.',
+        assetUrl: uploaded.url,
+        thumbnailUrl: uploaded.url,
+        category: 'template-reference',
+        tags: ['template-reference', 'custom-upload'],
+        metadata: { source: 'template-custom-upload', privateForTemplate: true, originalFileName: file.name },
+        enabled: false,
+        hot: false,
+      }) as Promise<TemplateLibraryAsset>;
+    },
+    onSuccess: (created) => {
+      setDraft((current) => ({ ...current, singerPhotoAssetId: created.id }));
+      queryClient.setQueryData<TemplateLibraryAsset[]>(['aimv-library-assets'], (current = []) => [created, ...current.filter((item) => item.id !== created.id)]);
+      queryClient.invalidateQueries({ queryKey: ['aimv-library-assets'] });
+    },
+  });
   const save = useMutation({
     mutationFn: () => {
       const payload = {
@@ -438,7 +479,7 @@ function TemplatesTab() {
     mutationFn: ({ id, force = true }: { id: string; force?: boolean }) => apiClient.post(`/admin/aimv-generator/templates/${id}/generate-preview`, { force }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aimv-templates'] }),
   });
-  const mutationPending = save.isPending || retry.isPending || preprocess.isPending || generatePreview.isPending;
+  const mutationPending = save.isPending || retry.isPending || preprocess.isPending || generatePreview.isPending || uploadSingerReference.isPending;
   const set = <K extends keyof TemplateDraft>(key: K, value: TemplateDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const edit = (row: AimvTemplate) => {
     const config = row.createSimilarConfig || {};
@@ -476,7 +517,10 @@ function TemplatesTab() {
     });
   };
   const musicAssets = (assets.data ?? []).filter((item) => item.kind === 'hot_music' && item.enabled);
-  const photoAssets = (assets.data ?? []).filter((item) => item.kind === 'singer_photo' && item.enabled);
+  const photoAssets = (assets.data ?? []).filter((item) => item.kind === 'singer_photo' && (
+    item.enabled || item.metadata?.source === 'template-custom-upload' || item.id === draft.singerPhotoAssetId
+  ));
+  const selectedPhotoAsset = photoAssets.find((item) => item.id === draft.singerPhotoAssetId);
   const styleAssets = (assets.data ?? []).filter((item) => item.kind === 'mv_style' && item.enabled);
   const templateResolutions = [...new Set([...(settings.data?.settings.allowedResolutions ?? []), draft.resolution].filter(Boolean))];
   const updateSegment = (index: number, patch: Partial<TemplateSegment>) => setDraft((current) => ({
@@ -494,8 +538,9 @@ function TemplatesTab() {
 
   return (
     <div className="w-full space-y-5">
-      <section className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+      <section className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
         <div className="flex items-start gap-2"><Languages className="mt-0.5 h-4 w-4" /><div><strong>英语为唯一源版本</strong><p className="mt-1 text-blue-700">保存后自动生成 10 种语言。翻译失败不会覆盖上一版成功内容，可在列表中重试。</p></div></div>
+        <AdminDataTransferActions exportUrl="/admin/aimv-generator/templates/export" importUrl="/admin/aimv-generator/templates/import" filename="aimv-templates" resourceLabel="模板" canImport={canEdit} onImported={() => queryClient.invalidateQueries({ queryKey: ['aimv-templates'] })} />
       </section>
       {canEdit && (
         <div className="flex justify-end">
@@ -538,7 +583,30 @@ function TemplatesTab() {
             <TemplateField label="作品标题"><input value={draft.title} onChange={(e) => set('title', e.target.value)} placeholder="可选" /></TemplateField>
             <TemplateField label="使用模型"><select value={draft.productModelCode} onChange={(e) => set('productModelCode', e.target.value)}><option value="">使用页面默认模型</option>{(models.data ?? []).map((item) => <option key={item.code} value={item.code}>{item.name}（{item.code}）</option>)}</select></TemplateField>
             <TemplateField label="模板音乐" hint="可选。选择后将作为创建页的预设音乐，用户仍可替换。"><select value={draft.musicAssetId} onChange={(e) => set('musicAssetId', e.target.value)}><option value="">不预选</option>{musicAssets.map((item) => <option key={item.id} value={item.id}>{item.nameEn}（{item.code}）</option>)}</select></TemplateField>
-            <TemplateField label="歌手照片" hint="可选。用于生成模板公共场景与人物锚点；用户替换照片后会按人物依赖重建对应场景。"><select value={draft.singerPhotoAssetId} onChange={(e) => set('singerPhotoAssetId', e.target.value)}><option value="">不预选</option>{photoAssets.map((item) => <option key={item.id} value={item.id}>{item.nameEn}（{item.code}）</option>)}</select></TemplateField>
+            <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/50 p-3 lg:col-span-2">
+              <div className="flex items-start justify-between gap-3">
+                <div><div className="text-xs font-semibold text-slate-700">歌手参考图</div><p className="mt-1 text-xs leading-5 text-slate-500">从现有歌手库选择，或上传模板专用图片。保存后会使用这张图生成人物锚点及相关镜头。</p></div>
+                {selectedPhotoAsset && <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] font-medium text-violet-700">{selectedPhotoAsset.metadata?.source === 'template-custom-upload' ? '自定义上传' : selectedPhotoAsset.enabled ? '歌手库' : '历史参考图'}</span>}
+              </div>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  {selectedPhotoAsset ? <img src={resolvePublicAssetUrl(selectedPhotoAsset.thumbnailUrl || selectedPhotoAsset.assetUrl)} alt={selectedPhotoAsset.nameEn} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs text-slate-400">未选择</div>}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <button type="button" onClick={() => setIsSingerPickerOpen(true)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-violet-300 hover:bg-violet-50/30">
+                    <span className={cn('truncate', selectedPhotoAsset ? 'text-slate-800' : 'text-slate-400')}>{selectedPhotoAsset ? selectedPhotoAsset.nameEn : '从缩略图库选择歌手'}</span>
+                    <span className="shrink-0 text-xs font-medium text-violet-700">查看缩略图</span>
+                  </button>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm font-medium text-violet-700 transition hover:bg-violet-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+                    {uploadSingerReference.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {uploadSingerReference.isPending ? '正在上传…' : '上传自定义参考图'}
+                    <input hidden disabled={uploadSingerReference.isPending} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSingerReference.mutate(file); event.target.value = ''; }} />
+                  </label>
+                  {selectedPhotoAsset && <p className="truncate text-xs text-slate-500">当前：{selectedPhotoAsset.nameEn}</p>}
+                  {uploadSingerReference.isError && <p className="text-xs text-red-600">{(uploadSingerReference.error as Error).message || '参考图上传失败'}</p>}
+                </div>
+              </div>
+            </div>
             <TemplateField label="模板风格" hint="选择后，用户点击“Create Similar”会自动带入此视觉风格；用户仍可在创建页改选。"><select value={draft.styleCode} onChange={(e) => set('styleCode', e.target.value)}><option value="">不预选</option>{styleAssets.map((item) => <option key={item.id} value={item.code}>{item.nameEn}（{item.code}）</option>)}</select></TemplateField>
             <TemplateField label="模板总时长（自动计算）"><input readOnly value={`${totalDuration} 秒`} className="bg-slate-50 text-slate-500" /></TemplateField>
             <TemplateField label="画面比例"><input value={draft.aspectRatio} onChange={(e) => set('aspectRatio', e.target.value)} placeholder="16:9 / 9:16" /></TemplateField>
@@ -576,6 +644,29 @@ function TemplatesTab() {
           </div>
           </>}
           </fieldset>
+          {isSingerPickerOpen && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsSingerPickerOpen(false); }}>
+              <section role="dialog" aria-modal="true" aria-label="选择歌手参考图" className="flex max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+                  <div><h3 className="text-lg font-bold text-slate-900">选择歌手参考图</h3><p className="mt-1 text-sm text-slate-500">点击缩略图即可选中并返回模板编辑。</p></div>
+                  <button type="button" onClick={() => setIsSingerPickerOpen(false)} className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="关闭歌手参考图选择"><X className="h-5 w-5" /></button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                  <button type="button" onClick={() => { set('singerPhotoAssetId', ''); setIsSingerPickerOpen(false); }} className={cn('mb-5 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition', !draft.singerPhotoAssetId ? 'border-violet-500 bg-violet-50 text-violet-800' : 'border-slate-200 text-slate-600 hover:border-violet-300')}><span>不预选歌手参考图</span>{!draft.singerPhotoAssetId && <CheckCircle2 className="h-4 w-4" />}</button>
+                  {photoAssets.length ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    {photoAssets.map((item) => {
+                      const selected = item.id === draft.singerPhotoAssetId;
+                      const custom = item.metadata?.source === 'template-custom-upload';
+                      return <button key={item.id} type="button" onClick={() => { set('singerPhotoAssetId', item.id); setIsSingerPickerOpen(false); }} className={cn('group overflow-hidden rounded-xl border bg-white text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md', selected ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200')}>
+                        <div className="relative aspect-square overflow-hidden bg-slate-100"><img src={resolvePublicAssetUrl(item.thumbnailUrl || item.assetUrl)} alt={item.nameEn} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />{selected && <span className="absolute right-2 top-2 rounded-full bg-violet-600 p-1 text-white shadow"><CheckCircle2 className="h-4 w-4" /></span>}<span className="absolute bottom-2 left-2 rounded-full bg-slate-950/65 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">{custom ? '自定义' : item.enabled ? '歌手库' : '历史'}</span></div>
+                        <div className="p-3"><div className="truncate text-sm font-semibold text-slate-800">{item.nameEn}</div><div className="mt-1 truncate text-[11px] text-slate-400">{item.code}</div></div>
+                      </button>;
+                    })}
+                  </div> : <div className="rounded-xl border border-dashed border-slate-200 py-12 text-center text-sm text-slate-400">暂无可选歌手图片，请先上传自定义参考图。</div>}
+                </div>
+              </section>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4"><p className="text-xs text-slate-500">必填项：唯一 code、英文名称、每个镜头的片段提示词。</p><button disabled={save.isPending || !draft.code.trim() || !draft.nameEn.trim() || draft.segments.some((segment) => !segment.prompt.trim())} onClick={() => { if (!save.isPending) save.mutate(); }} className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm text-white disabled:opacity-50">{save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{editingId ? '保存模板' : '保存并自动翻译'}</button></div>
           {save.isError && <ErrorText text={(save.error as Error).message} />}
         </section>

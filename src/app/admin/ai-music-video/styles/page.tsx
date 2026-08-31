@@ -7,6 +7,7 @@ import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import { useConfirm } from '@/components/ui/dialog-provider';
+import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
 
 const PAGE_SLUG = 'ai-music-video-generator';
 const PUBLIC_WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || 'https://aimv.video';
@@ -215,6 +216,7 @@ export default function AiMusicVideoStylesAdminPage() {
         {query.data && <p className="mt-2 text-xs text-slate-400">状态：{query.data.status} · 已发布版本 v{query.data.publishedVersion} · 共 {styles.length} 个风格</p>}
       </div>
       <div className="flex flex-wrap gap-2">
+        <AdminDataTransferActions exportUrl={`/admin/marketing/pages/${PAGE_SLUG}/styles/export`} importUrl={`/admin/marketing/pages/${PAGE_SLUG}/styles/import`} filename="ai-music-video-styles" resourceLabel="AI Music Video 风格库" canImport={canManage} onImported={() => { setDraft(null); qc.invalidateQueries({ queryKey: ['admin', 'marketing-page', PAGE_SLUG] }); }} />
         <a href={`${PUBLIC_WEB_URL}/ai-music-video-generator`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"><Eye className="h-4 w-4" />预览页面</a>
         <button disabled={!canManage || generatingIds.length > 0} onClick={() => void generateMissing()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${generatingIds.length ? 'animate-spin' : ''}`} />补齐缺失封面</button>
         <button type="button" onClick={addStyle} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"><Plus className="h-4 w-4" />新增风格</button>

@@ -187,7 +187,6 @@ const NAV_SECTIONS: NavSection[] = [
         items: [
           { href: '/admin/aimv-generator/settings', label: '配置中心', icon: SlidersHorizontal, permission: 'aimv.settings.view' },
           { href: '/admin/aimv-generator/models', label: '模型配置', icon: Route, permission: 'aimv.routing.view' },
-          { href: '/admin/aimv-generator/singers', label: '歌手配置', icon: UserSquare, permission: 'aimv.content.view' },
           { href: '/admin/ai-music-video/styles', label: '风格库', icon: Palette, permission: 'marketing.view' },
         ],
       },

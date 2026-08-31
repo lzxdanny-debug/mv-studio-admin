@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Save, Sparkles, Trash2, Upload } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
+import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
 
 type AssetKind = 'singer_photo' | 'hot_music' | 'mv_style';
 interface LibraryAsset { id: string; kind: AssetKind; code: string; nameEn: string; descriptionEn: string; assetUrl: string; thumbnailUrl: string; category: string; enabled: boolean; hot: boolean; sortOrder: number; translationStatus: string; metadata?: Record<string, unknown> }
@@ -42,12 +43,14 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
     onSuccess: () => { setFile(undefined); setDraft(emptyDraft); qc.invalidateQueries({ queryKey: ['aimv-library-assets'] }); },
   });
   const seedDefaultSingers = useMutation({
-    mutationFn: () => apiClient.post('/admin/aimv-generator/library-assets/seed-default-singers', {}),
+    mutationFn: (force: boolean) => apiClient.post('/admin/aimv-generator/library-assets/seed-default-singers', { force }),
     onSuccess: (result: unknown) => {
-      const data = result as { queued?: number; retried?: number; ready?: number };
+      const data = result as { queued?: number; retried?: number; ready?: number; forced?: number; retired?: number };
       const scheduled = (data.queued ?? 0) + (data.retried ?? 0);
       setSeedMessage(scheduled
-        ? `已开始生成 ${data.queued ?? 0} 个默认歌手，并重试 ${data.retried ?? 0} 个未完成项；完成后会自动显示。`
+        ? data.forced
+          ? `已下线 ${data.retired ?? 0} 个同质化角色，并开始重新生成 ${data.forced} 个年轻人物/动物参考图；新图片成功前会继续保留旧图片。`
+          : `已开始生成 ${data.queued ?? 0} 个默认人物，并重试 ${data.retried ?? 0} 个未完成项；完成后会自动显示。`
         : `默认歌手库已就绪（${data.ready ?? 0} 个）。`);
       qc.invalidateQueries({ queryKey: ['aimv-library-assets'] });
     },
@@ -69,13 +72,14 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const accept = kind === 'singer_photo' ? 'image/jpeg,image/png,image/gif' : kind === 'hot_music' ? 'audio/*' : 'image/*,video/*';
   const fileLabel = kind === 'singer_photo' ? '选择图片' : kind === 'hot_music' ? '选择音乐文件' : '选择风格图片或示例视频';
   return <div className="mx-auto max-w-6xl space-y-5">
-    <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
-      {isSingerConfig
+    <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
+      <p className="max-w-3xl">{isSingerConfig
         ? '在这里维护 C 端 Create MV 的默认歌手。启用的歌手会直接出现在 Singer Photo 选择器中；停用后不再提供给新项目选择，已创建项目不受影响。'
-        : '歌手照片、Hot 音乐和 MV 视觉风格属于独立素材库。风格不会替换模板、音乐、比例或时长，只会约束人物锚点、故事板和镜头画面。'}
+        : '歌手照片、Hot 音乐和 MV 视觉风格属于独立素材库。风格不会替换模板、音乐、比例或时长，只会约束人物锚点、故事板和镜头画面。'}</p>
+      {!lockedKind && <AdminDataTransferActions exportUrl="/admin/aimv-generator/library-assets/export" importUrl="/admin/aimv-generator/library-assets/import" filename="aimv-library-assets" resourceLabel="素材库" canImport={canEdit} onImported={() => qc.invalidateQueries({ queryKey: ['aimv-library-assets'] })} />}
     </div>
     {canEdit && <section className="rounded-xl border border-slate-200 bg-white p-5">
-      {isSingerConfig ? <><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">歌手库</h2><p className="mt-1 text-sm text-slate-500">上传清晰的歌手形象图；也可一次生成覆盖不同性别、年龄、肤色与动物形象的默认歌手库。</p></div><button disabled={seedDefaultSingers.isPending} onClick={() => seedDefaultSingers.mutate()} className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 disabled:opacity-50">{seedDefaultSingers.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}{seedDefaultSingers.isPending ? '正在创建…' : '生成默认歌手库'}</button></div>{seedMessage && <p className="mb-3 text-sm text-emerald-700">{seedMessage}</p>}{seedDefaultSingers.isError && <p className="mb-3 text-sm text-red-600">{(seedDefaultSingers.error as Error).message || '默认歌手生成任务提交失败'}</p>}</> : <div className="flex flex-wrap gap-2">
+      {isSingerConfig ? <><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900">歌手库</h2><p className="mt-1 text-sm text-slate-500">人物参考图采用正面证件照/选角照标准：自然闭嘴、纯色背景、无话筒、无乐器、无舞台和其他道具。</p></div><div className="flex flex-wrap gap-2"><button disabled={seedDefaultSingers.isPending} onClick={() => seedDefaultSingers.mutate(false)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 disabled:opacity-50">{seedDefaultSingers.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}补齐缺失人物</button><button disabled={seedDefaultSingers.isPending} onClick={() => seedDefaultSingers.mutate(true)} className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 disabled:opacity-50">{seedDefaultSingers.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}{seedDefaultSingers.isPending ? '正在提交…' : '重新生成全部证件照'}</button></div></div>{seedMessage && <p className="mb-3 text-sm text-emerald-700">{seedMessage}</p>}{seedDefaultSingers.isError && <p className="mb-3 text-sm text-red-600">{(seedDefaultSingers.error as Error).message || '默认人物生成任务提交失败'}</p>}</> : <div className="flex flex-wrap gap-2">
         {([['singer_photo', '内置歌手照片'], ['hot_music', 'Hot 音乐'], ['mv_style', 'MV 视觉风格']] as Array<[AssetKind, string]>).map(([value, label]) => <button key={value} disabled={create.isPending} onClick={() => switchKind(value)} className={`rounded-lg px-3 py-2 text-sm disabled:opacity-50 ${kind === value ? 'bg-violet-600 text-white' : 'bg-slate-100'}`}>{label}</button>)}
       </div>}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
