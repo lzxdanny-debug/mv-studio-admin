@@ -90,7 +90,7 @@ type NavSection = {
 
 // ─── 导航配置 ────────────────────────────────────────────────────────────
 
-const NAV_SECTIONS: NavSection[] = [
+const ALL_NAV_SECTIONS: NavSection[] = [
   {
     key: 'dashboard',
     title: '仪表盘',
@@ -790,6 +790,22 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+// 暂时仅隐藏旧业务入口，保留页面和路由，方便后续恢复。
+const HIDDEN_BUSINESS_SECTION_KEYS = new Set([
+  'mv',
+  'music',
+  'karaoke',
+  'dance',
+  'video-effects',
+]);
+
+// 新产品使用 AI MV Generator 自己的模型与计费配置；旧创作/音乐定价暂不展示。
+const HIDDEN_NAV_SUBGROUP_KEYS = new Set(['billing-pricing', 'billing-music']);
+
+const NAV_SECTIONS = ALL_NAV_SECTIONS.filter(
+  (section) => !HIDDEN_BUSINESS_SECTION_KEYS.has(section.key),
+);
+
 // ─── 工具函数 ────────────────────────────────────────────────────────────
 
 function itemVisible(permissions: string[], item: NavLink): boolean {
@@ -802,6 +818,7 @@ function itemVisible(permissions: string[], item: NavLink): boolean {
 }
 
 function subgroupVisible(permissions: string[], subgroup: NavSubgroup): boolean {
+  if (HIDDEN_NAV_SUBGROUP_KEYS.has(subgroup.key)) return false;
   return subgroup.items.some((item) => itemVisible(permissions, item));
 }
 

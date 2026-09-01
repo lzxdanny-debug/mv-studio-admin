@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Film } from 'lucide-react';
+import Link from 'next/link';
+import { ExternalLink, Eye, Film } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { SearchBar } from '@/components/search-bar';
@@ -61,7 +62,7 @@ export default function AiMusicVideoProjectsPage() {
     { key: 'status', header: '状态', width: 'w-32', render: (row) => <div className="space-y-1"><StatusBadge status={row.status} kind="mvProject" /><p className="text-[10px] text-slate-400">{row.stage} · {row.progressPercent}%</p></div> },
     { key: 'config', header: '生成配置', width: 'w-48', render: (row) => <div className="space-y-0.5 text-xs text-slate-500"><p>{row.productModelCode || '—'} · {row.resolution || '—'}</p><p className="text-slate-400">{row.aspectRatio || '—'} · 预扣 {row.reservedCredits} / 实扣 {row.chargedCredits}</p></div> },
     { key: 'createdAt', header: '创建时间', width: 'w-40', render: (row) => <span className="text-xs text-slate-500">{formatDate(row.createdAt)}</span> },
-    { key: 'actions', header: '操作', width: 'w-32', render: (row) => <div className="flex flex-col items-start gap-1">{row.resultUrl && <a href={row.resultUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">查看成片<ExternalLink className="h-3 w-3" /></a>} {!row.resultUrl && <span className="text-xs text-slate-400">暂无成片</span>}</div> },
+    { key: 'actions', header: '操作', width: 'w-36', render: (row) => <div className="flex flex-col items-start gap-1"><Link href={`/admin/ai-music-video/projects/${row.mvId}`} className="inline-flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-700"><Eye className="h-3 w-3" />查看详情</Link>{row.resultUrl && <a href={row.resultUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">查看成片<ExternalLink className="h-3 w-3" /></a>}</div> },
   ];
 
   return <div className="admin-page p-6 space-y-4">
