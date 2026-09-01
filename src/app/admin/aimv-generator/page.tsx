@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
-import { CheckCircle2, CircleHelp, Languages, Loader2, Pencil, Plus, RefreshCw, Save, Sparkles, TriangleAlert, Upload, X } from 'lucide-react';
+import { CheckCircle2, CircleHelp, Languages, Loader2, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
@@ -12,6 +12,7 @@ import { AimvAssetsTab, AimvResolversTab, AimvRetentionTab } from '@/components/
 import { AimvCreationStylesTab } from '@/components/aimv-creation-styles-tab';
 import { Switch } from '@/components/ui/switch';
 import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
+import { useConfirm } from '@/components/ui/dialog-provider';
 
 type TabKey =
   | 'settings'
@@ -373,6 +374,7 @@ function SettingsTab({ onSaved }: { onSaved: () => void }) {
 function TemplatesTab() {
   const canEdit = useAdminAuthStore((state) => state.hasPermission('aimv.content.edit'));
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const query = useQuery<AimvTemplate[]>({
     queryKey: ['aimv-templates'],
     queryFn: () => apiClient.get('/admin/aimv-generator/templates') as Promise<AimvTemplate[]>,
@@ -500,7 +502,30 @@ function TemplatesTab() {
     mutationFn: ({ id, force = true }: { id: string; force?: boolean }) => apiClient.post(`/admin/aimv-generator/templates/${id}/generate-preview`, { force }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aimv-templates'] }),
   });
-  const mutationPending = save.isPending || retry.isPending || preprocess.isPending || generatePreview.isPending || uploadSingerReference.isPending;
+  const remove = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/admin/aimv-generator/templates/${id}`),
+    onSuccess: (_result, id) => {
+      if (editingId === id) {
+        setDraft(EMPTY_TEMPLATE);
+        setEditingId(null);
+        setEditorTab('basic');
+        setIsEditorOpen(false);
+      }
+      queryClient.invalidateQueries({ queryKey: ['aimv-templates'] });
+    },
+  });
+  const mutationPending = save.isPending || retry.isPending || preprocess.isPending || generatePreview.isPending || uploadSingerReference.isPending || remove.isPending;
+  const deleteTemplate = async (row: AimvTemplate) => {
+    if (mutationPending) return;
+    const accepted = await confirm({
+      title: `删除模板“${row.nameEn}”？`,
+      description: '删除后会立即从用户端下架，并移除该模板的分镜配置与收藏记录。此操作不可撤销，已经生成的历史 MV 不受影响。',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      variant: 'danger',
+    });
+    if (accepted) remove.mutate(row.id);
+  };
   const set = <K extends keyof TemplateDraft>(key: K, value: TemplateDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const edit = (row: AimvTemplate) => {
     const config = row.createSimilarConfig || {};
@@ -699,10 +724,11 @@ function TemplatesTab() {
             const preview = ((row.defaults?.previewGeneration ?? {}) as PreviewGenerationState);
             const previewGenerating = preview.status === 'generating';
             const previewLabel = previewGenerating ? '示例视频生成中' : preview.status === 'failed' ? '示例视频失败' : row.previewVideoUrl ? '有示例视频' : '无示例视频';
-            return <tr key={row.id}><td className="px-4 py-3"><div className="flex items-center gap-3">{row.coverUrl ? <img src={resolvePublicAssetUrl(row.coverUrl)} alt="" className="h-12 w-16 rounded-lg object-cover" /> : <div className="h-12 w-16 rounded-lg bg-slate-100" />}<div><div className="font-medium text-slate-900">{row.nameEn}</div><div className="text-xs text-slate-400">{row.code}</div></div></div></td><td className="px-4 py-3 text-slate-600">{['youtube', 'landscape'].includes(row.category) ? '横屏' : '竖屏'}</td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.aspectRatio || '—'} · {row.createSimilarConfig?.durationSec || '—'}s · {row.createSimilarConfig?.resolution || '—'}</div><div title={preview.error || ''} className={cn('mt-1', preview.status === 'failed' && 'text-red-600')}>{previewLabel} · {row.createSimilarConfig?.productModelCode || '默认模型'}</div></td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.musicAssetId ? '音乐' : '无音乐'} · {row.createSimilarConfig?.singerPhotoAssetId ? '角色图' : '无角色图'}</div><div className="mt-1">{row.createSimilarConfig?.styleCode ? '已选风格' : '默认风格'} · 整条 MV 预设</div></td><td className="px-4 py-3"><TranslationBadge row={row} /></td><td className="px-4 py-3">{row.enabled ? '启用' : '停用'}</td><td className="px-4 py-3 text-right"><div className="inline-flex items-center gap-3">{canEdit && <button disabled={mutationPending} onClick={() => edit(row)} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" />编辑</button>}{canEdit && <button disabled={mutationPending || previewGenerating || !row.segments.length} onClick={() => { if (!mutationPending) generatePreview.mutate({ id: row.id, force: Boolean(row.previewVideoUrl) }); }} className="inline-flex items-center gap-1 text-violet-700 disabled:cursor-not-allowed disabled:opacity-50" title={preview.error || '根据整条 MV 预设生成用户端示例视频'}>{previewGenerating || generatePreview.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{row.previewVideoUrl ? '重新生成示例视频' : '生成示例视频'}</button>}{row.translationStatus === 'failed' && canEdit && <button disabled={mutationPending} onClick={() => { if (!mutationPending) retry.mutate(row.id); }} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><RefreshCw className="h-3.5 w-3.5" />重新翻译</button>}</div></td></tr>;
+            return <tr key={row.id}><td className="px-4 py-3"><div className="flex items-center gap-3">{row.coverUrl ? <img src={resolvePublicAssetUrl(row.coverUrl)} alt="" className="h-12 w-16 rounded-lg object-cover" /> : <div className="h-12 w-16 rounded-lg bg-slate-100" />}<div><div className="font-medium text-slate-900">{row.nameEn}</div><div className="text-xs text-slate-400">{row.code}</div></div></div></td><td className="px-4 py-3 text-slate-600">{['youtube', 'landscape'].includes(row.category) ? '横屏' : '竖屏'}</td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.aspectRatio || '—'} · {row.createSimilarConfig?.durationSec || '—'}s · {row.createSimilarConfig?.resolution || '—'}</div><div title={preview.error || ''} className={cn('mt-1', preview.status === 'failed' && 'text-red-600')}>{previewLabel} · {row.createSimilarConfig?.productModelCode || '默认模型'}</div></td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.musicAssetId ? '音乐' : '无音乐'} · {row.createSimilarConfig?.singerPhotoAssetId ? '角色图' : '无角色图'}</div><div className="mt-1">{row.createSimilarConfig?.styleCode ? '已选风格' : '默认风格'} · 整条 MV 预设</div></td><td className="px-4 py-3"><TranslationBadge row={row} /></td><td className="px-4 py-3">{row.enabled ? '启用' : '停用'}</td><td className="px-4 py-3 text-right"><div className="flex flex-wrap items-center justify-end gap-3">{canEdit && <button disabled={mutationPending} onClick={() => edit(row)} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" />编辑</button>}{canEdit && <button disabled={mutationPending || previewGenerating || !row.segments.length} onClick={() => { if (!mutationPending) generatePreview.mutate({ id: row.id, force: Boolean(row.previewVideoUrl) }); }} className="inline-flex items-center gap-1 text-violet-700 disabled:cursor-not-allowed disabled:opacity-50" title={preview.error || '根据整条 MV 预设生成用户端示例视频'}>{previewGenerating || generatePreview.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{row.previewVideoUrl ? '重新生成示例视频' : '生成示例视频'}</button>}{row.translationStatus === 'failed' && canEdit && <button disabled={mutationPending} onClick={() => { if (!mutationPending) retry.mutate(row.id); }} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><RefreshCw className="h-3.5 w-3.5" />重新翻译</button>}{canEdit && <button disabled={mutationPending} onClick={() => void deleteTemplate(row)} className="inline-flex items-center gap-1 text-red-600 transition hover:text-red-700 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />删除</button>}</div></td></tr>;
           })}</tbody></table>
         )}
       </section>
+      {remove.isError && <ErrorText text={(remove.error as Error).message} />}
     </div>
   );
 }
