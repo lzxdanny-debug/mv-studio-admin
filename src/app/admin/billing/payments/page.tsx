@@ -3,13 +3,14 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { Check, Copy, Receipt } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Check, Copy, Download, Receipt } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
 import { SearchBar } from '@/components/search-bar';
 import { DataTable, DataTableColumn } from '@/components/data-table';
+import { downloadCsv } from '@/lib/csv-export';
 import {
   usd,
   TYPE_LABEL,
@@ -31,6 +32,9 @@ interface AdminPaymentRow {
   manualStatus: string | null;
   isValid: boolean;
   amountCents: number;
+  listAmountCents: number | null;
+  discountAmountCents: number;
+  discountCode: string | null;
   refundedCents: number;
   netCents: number;
   currency: string;
@@ -42,6 +46,13 @@ interface AdminPaymentRow {
   riskLevel: string | null;
   providerPaymentId: string | null;
   expiresAt: string | null;
+  disputeStatus: string;
+  committedCredits: number;
+  grantedCredits: number;
+  pendingCredits: number;
+  usedCredits: number;
+  availableCredits: number;
+  attributionSnapshot: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -108,6 +119,46 @@ export default function AdminPaymentsPage() {
       return apiClient.get(`/admin/billing/payments?${params.toString()}`) as any;
     },
     placeholderData: (prev) => prev,
+  });
+
+  const buildFilterParams = () => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+    if (type) params.set('type', type);
+    if (method) params.set('method', method);
+    if (window) {
+      params.set('from', new Date(window.fromMs).toISOString());
+      params.set('to', new Date(window.toMs).toISOString());
+    }
+    return params;
+  };
+
+  const exportMutation = useMutation({
+    mutationFn: () => apiClient.get(`/admin/billing/payments/export?${buildFilterParams().toString()}`) as Promise<ListResponse>,
+    onSuccess: (payload) => downloadCsv(`payments-${new Date().toISOString().slice(0, 10)}.csv`, [
+      { header: '订单号', value: (row: AdminPaymentRow) => row.id },
+      { header: '下单时间', value: (row: AdminPaymentRow) => row.createdAt },
+      { header: '邮箱', value: (row: AdminPaymentRow) => row.userEmail },
+      { header: '类型', value: (row: AdminPaymentRow) => TYPE_LABEL[row.type] ?? row.type },
+      { header: '状态', value: (row: AdminPaymentRow) => PAYMENT_STATUS_META[row.status]?.label ?? row.status },
+      { header: '方案', value: (row: AdminPaymentRow) => row.packageCode ?? row.planCode },
+      { header: '原价USD', value: (row: AdminPaymentRow) => ((row.listAmountCents ?? row.amountCents) / 100).toFixed(2) },
+      { header: '实付USD', value: (row: AdminPaymentRow) => (row.amountCents / 100).toFixed(2) },
+      { header: '优惠USD', value: (row: AdminPaymentRow) => (row.discountAmountCents / 100).toFixed(2) },
+      { header: '优惠码', value: (row: AdminPaymentRow) => row.discountCode },
+      { header: '承诺总积分', value: (row: AdminPaymentRow) => row.committedCredits },
+      { header: '已发放积分', value: (row: AdminPaymentRow) => row.grantedCredits },
+      { header: '待发放积分', value: (row: AdminPaymentRow) => row.pendingCredits },
+      { header: '已使用积分', value: (row: AdminPaymentRow) => row.usedCredits },
+      { header: '可用剩余积分', value: (row: AdminPaymentRow) => row.availableCredits },
+      { header: '退款USD', value: (row: AdminPaymentRow) => (row.refundedCents / 100).toFixed(2) },
+      { header: '支付方式', value: (row: AdminPaymentRow) => row.paymentMethod },
+      { header: '国家', value: (row: AdminPaymentRow) => row.country },
+      { header: '争议状态', value: (row: AdminPaymentRow) => row.disputeStatus },
+      { header: '到期时间', value: (row: AdminPaymentRow) => row.expiresAt },
+      { header: '订单归因', value: (row: AdminPaymentRow) => row.attributionSnapshot },
+    ], payload.data),
   });
 
   const columns: DataTableColumn<AdminPaymentRow>[] = [
@@ -200,10 +251,10 @@ export default function AdminPaymentsPage() {
     },
     {
       key: 'amount',
-      header: '金额',
-      width: 'w-24',
+      header: '原价 / 实付 / 优惠',
+      width: 'w-44',
       align: 'right',
-      render: (row) => <span className="font-medium text-slate-800">{usd(row.amountCents)}</span>,
+      render: (row) => <div className="text-xs tabular-nums"><p className="text-slate-400 line-through">{usd(row.listAmountCents ?? row.amountCents)}</p><p className="font-medium text-slate-800">{usd(row.amountCents)}</p><p className="text-emerald-700">优惠 {usd(row.discountAmountCents)}</p></div>,
     },
     {
       key: 'refund',
@@ -225,6 +276,13 @@ export default function AdminPaymentsPage() {
       render: (row) => (
         <span className="font-medium text-emerald-700">{usd(row.netCents)}</span>
       ),
+    },
+    {
+      key: 'credits',
+      header: '承诺 / 发放 / 待发放',
+      width: 'w-48',
+      align: 'right',
+      render: (row) => <div className="text-xs tabular-nums text-slate-700"><p>{row.committedCredits.toLocaleString()} / {row.grantedCredits.toLocaleString()} / {row.pendingCredits.toLocaleString()}</p><p className="mt-1 text-[10px] text-slate-400">已用 {row.usedCredits.toLocaleString()} · 剩余 {row.availableCredits.toLocaleString()}</p></div>,
     },
     {
       key: 'method',
@@ -341,8 +399,10 @@ export default function AdminPaymentsPage() {
             <option value="expired">过期</option>
             <option value="refunded">全额退款</option>
             <option value="partially_refunded">部分退款</option>
+            <option value="disputed">争议中</option>
             <option value="chargeback">CB</option>
           </select>
+          <button type="button" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending || !data?.total} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"><Download className="h-3.5 w-3.5" />{exportMutation.isPending ? '导出中…' : '导出 CSV'}</button>
           <select
             value={type}
             onChange={(e) => {
@@ -375,7 +435,7 @@ export default function AdminPaymentsPage() {
           columns={columns}
           rows={data?.data}
           rowKey={(r) => r.id}
-          tableClassName="min-w-[1840px] [&_td]:whitespace-nowrap"
+          tableClassName="min-w-[2280px] [&_td]:whitespace-nowrap"
           isLoading={isLoading}
           isError={isError}
           error={error}

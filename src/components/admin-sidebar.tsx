@@ -102,6 +102,12 @@ const NAV_SECTIONS: NavSection[] = [
         exact: true,
         permission: 'dashboard.view',
       },
+      {
+        href: '/admin/analytics',
+        label: '埋点分析',
+        icon: BarChart3,
+        permission: 'dashboard.view',
+      },
     ],
   },
   {

@@ -45,10 +45,20 @@ interface PaymentDetail {
   manualStatusUpdatedAt: string | null;
   isValid: boolean;
   amountCents: number;
+  listAmountCents: number | null;
+  discountAmountCents: number;
+  discountCode: string | null;
+  presentmentAmountCents: number | null;
+  presentmentCurrency: string | null;
   refundedCents: number;
   netCents: number;
   currency: string;
   creditAmount: number | null;
+  committedCredits: number;
+  grantedCredits: number;
+  pendingCredits: number;
+  usedCredits: number;
+  availableCredits: number;
   balanceBefore: number | null;
   balanceAfter: number | null;
   packageCode: string | null;
@@ -56,6 +66,11 @@ interface PaymentDetail {
   country: string | null;
   paymentMethod: string | null;
   riskLevel: string | null;
+  disputeStatus: 'none' | 'open' | 'won' | 'lost';
+  providerDisputeId: string | null;
+  disputedAt: string | null;
+  disputeResolvedAt: string | null;
+  attributionSnapshot: Record<string, unknown> | null;
   provider: string;
   providerPaymentId: string | null;
   providerSessionId: string | null;
@@ -178,8 +193,13 @@ export default function PaymentDetailPage({
             <div className="space-y-4">
               <div className="admin-card p-5 flex flex-wrap items-center gap-x-8 gap-y-3">
                 <div>
-                  <p className="text-xs text-slate-500">金额</p>
+                  <p className="text-xs text-slate-500">实付金额</p>
                   <p className="text-2xl font-bold text-slate-900">{usd(data.amountCents)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">原价 / 优惠</p>
+                  <p className="mt-1 text-sm text-slate-700"><span className="text-slate-400 line-through">{usd(data.listAmountCents ?? data.amountCents)}</span><span className="ml-2 text-emerald-700">-{usd(data.discountAmountCents)}</span></p>
+                  {data.discountCode && <p className="mt-1 text-xs text-slate-400">{data.discountCode}</p>}
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">实得（净）</p>
@@ -235,6 +255,11 @@ export default function PaymentDetailPage({
                       '—'
                     )}
                   </Row>
+                  <Row label="承诺总积分">{data.committedCredits.toLocaleString()}</Row>
+                  <Row label="已发放积分">{data.grantedCredits.toLocaleString()}</Row>
+                  <Row label="待发放积分">{data.pendingCredits.toLocaleString()}</Row>
+                  <Row label="已使用积分">{data.usedCredits.toLocaleString()}</Row>
+                  <Row label="可用剩余积分">{data.availableCredits.toLocaleString()}</Row>
                   <Row label="充值前余额">{data.balanceBefore ?? '—'}</Row>
                   <Row label="充值后余额">{data.balanceAfter ?? '—'}</Row>
                 </Card>
@@ -265,10 +290,28 @@ export default function PaymentDetailPage({
                   <Row label="订单有效期">
                     {data.expiresAt ? formatDate(data.expiresAt) : '长期有效'}
                   </Row>
+                  <Row label="展示币种">
+                    {data.presentmentAmountCents != null && data.presentmentCurrency
+                      ? `${(data.presentmentAmountCents / 100).toFixed(2)} ${data.presentmentCurrency.toUpperCase()}`
+                      : data.currency.toUpperCase()}
+                  </Row>
+                  <Row label="争议状态">
+                    {data.disputeStatus === 'open' ? '争议中' : data.disputeStatus === 'won' ? '胜诉' : data.disputeStatus === 'lost' ? '败诉' : '无争议'}
+                  </Row>
+                  {data.providerDisputeId && <Row label="Stripe 争议 ID"><span className={mono}>{data.providerDisputeId}</span></Row>}
                 </Card>
               </div>
 
               <ManualStatusCard data={data} />
+
+              <details className="group overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-900 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                  订单归因快照 <span className="ml-2 text-xs font-normal text-blue-600 group-open:hidden">点击查看详情</span><span className="ml-2 hidden text-xs font-normal text-blue-600 group-open:inline">点击收起</span>
+                </summary>
+                <div className="border-t border-slate-100 p-5">
+                  {data.attributionSnapshot ? <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(data.attributionSnapshot, null, 2)}</pre> : <p className="text-xs text-slate-400">该订单暂无归因快照。</p>}
+                </div>
+              </details>
 
               <Card title="Stripe 标识">
                 <Row label="Provider">{data.provider}</Row>

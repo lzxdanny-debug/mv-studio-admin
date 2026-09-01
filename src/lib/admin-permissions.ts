@@ -1,6 +1,7 @@
 /** 路由 → permission 映射（最长前缀优先） */
 export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string; exact?: boolean }> = [
   { prefix: '/admin', permission: 'dashboard.view', exact: true },
+  { prefix: '/admin/analytics', permission: 'dashboard.view' },
   { prefix: '/admin/mv/projects', permission: 'project.view' },
   { prefix: '/admin/api-calls', permission: 'billing.cost.view' },
   { prefix: '/admin/mv/anomalies', permission: 'mv.anomaly.view' },

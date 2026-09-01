@@ -53,6 +53,7 @@ export const PAYMENT_STATUS_META: Record<
   expired: { label: '过期', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
   refunded: { label: '全额退款', cls: 'bg-red-50 text-red-700 border-red-100' },
   partially_refunded: { label: '部分退款', cls: 'bg-blue-50 text-blue-700 border-blue-100' },
+  disputed: { label: '争议中', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
   chargeback: { label: 'CB', cls: 'bg-rose-100 text-rose-800 border-rose-200' },
 };
 

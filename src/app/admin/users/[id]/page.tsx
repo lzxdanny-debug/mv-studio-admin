@@ -40,6 +40,8 @@ interface UserDetail {
     lastLoginAt: string | null;
     lastLoginIp: string | null;
     referralCode?: string;
+    accountOrigin: 'user_signup' | 'order_signup';
+    registrationAttribution: Record<string, unknown> | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -50,6 +52,17 @@ interface UserDetail {
     createdAt: string;
   }>;
   credit: { balance: number };
+  analytics: {
+    identity: 'Pro' | 'Free';
+    totalGranted: number;
+    totalUsed: number;
+    paidGranted: number;
+    paidRemaining: number;
+    giftedGranted: number;
+    giftedRemaining: number;
+    orderCount: number;
+    spentCents: number;
+  };
   counts: {
     mvProjects: number;
     musicTasks: number;
@@ -426,6 +439,8 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               </div>
 
               <div className="bg-white border border-slate-200 rounded-2xl p-5 grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <DetailField label="用户身份" value={data.analytics.identity} />
+                <DetailField label="账号来源" value={user.accountOrigin === 'order_signup' ? '订单注册' : '用户注册'} />
                 <DetailField label="登录方式" value={providerLabel(user.primaryProvider)} />
                 <DetailField
                   label="最近登录"
@@ -453,6 +468,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <InfoCard label="本地积分余额" value={data.credit.balance.toLocaleString()} />
+                <InfoCard label="总发放积分" value={data.analytics.totalGranted.toLocaleString()} />
+                <InfoCard label="总使用积分" value={data.analytics.totalUsed.toLocaleString()} />
+                <InfoCard label="付费积分（发放 / 剩余）" value={`${data.analytics.paidGranted.toLocaleString()} / ${data.analytics.paidRemaining.toLocaleString()}`} />
+                <InfoCard label="赠送积分（发放 / 剩余）" value={`${data.analytics.giftedGranted.toLocaleString()} / ${data.analytics.giftedRemaining.toLocaleString()}`} />
+                <InfoCard label="订单数" value={data.analytics.orderCount} />
+                <InfoCard label="累计消费" value={`$${(data.analytics.spentCents / 100).toFixed(2)}`} />
                 <InfoCard label="MV 项目数" value={data.counts.mvProjects} />
                 <InfoCard label="音乐项目数" value={data.counts.musicTasks} />
                 <InfoCard label="歌词项目数" value={data.counts.lyricsTasks} />
@@ -464,6 +485,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   value={(data.referral?.referralCreditsEarned ?? 0).toLocaleString()}
                 />
               </div>
+
+              <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                  注册归因快照 <span className="ml-2 text-xs font-normal text-blue-600 group-open:hidden">点击查看详情</span><span className="ml-2 hidden text-xs font-normal text-blue-600 group-open:inline">点击收起</span>
+                </summary>
+                <div className="border-t border-slate-100 p-5">
+                  {user.registrationAttribution ? <pre className="overflow-x-auto whitespace-pre-wrap rounded-xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(user.registrationAttribution, null, 2)}</pre> : <p className="text-xs text-slate-400">该用户暂无注册归因快照。</p>}
+                </div>
+              </details>
 
               {(user.referralCode || (data.referral?.referralCount ?? 0) > 0) && (
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
