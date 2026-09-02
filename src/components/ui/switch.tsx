@@ -10,6 +10,8 @@ interface SwitchProps {
   label?: string;
   /** md 用于列表行，lg 用于强调总开关 */
   size?: 'md' | 'lg';
+  /** blue 为默认；violet 用于风控等紫色主题页 */
+  tone?: 'blue' | 'violet';
   className?: string;
 }
 
@@ -32,12 +34,18 @@ const SIZE = {
  * Admin 通用开关。纯按钮实现，不依赖 Radix。
  * 约定：开启 = 蓝色，关闭 = 灰色。
  */
+const TONE_ON = {
+  blue: 'bg-blue-600 focus:ring-blue-400',
+  violet: 'bg-violet-600 focus:ring-violet-400',
+} as const;
+
 export function Switch({
   checked,
   onChange,
   disabled,
   label,
   size = 'md',
+  tone = 'blue',
   className,
 }: SwitchProps) {
   const s = SIZE[size];
@@ -52,9 +60,9 @@ export function Switch({
         if (!disabled) onChange(!checked);
       }}
       className={cn(
-        'relative inline-flex flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2',
+        'relative inline-flex flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2',
         s.track,
-        checked ? 'bg-blue-600' : 'bg-slate-300',
+        checked ? TONE_ON[tone] : 'bg-slate-300 focus:ring-blue-400',
         disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
         className,
       )}

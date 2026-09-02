@@ -18,6 +18,7 @@ type TabKey =
   | 'settings'
   | 'templates'
   | 'singers'
+  | 'hot-music'
   | 'creation-styles'
   | 'assets'
   | 'resolvers'
@@ -32,6 +33,7 @@ const TABS: Array<{ key: TabKey; label: string; permission: string }> = [
   { key: 'settings', label: '基础设置', permission: 'aimv.settings.view' },
   { key: 'templates', label: '模板与类型', permission: 'aimv.content.view' },
   { key: 'singers', label: '歌手配置', permission: 'aimv.content.view' },
+  { key: 'hot-music', label: 'Hot 音乐', permission: 'aimv.content.view' },
   { key: 'creation-styles', label: '创建风格库', permission: 'aimv.content.view' },
   { key: 'assets', label: '素材库', permission: 'aimv.content.view' },
   { key: 'resolvers', label: '歌曲链接识别', permission: 'aimv.settings.view' },
@@ -281,6 +283,8 @@ export default function AimvGeneratorConfigPage() {
             <TemplatesTab />
           ) : tab === 'singers' ? (
             <AimvAssetsTab lockedKind="singer_photo" />
+          ) : tab === 'hot-music' ? (
+            <AimvAssetsTab lockedKind="hot_music" />
           ) : tab === 'creation-styles' ? (
             <AimvCreationStylesTab />
           ) : tab === 'assets' ? (

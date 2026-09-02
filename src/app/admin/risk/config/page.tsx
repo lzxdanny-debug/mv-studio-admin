@@ -6,6 +6,7 @@ import { HelpCircle, Save, Shield } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { Switch } from '@/components/ui/switch';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import { hasPermission } from '@/lib/admin-permissions';
 
@@ -146,16 +147,18 @@ export default function RiskConfigPage() {
         )}
 
         {f.type === 'boolean' && (
-          <label className="mt-2.5 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
+          <div className="mt-2.5 flex items-center gap-3">
+            <Switch
               checked={displayValue === true}
-              onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.checked }))}
+              onChange={(next) => setForm((prev) => ({ ...prev, [f.key]: next }))}
               disabled={!canManage}
-              className="accent-violet-600 disabled:opacity-60"
+              tone="violet"
+              label={f.label}
             />
-            {displayValue === true ? '已开启' : '已关闭'}
-          </label>
+            <span className="text-sm text-slate-600">
+              {displayValue === true ? '已开启' : '已关闭'}
+            </span>
+          </div>
         )}
 
         {f.type === 'textarea' && (

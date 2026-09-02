@@ -19,6 +19,7 @@ import {
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { Switch } from '@/components/ui/switch';
 
 type DiscoveryBadge = 'NEW' | 'TOP' | 'FREE';
 type CatalogSource = 'registry' | 'mv_project' | 'music_task' | 'custom';
@@ -527,20 +528,19 @@ export default function DiscoveryAdminPage() {
                       关闭后 Web 端 catalog 返回空列表，搜索本身仍可用
                     </p>
                   </div>
-                  <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700">
-                    <input
-                      type="checkbox"
+                  <div className="flex items-center gap-3">
+                    <Switch
                       checked={draft.enabled}
-                      onChange={(e) => {
-                        setDraft({ ...draft, enabled: e.target.checked });
+                      onChange={(next) => {
+                        setDraft({ ...draft, enabled: next });
                         setMsg(null);
                       }}
-                      className="accent-blue-600"
+                      label="运营位总开关"
                     />
-                    <span className="font-medium">
+                    <span className="text-sm font-medium text-slate-700">
                       {draft.enabled ? '已启用' : '已关闭'}
                     </span>
-                  </label>
+                  </div>
                 </div>
               </section>
 
