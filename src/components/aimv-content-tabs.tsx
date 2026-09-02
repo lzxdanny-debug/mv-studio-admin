@@ -94,17 +94,19 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
       form.append('kind', kind);
       const uploaded = (await apiClient.post('/admin/aimv-generator/library-assets/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
-      })) as { url: string };
+      })) as { url: string; contentHash?: string };
 
       let coverUrl = '';
+      let coverContentHash: string | undefined;
       if (kind === 'hot_music' && coverFile) {
         const coverForm = new FormData();
         coverForm.append('file', coverFile);
         coverForm.append('kind', 'singer_photo');
         const cover = (await apiClient.post('/admin/aimv-generator/library-assets/upload', coverForm, {
           headers: { 'Content-Type': 'multipart/form-data' },
-        })) as { url: string };
+        })) as { url: string; contentHash?: string };
         coverUrl = cover.url;
+        coverContentHash = cover.contentHash;
       }
 
       const isImage = file.type.startsWith('image/');
@@ -131,7 +133,11 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
               ? {
                   artist: draft.artist.trim(),
                   durationSec: draft.durationSec > 0 ? draft.durationSec : undefined,
+                  contentHash: uploaded.contentHash,
+                  coverContentHash,
                 }
+              : kind === 'singer_photo'
+                ? { contentHash: uploaded.contentHash }
               : {},
       });
     },

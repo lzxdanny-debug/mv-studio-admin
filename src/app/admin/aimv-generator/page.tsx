@@ -214,7 +214,7 @@ const LIST_FIELDS: Array<{ key: keyof AimvSettings; label: string; hint: string 
   { key: 'imageMimeTypes', label: '图片 MIME', hint: 'image/jpeg, image/png' },
   { key: 'allowedAspectRatios', label: '允许画面比例', hint: '16:9, 9:16, 1:1' },
   { key: 'allowedResolutions', label: '允许分辨率', hint: '720p, 1080p' },
-  { key: 'allowedVideoFormats', label: '允许视频格式', hint: 'mp4' },
+  { key: 'allowedVideoFormats', label: '允许视频格式', hint: 'mp4,mov,avi,webm（偏好统计；合成仍输出 mp4）' },
 ];
 
 function splitList(value: string): string[] {

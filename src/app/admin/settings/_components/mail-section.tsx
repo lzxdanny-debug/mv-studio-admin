@@ -147,12 +147,12 @@ export function MailSection({ embedded = false }: { embedded?: boolean }) {
               </h2>
             </div>
             <div className="divide-y divide-slate-100 px-5 py-2">
-              <FormField label="邮件品牌名" description="邮件正文与标题中展示的品牌名。">
+              <FormField label="邮件品牌名" description="邮件客户端发件人显示名、标题与正文中的品牌名（最多 15 字符）。">
                 <Input
                   size="sm"
                   value={form.brand}
                   onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-                  placeholder="AI MV Studio"
+                  placeholder="Verzivo"
                 />
               </FormField>
               <FormField

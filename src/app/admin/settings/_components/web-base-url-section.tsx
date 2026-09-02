@@ -95,7 +95,7 @@ export function WebBaseUrlSection() {
               type="url"
               value={webBaseUrl}
               onChange={(e) => setWebBaseUrl(e.target.value)}
-              placeholder="https://test.aimv.video"
+              placeholder="https://www.verzivo.ai"
             />
           </FormField>
         </SettingsPanel>
