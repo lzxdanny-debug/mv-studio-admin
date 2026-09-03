@@ -233,7 +233,40 @@ export function QueueTab() {
 
 function Info({ children }: { children: React.ReactNode }) { return <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">{children}</div>; }
 function Input({ value, onChange, placeholder, disabled }: { value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) { return <input disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="rounded border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100" />; }
-function NumberInput({ label, hint, value, onChange, step = 1, disabled }: { label: string; hint?: string; value: number; onChange: (v: number) => void; step?: number; disabled?: boolean }) { return <label className="text-xs text-slate-500"><span className="flex items-center gap-1">{label}{hint && <span title={hint} aria-label={hint}><CircleHelp className="h-3.5 w-3.5 text-slate-400" /></span>}</span><input disabled={disabled} type="number" min={0} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="mt-1 w-full rounded border border-slate-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100" /></label>; }
+function NumberInput({ label, hint, value, onChange, step = 1, disabled }: { label: string; hint?: string; value: number; onChange: (v: number) => void; step?: number; disabled?: boolean }) {
+  const [draft, setDraft] = useState(String(value));
+  const [focused, setFocused] = useState(false);
+  const allowsDecimal = !Number.isInteger(step);
+
+  useEffect(() => {
+    if (!focused) setDraft(String(value));
+  }, [focused, value]);
+
+  const updateDraft = (rawValue: string) => {
+    const next = rawValue
+      .replace(/[０-９]/g, (digit) => String(digit.charCodeAt(0) - 0xFF10))
+      .replace(/[。．｡，,]/g, '.');
+    const valid = allowsDecimal ? /^\d*(?:\.\d*)?$/.test(next) : /^\d*$/.test(next);
+    if (!valid) return;
+    setDraft(next);
+    if (next === '' || next === '.') return;
+    const parsed = Number(next);
+    if (Number.isFinite(parsed)) onChange(parsed);
+  };
+
+  const commitDraft = () => {
+    setFocused(false);
+    const parsed = Number(draft);
+    if (!draft || !Number.isFinite(parsed) || parsed < 0) {
+      setDraft(String(value));
+      return;
+    }
+    setDraft(String(parsed));
+    onChange(parsed);
+  };
+
+  return <label className="text-xs text-slate-500"><span className="flex items-center gap-1">{label}{hint && <span title={hint} aria-label={hint}><CircleHelp className="h-3.5 w-3.5 text-slate-400" /></span>}</span><input disabled={disabled} type="text" inputMode={allowsDecimal ? 'decimal' : 'numeric'} value={draft} onFocus={() => setFocused(true)} onBlur={commitDraft} onChange={(event) => updateDraft(event.target.value)} className="mt-1 w-full rounded border border-slate-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100" /></label>;
+}
 function Action({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) { return <button disabled={disabled} onClick={onClick} className="inline-flex items-center justify-center gap-1 rounded-lg bg-violet-600 px-3 py-2 text-sm text-white disabled:opacity-50">{disabled && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{children}</button>; }
 function Loading() { return <div className="flex justify-center p-12"><Loader2 className="h-5 w-5 animate-spin text-violet-600" /></div>; }
 function Empty({ text }: { text: string }) { return <div className="p-10 text-center text-sm text-slate-400">{text}</div>; }

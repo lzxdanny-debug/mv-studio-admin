@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Save, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -10,6 +10,7 @@ import { AdminDataTransferActions } from '@/components/admin-data-transfer-actio
 import { Switch } from '@/components/ui/switch';
 
 type AssetKind = 'singer_photo' | 'hot_music' | 'mv_style';
+type SingerCategory = 'all' | 'female' | 'male' | 'other';
 interface LibraryAsset {
   id: string;
   kind: AssetKind;
@@ -52,6 +53,19 @@ const EMPTY_DRAFT: DraftState = {
   sortOrder: 0,
 };
 
+const SINGER_CATEGORY_OPTIONS: Array<{ value: Exclude<SingerCategory, 'all'>; label: string }> = [
+  { value: 'female', label: 'Female' },
+  { value: 'male', label: 'Male' },
+  { value: 'other', label: 'Others' },
+];
+
+function normalizeSingerCategory(category: string): Exclude<SingerCategory, 'all'> {
+  const value = category.toLowerCase();
+  if (value.includes('female')) return 'female';
+  if (value.includes('male') && !value.includes('female')) return 'male';
+  return 'other';
+}
+
 export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const qc = useQueryClient();
   const canEdit = useAdminAuthStore((s) => s.hasPermission('aimv.content.edit'));
@@ -59,6 +73,7 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const isHotMusicConfig = lockedKind === 'hot_music';
   const [seedMessage, setSeedMessage] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [singerCategoryFilter, setSingerCategoryFilter] = useState<SingerCategory>('all');
 
   const query = useQuery<LibraryAsset[]>({
     queryKey: ['aimv-library-assets', lockedKind ?? 'all'],
@@ -72,12 +87,20 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const [kind, setKind] = useState<AssetKind>(lockedKind ?? 'singer_photo');
   const [file, setFile] = useState<File>();
   const [coverFile, setCoverFile] = useState<File>();
-  const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<DraftState>({
+    ...EMPTY_DRAFT,
+    category: lockedKind === 'singer_photo' ? 'female' : '',
+  });
+
+  const visibleAssets = useMemo(() => {
+    if (!isSingerConfig || singerCategoryFilter === 'all') return query.data ?? [];
+    return (query.data ?? []).filter((row) => normalizeSingerCategory(row.category) === singerCategoryFilter);
+  }, [isSingerConfig, query.data, singerCategoryFilter]);
 
   const resetCreateForm = () => {
     setFile(undefined);
     setCoverFile(undefined);
-    setDraft(EMPTY_DRAFT);
+    setDraft({ ...EMPTY_DRAFT, category: (lockedKind ?? kind) === 'singer_photo' ? 'female' : '' });
   };
 
   const closeCreateModal = () => {
@@ -226,13 +249,24 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
           placeholder={isSingerConfig ? '人物特征 / 使用说明（English）' : 'Description (English)'}
           className="rounded-lg border px-3 py-2 text-sm disabled:bg-slate-50"
         />
-        <input
-          disabled={create.isPending}
-          value={draft.category}
-          onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-          placeholder={isSingerConfig ? '分类，例如 female-vocal' : 'Category'}
-          className="rounded-lg border px-3 py-2 text-sm disabled:bg-slate-50"
-        />
+        {kind === 'singer_photo' ? (
+          <select
+            disabled={create.isPending}
+            value={draft.category}
+            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+            className="rounded-lg border px-3 py-2 text-sm disabled:bg-slate-50"
+          >
+            {SINGER_CATEGORY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        ) : (
+          <input
+            disabled={create.isPending}
+            value={draft.category}
+            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+            placeholder="Category"
+            className="rounded-lg border px-3 py-2 text-sm disabled:bg-slate-50"
+          />
+        )}
         {kind === 'hot_music' && (
           <>
             <input
@@ -338,16 +372,18 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
               ? '在这里维护 Create MV 音乐抽屉中的 Hot 列表。上传后可设置歌名、歌手、封面、时长和排序；只有已上架的音乐会显示在 C 端。'
               : '歌手照片、Hot 音乐和 MV 视觉风格属于独立素材库。风格不会替换模板、音乐、比例或时长，只会约束人物锚点、故事板和镜头画面。'}
         </p>
-        {(isHotMusicConfig || !lockedKind) && (
+        {(isSingerConfig || isHotMusicConfig || !lockedKind) && (
           <AdminDataTransferActions
             exportUrl={
-              isHotMusicConfig
-                ? '/admin/aimv-generator/library-assets/export?kind=hot_music'
+              lockedKind
+                ? `/admin/aimv-generator/library-assets/export?kind=${lockedKind}`
                 : '/admin/aimv-generator/library-assets/export'
             }
-            importUrl="/admin/aimv-generator/library-assets/import"
-            filename={isHotMusicConfig ? 'aimv-hot-music' : 'aimv-library-assets'}
-            resourceLabel={isHotMusicConfig ? 'Hot 音乐' : '素材库'}
+            importUrl={lockedKind
+              ? `/admin/aimv-generator/library-assets/import?kind=${lockedKind}`
+              : '/admin/aimv-generator/library-assets/import'}
+            filename={isSingerConfig ? 'aimv-singer-photos' : isHotMusicConfig ? 'aimv-hot-music' : 'aimv-library-assets'}
+            resourceLabel={isSingerConfig ? '歌手素材' : isHotMusicConfig ? 'Hot 音乐' : '素材库'}
             canImport={canEdit}
             onImported={() => qc.invalidateQueries({ queryKey: ['aimv-library-assets'] })}
           />
@@ -444,6 +480,7 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
                 !file ||
                 !draft.code ||
                 !draft.nameEn ||
+                (kind === 'singer_photo' && !draft.category) ||
                 (kind === 'mv_style' && !draft.stylePrompt.trim())
               }
               onClick={() => {
@@ -510,6 +547,22 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
         </div>
       )}
 
+      {isSingerConfig && (
+        <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3">
+          {([['all', '全部'], ['female', 'Female'], ['male', 'Male'], ['other', 'Others']] as Array<[SingerCategory, string]>).map(([value, label]) => {
+            const count = value === 'all'
+              ? (query.data?.length ?? 0)
+              : (query.data ?? []).filter((row) => normalizeSingerCategory(row.category) === value).length;
+            return <button
+              key={value}
+              type="button"
+              onClick={() => setSingerCategoryFilter(value)}
+              className={cn('rounded-lg px-3 py-2 text-sm font-medium', singerCategoryFilter === value ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-700')}
+            >{label} <span className="opacity-70">{count}</span></button>;
+          })}
+        </div>
+      )}
+
       <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         {query.isLoading ? (
           <Loading />
@@ -529,7 +582,7 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {query.data?.map((row) => (
+              {visibleAssets.map((row) => (
                 <tr key={row.id}>
                   <td className="p-3">
                     <div className="flex items-center gap-3">
@@ -576,7 +629,15 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
                   </td>
                   <td className="p-3">
                     {isSingerConfig ? (
-                      row.category || '-'
+                      <select
+                        value={normalizeSingerCategory(row.category)}
+                        onChange={(event) => update.mutate({ id: row.id, body: { category: event.target.value } })}
+                        disabled={!canEdit || assetActionPending}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm disabled:bg-slate-50"
+                        aria-label={`${row.nameEn} 分类`}
+                      >
+                        {SINGER_CATEGORY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
                     ) : row.kind === 'hot_music' ? (
                       <>
                         {typeof row.metadata?.artist === 'string' ? row.metadata.artist : '—'}
