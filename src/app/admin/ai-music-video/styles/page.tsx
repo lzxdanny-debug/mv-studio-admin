@@ -10,7 +10,7 @@ import { useConfirm } from '@/components/ui/dialog-provider';
 import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
 
 const PAGE_SLUG = 'ai-music-video-generator';
-const PUBLIC_WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || 'https://aimv.video';
+const PUBLIC_WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://www.verzivo.ai';
 const STYLE_NAMES = ['Retro-Future Synth', 'Midnight Gloss', 'Y2K Illusion', 'Urban Rumble', 'Velvet Snow', 'Sugar Rush Pink', 'Forest Waltz', 'Interstellar Fissure', 'Digital Persona', 'Cyberpunk Neon', 'Cinematic Drama', 'Anime Fantasy', 'Reality Blend', 'Pixar Warmth', 'Dark Ambient', 'Neon Cathedral', 'Dreamcore Bloom', 'Analog Fever', 'Liquid Chrome', 'Desert Mirage', 'Monochrome Noir', 'Celestial Opera', 'Street Documentary', 'Kinetic Collage', 'Soft Focus Romance'];
 
 type Localized = { zh: string; en: string };
