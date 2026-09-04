@@ -25,6 +25,11 @@ interface GoogleOAuthConfigView {
   enabled: boolean;
 }
 
+interface GoogleOAuthCredentials {
+  clientId: string;
+  clientSecret: string;
+}
+
 export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -62,6 +67,9 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
     },
     onError: () => setMsg({ ok: false, text: '保存失败，请检查输入后重试。' }),
   });
+
+  const revealCredentials = async (): Promise<GoogleOAuthCredentials> =>
+    apiClient.get('/admin/settings/google-oauth/reveal') as unknown as Promise<GoogleOAuthCredentials>;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +145,9 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
                   value={form.clientId}
                   onChange={(clientId) => setForm((f) => ({ ...f, clientId }))}
                   placeholder="xxxx.apps.googleusercontent.com"
+                  showToggle
+                  copyable
+                  onReveal={async () => (await revealCredentials()).clientId}
                   type="text"
                   className={SECRET_INPUT_CLS}
                 />
@@ -153,6 +164,8 @@ export function GoogleOAuthSection({ embedded = false }: { embedded?: boolean })
                   onChange={(clientSecret) => setForm((f) => ({ ...f, clientSecret }))}
                   placeholder="GOCSPX-..."
                   showToggle
+                  copyable
+                  onReveal={async () => (await revealCredentials()).clientSecret}
                   className={SECRET_INPUT_CLS}
                 />
               </FormField>
