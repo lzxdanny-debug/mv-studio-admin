@@ -58,6 +58,7 @@ export interface PlanEntitlement {
   marketingBadge: 'none' | 'popular' | 'best_value';
   weeklyCredits: number;
   monthlyCredits: number;
+  yearlyCredits: number;
   creditPurchaseDiscount: number;
   subscriptionPurchaseDiscount: number;
   maxConcurrentJobs: number;
@@ -71,7 +72,10 @@ export interface PlanEntitlement {
   allowCommercialUse: boolean;
   stripePriceId: string | null;
   stripeWeeklyPriceId: string | null;
+  stripeWeeklyCouponId: string | null;
+  stripeCouponId: string | null;
   stripeYearlyPriceId: string | null;
+  stripeYearlyCouponId: string | null;
   sortOrder: number;
   isActive: boolean;
 }

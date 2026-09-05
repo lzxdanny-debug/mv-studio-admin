@@ -11,10 +11,15 @@ import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
 import { SimpleSelect } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { DecimalFieldInput } from './decimal-factor-input';
 import type { PlanEntitlement } from './types';
 
 const NEW_TAB = '__new__';
+const VISIBLE_PLAN_CODES = new Set(['weekly', 'monthly', 'yearly']);
+const FIXED_BILLING_CYCLES: Record<string, 'week' | 'month' | 'year'> = {
+  weekly: 'week',
+  monthly: 'month',
+  yearly: 'year',
+};
 
 interface PublicPlanCapacity {
   planCode: string;
@@ -40,6 +45,7 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   marketingBadge: 'none',
   weeklyCredits: 0,
   monthlyCredits: 0,
+  yearlyCredits: 0,
   creditPurchaseDiscount: 1,
   subscriptionPurchaseDiscount: 1,
   maxConcurrentJobs: 1,
@@ -55,24 +61,9 @@ const EMPTY_PLAN: Partial<PlanEntitlement> = {
   isActive: true,
 };
 
-const RESOLUTION_OPTIONS = [
-  { value: '720p', label: '720p' },
-  { value: '1080p', label: '1080p' },
-];
-
-/** 折扣/系数输入：复用 Input 视觉 */
-const DECIMAL_INPUT_CLS = cn(
-  'w-full border bg-white text-slate-800',
-  'rounded-[10px] border-slate-200/90',
-  'shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
-  'transition-[border-color,box-shadow,background-color] duration-150',
-  'hover:border-slate-300 hover:bg-slate-50/70',
-  'focus:outline-none focus-visible:border-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-500/15',
-  'h-8 px-2.5 text-xs text-right',
-);
-
 /** 只提交可写字段，避免 id / createdAt 等污染 PATCH */
 function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitlement> {
+  const fixedCycle = FIXED_BILLING_CYCLES[local.planCode?.trim().toLowerCase() ?? ''];
   return {
     planCode: local.planCode,
     name: local.name,
@@ -80,11 +71,12 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     weeklyPriceCents: local.weeklyPriceCents,
     monthlyPriceCents: local.monthlyPriceCents,
     yearlyPriceCents: local.yearlyPriceCents,
-    availableBillingCycles: local.availableBillingCycles,
-    defaultBillingCycle: local.defaultBillingCycle,
+    availableBillingCycles: fixedCycle ? [fixedCycle] : local.availableBillingCycles,
+    defaultBillingCycle: fixedCycle ?? local.defaultBillingCycle,
     marketingBadge: local.marketingBadge,
     weeklyCredits: local.weeklyCredits,
     monthlyCredits: local.monthlyCredits,
+    yearlyCredits: local.yearlyCredits,
     creditPurchaseDiscount: local.creditPurchaseDiscount,
     subscriptionPurchaseDiscount: local.subscriptionPurchaseDiscount,
     maxConcurrentJobs: local.maxConcurrentJobs,
@@ -98,7 +90,10 @@ function planBodyForSave(local: Partial<PlanEntitlement>): Partial<PlanEntitleme
     allowCommercialUse: local.allowCommercialUse,
     stripePriceId: local.stripePriceId,
     stripeWeeklyPriceId: local.stripeWeeklyPriceId,
+    stripeWeeklyCouponId: local.stripeWeeklyCouponId,
+    stripeCouponId: local.stripeCouponId,
     stripeYearlyPriceId: local.stripeYearlyPriceId,
+    stripeYearlyCouponId: local.stripeYearlyCouponId,
     sortOrder: local.sortOrder,
     isActive: local.isActive,
   };
@@ -148,9 +143,11 @@ export function PlansSection({
 
   const plans = useMemo(
     () =>
-      [...(data?.items ?? [])].sort(
-        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.planCode.localeCompare(b.planCode),
-      ),
+      [...(data?.items ?? [])]
+        .filter((plan) => VISIBLE_PLAN_CODES.has(plan.planCode.trim().toLowerCase()))
+        .sort(
+          (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.planCode.localeCompare(b.planCode),
+        ),
     [data],
   );
 
@@ -406,19 +403,12 @@ function PlanCard({
   const showIdentity =
     variant === 'full' || variant === 'pricing' || (variant === 'entitlements' && isNew);
   const active = local.isActive ?? true;
-  const billingCycles = local.availableBillingCycles ?? [];
-  const toggleBillingCycle = (cycle: 'week' | 'month' | 'year', enabled: boolean) => {
-    const next = enabled
-      ? Array.from(new Set([...billingCycles, cycle]))
-      : billingCycles.filter((item) => item !== cycle);
-    const ordered = (['week', 'month', 'year'] as const).filter((item) => next.includes(item));
-    patch({
-      availableBillingCycles: ordered,
-      ...(!ordered.includes(local.defaultBillingCycle ?? 'month') && ordered[0]
-        ? { defaultBillingCycle: ordered[0] }
-        : {}),
-    });
-  };
+  const billingCycle = FIXED_BILLING_CYCLES[
+    local.planCode?.trim().toLowerCase() ?? ''
+  ] ?? 'month';
+  const hasWeekly = billingCycle === 'week';
+  const hasMonthly = billingCycle === 'month';
+  const hasYearly = billingCycle === 'year';
 
   return (
     <div
@@ -518,24 +508,6 @@ function PlanCard({
         {showPricing && (
           <>
           <FieldGroup title="售卖方式与营销展示">
-            <FormField label="开放订阅周期" description="只有开启的周期才会出现在 C 端定价页；历史订阅续费不受影响。">
-              <div className="flex flex-wrap justify-end gap-4">
-                <Switch checked={billingCycles.includes('week')} onChange={(v) => toggleBillingCycle('week', v)} label="周付" />
-                <Switch checked={billingCycles.includes('month')} onChange={(v) => toggleBillingCycle('month', v)} label="月付" />
-                <Switch checked={billingCycles.includes('year')} onChange={(v) => toggleBillingCycle('year', v)} label="年付" />
-              </div>
-            </FormField>
-            <FormField label="默认展示周期" description="当全局周期不适用于该套餐时，卡片使用这里的周期。">
-              <SimpleSelect
-                size="sm"
-                value={local.defaultBillingCycle ?? billingCycles[0] ?? 'month'}
-                onValueChange={(value) => patch({ defaultBillingCycle: value as 'week' | 'month' | 'year' })}
-                options={(billingCycles.length ? billingCycles : ['week', 'month', 'year']).map((cycle) => ({
-                  value: cycle,
-                  label: { week: '周付', month: '月付', year: '年付' }[cycle],
-                }))}
-              />
-            </FormField>
             <FormField label="套餐徽标" description="由后台控制最受欢迎和最佳性价比，不再依赖 Plan Code。">
               <SimpleSelect
                 size="sm"
@@ -550,7 +522,7 @@ function PlanCard({
             </FormField>
           </FieldGroup>
           <FieldGroup title="价格、积分与折扣">
-            <FormField label="周费" description="Basic 等周付计划使用；0 表示不提供周付。">
+            {hasWeekly && <FormField label="周费" description="周付订阅每周收取的原价。">
               <NumberInput
                 size="sm"
                 unit="USD"
@@ -559,8 +531,8 @@ function PlanCard({
                 value={(local.weeklyPriceCents ?? 0) / 100}
                 onChange={(n) => patch({ weeklyPriceCents: Math.round(n * 100) })}
               />
-            </FormField>
-            <FormField label="月费" description="订阅月价格，单位美元。">
+            </FormField>}
+            {hasMonthly && <FormField label="月费" description="月付订阅每月收取的原价。">
               <NumberInput
                 size="sm"
                 unit="USD"
@@ -569,8 +541,8 @@ function PlanCard({
                 value={(local.monthlyPriceCents ?? 0) / 100}
                 onChange={(n) => patch({ monthlyPriceCents: Math.round(n * 100) })}
               />
-            </FormField>
-            <FormField label="年费" description="年度一次性支付总价；0 表示不提供年付。">
+            </FormField>}
+            {hasYearly && <FormField label="年费" description="年付订阅每年一次性收取的原价。">
               <NumberInput
                 size="sm"
                 unit="USD"
@@ -579,8 +551,8 @@ function PlanCard({
                 value={(local.yearlyPriceCents ?? 0) / 100}
                 onChange={(n) => patch({ yearlyPriceCents: Math.round(n * 100) })}
               />
-            </FormField>
-            <FormField label="Stripe 周付 Price ID" description="新开订阅留空可动态创建；会员在线升档必须填写固定 Price ID。">
+            </FormField>}
+            {hasWeekly && <FormField label="Stripe 周付 Price ID" description="对应 interval=week；正式环境建议填写固定原价 Price ID。">
               <Input
                 size="sm"
                 mono
@@ -588,8 +560,17 @@ function PlanCard({
                 placeholder="price_..."
                 onChange={(e) => patch({ stripeWeeklyPriceId: e.target.value.trim() || null })}
               />
-            </FormField>
-            <FormField label="Stripe 月付 Price ID" description="对应 interval=month；开放在线升档前必须填写。">
+            </FormField>}
+            {hasWeekly && <FormField label="首期优惠 Coupon ID" description="折扣比例动态读取 Stripe Coupon 的 percent_off；关闭购买弹窗并接受优惠后应用。必须为 Duration=Once。">
+              <Input
+                size="sm"
+                mono
+                value={local.stripeWeeklyCouponId ?? ''}
+                placeholder="coupon_... 或自定义 Coupon ID"
+                onChange={(e) => patch({ stripeWeeklyCouponId: e.target.value.trim() || null })}
+              />
+            </FormField>}
+            {hasMonthly && <FormField label="Stripe 月付 Price ID" description="对应 interval=month；填写固定原价 Price ID。">
               <Input
                 size="sm"
                 mono
@@ -597,8 +578,17 @@ function PlanCard({
                 placeholder="price_..."
                 onChange={(e) => patch({ stripePriceId: e.target.value.trim() || null })}
               />
-            </FormField>
-            <FormField label="Stripe 年付 Price ID" description="对应 interval=year；开放在线升档前必须填写。">
+            </FormField>}
+            {hasMonthly && <FormField label="首期优惠 Coupon ID" description="折扣比例动态读取 Stripe Coupon 的 percent_off；关闭购买弹窗并接受优惠后应用。必须为 Duration=Once。">
+              <Input
+                size="sm"
+                mono
+                value={local.stripeCouponId ?? ''}
+                placeholder="coupon_... 或自定义 Coupon ID"
+                onChange={(e) => patch({ stripeCouponId: e.target.value.trim() || null })}
+              />
+            </FormField>}
+            {hasYearly && <FormField label="Stripe 年付 Price ID" description="对应 interval=year；填写固定原价 Price ID。">
               <Input
                 size="sm"
                 mono
@@ -606,8 +596,17 @@ function PlanCard({
                 placeholder="price_..."
                 onChange={(e) => patch({ stripeYearlyPriceId: e.target.value.trim() || null })}
               />
-            </FormField>
-            <FormField label="周度赠送积分" description="周付订阅每次成功扣款后发放。">
+            </FormField>}
+            {hasYearly && <FormField label="首期优惠 Coupon ID" description="折扣比例动态读取 Stripe Coupon 的 percent_off；关闭购买弹窗并接受优惠后应用。必须为 Duration=Once。">
+              <Input
+                size="sm"
+                mono
+                value={local.stripeYearlyCouponId ?? ''}
+                placeholder="coupon_... 或自定义 Coupon ID"
+                onChange={(e) => patch({ stripeYearlyCouponId: e.target.value.trim() || null })}
+              />
+            </FormField>}
+            {hasWeekly && <FormField label="周度赠送积分" description="周付订阅每次成功扣款后发放。">
               <NumberInput
                 size="sm"
                 unit="积分"
@@ -615,8 +614,8 @@ function PlanCard({
                 value={local.weeklyCredits ?? 0}
                 onChange={(n) => patch({ weeklyCredits: Math.round(n) })}
               />
-            </FormField>
-            <FormField label="月度赠送积分" description="订阅周期发放的积分数。">
+            </FormField>}
+            {hasMonthly && <FormField label="月度赠送积分" description="月付订阅每次成功扣款后发放。">
               <NumberInput
                 size="sm"
                 unit="积分"
@@ -624,31 +623,16 @@ function PlanCard({
                 value={local.monthlyCredits ?? 0}
                 onChange={(n) => patch({ monthlyCredits: Math.round(n) })}
               />
-            </FormField>
-            <FormField
-              label="积分充值折扣"
-              description="1 = 原价；如 0.9 表示九折。"
-            >
-              <DecimalFieldInput
-                className={DECIMAL_INPUT_CLS}
-                value={local.creditPurchaseDiscount ?? 1}
+            </FormField>}
+            {hasYearly && <FormField label="年度赠送积分" description="年付成功后一次性发放全年额度。">
+              <NumberInput
+                size="sm"
+                unit="积分"
                 min={0}
-                max={1}
-                onChange={(n) => patch({ creditPurchaseDiscount: n })}
+                value={local.yearlyCredits ?? 0}
+                onChange={(n) => patch({ yearlyCredits: Math.round(n) })}
               />
-            </FormField>
-            <FormField
-              label="会员购买折扣"
-              description="开通该档订阅时的折扣；定价页仅展示付费档。"
-            >
-              <DecimalFieldInput
-                className={DECIMAL_INPUT_CLS}
-                value={local.subscriptionPurchaseDiscount ?? 1}
-                min={0}
-                max={1}
-                onChange={(n) => patch({ subscriptionPurchaseDiscount: n })}
-              />
-            </FormField>
+            </FormField>}
             {(variant === 'pricing' || variant === 'full') && (
               <FormField label="排序" description="越小越靠前。">
                 <NumberInput
@@ -666,7 +650,19 @@ function PlanCard({
           <>
             {variant === 'entitlements' && (
               <FieldGroup title="额度与折扣">
-                <FormField
+                {hasWeekly && <FormField
+                  label="周度赠送积分"
+                  description="周付订阅每次成功扣款后发放。"
+                >
+                  <NumberInput
+                    size="sm"
+                    unit="积分"
+                    min={0}
+                    value={local.weeklyCredits ?? 0}
+                    onChange={(n) => patch({ weeklyCredits: Math.round(n) })}
+                  />
+                </FormField>}
+                {hasMonthly && <FormField
                   label="月度赠送积分"
                   description="0 = C 端不展示；订阅续费仍按此值发放。"
                 >
@@ -677,40 +673,23 @@ function PlanCard({
                     value={local.monthlyCredits ?? 0}
                     onChange={(n) => patch({ monthlyCredits: Math.round(n) })}
                   />
-                </FormField>
-                <FormField label="积分充值折扣" description="1 = 无折扣，不在 C 端展示。">
-                  <DecimalFieldInput
-                    className={DECIMAL_INPUT_CLS}
-                    value={local.creditPurchaseDiscount ?? 1}
-                    min={0}
-                    max={1}
-                    onChange={(n) => patch({ creditPurchaseDiscount: n })}
-                  />
-                </FormField>
-                <FormField
-                  label="会员购买折扣"
-                  description="开通会员订阅时的折扣；定价页仅展示付费档。"
+                </FormField>}
+                {hasYearly && <FormField
+                  label="年度赠送积分"
+                  description="年付成功后一次性发放全年额度。"
                 >
-                  <DecimalFieldInput
-                    className={DECIMAL_INPUT_CLS}
-                    value={local.subscriptionPurchaseDiscount ?? 1}
+                  <NumberInput
+                    size="sm"
+                    unit="积分"
                     min={0}
-                    max={1}
-                    onChange={(n) => patch({ subscriptionPurchaseDiscount: n })}
+                    value={local.yearlyCredits ?? 0}
+                    onChange={(n) => patch({ yearlyCredits: Math.round(n) })}
                   />
-                </FormField>
+                </FormField>}
               </FieldGroup>
             )}
 
             <FieldGroup title="产能与队列">
-              <FormField label="最高分辨率" description="该档会员可导出的最高清晰度。">
-                <SimpleSelect
-                  size="sm"
-                  value={local.maxResolution || '720p'}
-                  onValueChange={(v) => patch({ maxResolution: v })}
-                  options={RESOLUTION_OPTIONS}
-                />
-              </FormField>
               <FormField label="同时合成任务上限" description="只限制最终成片合成任务，不限制 AI 图片或视频生成任务。">
                 <NumberInput
                   size="sm"
@@ -725,55 +704,6 @@ function PlanCard({
                   size="sm"
                   value={local.queuePriority ?? 10}
                   onChange={(n) => patch({ queuePriority: Math.round(n) })}
-                />
-              </FormField>
-              <FormField
-                label="MV 视频扣费系数"
-                description="主要乘到普通 MV 视频步骤实扣和产能估算。建议固定为 1；低于 1 会与充值折扣叠加。"
-              >
-                <DecimalFieldInput
-                  className={DECIMAL_INPUT_CLS}
-                  value={local.videoPriceCoefficient ?? 1}
-                  min={0}
-                  onChange={(n) => patch({ videoPriceCoefficient: n })}
-                />
-              </FormField>
-            </FieldGroup>
-
-            <FieldGroup title="功能权益">
-              <FormField label="MV / 舞蹈成片无水印" description="当前真实接入普通 MV 和舞蹈；Karaoke 与视频特效另有独立规则。">
-                <Switch
-                  checked={!local.watermarkRequired}
-                  onChange={(v) => patch({ watermarkRequired: !v })}
-                  label="无水印"
-                />
-              </FormField>
-              <FormField label="高品质生成权限" description="开放后台配置的高品质档；前台会结合最高清晰度展示为专业或电影感 MV 品质。">
-                <Switch
-                  checked={!!local.allowUltron}
-                  onChange={(v) => patch({ allowUltron: v })}
-                  label="高品质生成"
-                />
-              </FormField>
-              <FormField label="Seedance 引擎" description="是否允许使用 Seedance 视频引擎。">
-                <Switch
-                  checked={!!local.allowSeedance}
-                  onChange={(v) => patch({ allowSeedance: v })}
-                  label="Seedance 引擎"
-                />
-              </FormField>
-              <FormField label="舞蹈双角色" description="允许舞蹈视频上传第二个角色；普通 MV 双角色入口目前已隐藏。">
-                <Switch
-                  checked={!!local.allowMultiCharacter}
-                  onChange={(v) => patch({ allowMultiCharacter: v })}
-                  label="舞蹈双角色"
-                />
-              </FormField>
-              <FormField label="商业使用展示" description="当前仅用于定价页说明，不会自动生成授权凭证或执行技术门控。">
-                <Switch
-                  checked={!!local.allowCommercialUse}
-                  onChange={(v) => patch({ allowCommercialUse: v })}
-                  label="商业授权"
                 />
               </FormField>
             </FieldGroup>

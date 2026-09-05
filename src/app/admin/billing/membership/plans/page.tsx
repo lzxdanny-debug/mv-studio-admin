@@ -3,7 +3,6 @@
 import { Crown } from 'lucide-react';
 import { PlansSection } from '../../_components/plans-section';
 import { PlanTransferActions } from '../../_components/plan-transfer-actions';
-import { MembershipBenefitsSection } from '../../_components/membership-benefits-section';
 
 export default function BillingMembershipPlansPage() {
   return (
@@ -16,12 +15,11 @@ export default function BillingMembershipPlansPage() {
               会员计划
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              在一个入口统一配置订阅价格、赠送积分、MV 创作权益、合成产能与 Stripe 价格。周 / 月 / 年三档权益相同，在下方共用开关里统一取消。
+              统一配置周付、月付、年付套餐的原价、赠送积分、Stripe Price 与关闭弹窗后的首期优惠。
             </p>
           </div>
           <PlanTransferActions />
         </div>
-        <MembershipBenefitsSection />
         <PlansSection variant="full" showHeader={false} />
       </div>
     </div>
