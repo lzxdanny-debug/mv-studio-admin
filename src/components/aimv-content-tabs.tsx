@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
 import { Switch } from '@/components/ui/switch';
+import { useAlert, useConfirm } from '@/components/ui/dialog-provider';
 
 type AssetKind = 'singer_photo' | 'hot_music' | 'mv_style';
 type SingerCategory = 'all' | 'female' | 'male' | 'other';
@@ -68,6 +69,8 @@ function normalizeSingerCategory(category: string): Exclude<SingerCategory, 'all
 
 export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const qc = useQueryClient();
+  const alert = useAlert();
+  const confirm = useConfirm();
   const canEdit = useAdminAuthStore((s) => s.hasPermission('aimv.content.edit'));
   const isSingerConfig = lockedKind === 'singer_photo';
   const isHotMusicConfig = lockedKind === 'hot_music';
@@ -202,9 +205,28 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const remove = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/admin/aimv-generator/library-assets/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['aimv-library-assets'] }),
+    onError: (error) => void alert({
+      title: '删除失败',
+      description: error instanceof Error ? error.message : '歌曲删除失败，请稍后重试',
+      variant: 'danger',
+    }),
   });
 
   const assetActionPending = update.isPending || remove.isPending;
+
+  const deleteAsset = async (row: LibraryAsset) => {
+    if (!canEdit || assetActionPending) return;
+    const accepted = await confirm({
+      title: `删除“${row.nameEn}”？`,
+      description: row.kind === 'hot_music'
+        ? '删除后歌曲会立即从热门歌曲列表移除。若歌曲仍被模板引用，系统会阻止删除并提示需要修改的模板。'
+        : '删除后素材会立即从素材库移除，此操作不可撤销。',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      variant: 'danger',
+    });
+    if (accepted) remove.mutate(row.id);
+  };
 
   const switchKind = (value: AssetKind) => {
     if (lockedKind) return;
@@ -685,12 +707,12 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
                     {canEdit && (
                       <button
                         disabled={assetActionPending}
-                        onClick={() => {
-                          if (!assetActionPending) remove.mutate(row.id);
-                        }}
+                        onClick={() => void deleteAsset(row)}
                         className="text-red-600 disabled:opacity-50"
                       >
-                        <Trash2 className="inline h-4 w-4" /> 删除
+                        {remove.isPending && remove.variables === row.id
+                          ? <Loader2 className="inline h-4 w-4 animate-spin" />
+                          : <Trash2 className="inline h-4 w-4" />} 删除
                       </button>
                     )}
                   </td>

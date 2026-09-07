@@ -116,7 +116,10 @@ function ManualStatusCard({ data }: { data: PaymentDetail }) {
       setStatus(result.manualStatus ?? '');
       await qc.invalidateQueries({ queryKey: ['admin', 'billing', 'payment', data.id] });
       await qc.invalidateQueries({ queryKey: ['admin', 'billing', 'payments'] });
-      await alert({ title: '订单状态已更新', description: '本次操作仅更新运营标记，不会触发 Stripe 退款。' });
+      await alert({
+        title: '订单状态已更新',
+        description: '不会触发 Stripe 退款；全额退款或 CB 状态下，该订单剩余积分将不可用。',
+      });
     },
     onError: async (error: any) => {
       await alert({ title: '更新失败', description: error?.message ?? String(error), variant: 'danger' });
@@ -126,7 +129,7 @@ function ManualStatusCard({ data }: { data: PaymentDetail }) {
   return (
     <Card title="运营状态设置">
       <p className="mb-3 text-xs text-slate-500">
-        全额退款、部分退款和 CB 由运营人工设置；过期由系统根据订单有效期自动判断。
+        全额退款和 CB 会停用该订单的剩余积分；部分退款仍可使用。过期由系统根据订单有效期自动判断。
       </p>
       <div className="grid gap-3 md:grid-cols-[220px_1fr_auto]">
         <select

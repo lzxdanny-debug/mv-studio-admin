@@ -30,7 +30,6 @@ interface PublicPlanCapacity {
     label: string;
   } | null;
 }
-
 export type PlansSectionVariant = 'full' | 'pricing' | 'entitlements';
 
 const EMPTY_PLAN: Partial<PlanEntitlement> = {
@@ -345,7 +344,6 @@ export function PlansSection({
     </section>
   );
 }
-
 function FieldGroup({
   title,
   children,
