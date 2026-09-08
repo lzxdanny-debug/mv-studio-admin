@@ -802,6 +802,9 @@ const HIDDEN_BUSINESS_SECTION_KEYS = new Set([
 // 新产品使用 AI MV Generator 自己的模型与计费配置；旧创作/音乐定价暂不展示。
 const HIDDEN_NAV_SUBGROUP_KEYS = new Set(['billing-pricing', 'billing-music']);
 
+// 暂时隐藏页面入口，保留路由和权限配置，方便后续恢复。
+const HIDDEN_NAV_ITEM_HREFS = new Set(['/admin/logs']);
+
 const NAV_SECTIONS = ALL_NAV_SECTIONS.filter(
   (section) => !HIDDEN_BUSINESS_SECTION_KEYS.has(section.key),
 );
@@ -809,6 +812,7 @@ const NAV_SECTIONS = ALL_NAV_SECTIONS.filter(
 // ─── 工具函数 ────────────────────────────────────────────────────────────
 
 function itemVisible(permissions: string[], item: NavLink): boolean {
+  if (HIDDEN_NAV_ITEM_HREFS.has(item.href)) return false;
   const perm = item.permission ?? resolveRoutePermission(item.href);
   if (!perm) return true;
   if (hasPermission(permissions, perm)) return true;
