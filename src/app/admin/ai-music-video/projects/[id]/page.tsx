@@ -141,6 +141,7 @@ type ProjectDetail = {
     unitCount: number;
     unitCounts: Record<string, number>;
     successfulSeconds: number;
+    actualDurationSec: number;
     settledCredits: number;
     attemptCount: number;
     attemptCounts: Record<string, number>;
@@ -202,14 +203,13 @@ function valueFromAsset(asset: Record<string, unknown>, keys: string[]) {
 
 function secondsBetween(start?: string | null, end?: string | null) {
   if (!start || !end) return null;
-  const seconds = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000));
+  const seconds = Math.max(0, (new Date(end).getTime() - new Date(start).getTime()) / 1000);
   return Number.isFinite(seconds) ? seconds : null;
 }
 
 function durationLabel(seconds: number | null) {
   if (seconds == null) return '—';
-  if (seconds < 60) return `${seconds} 秒`;
-  return `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`;
+  return `${seconds} 秒`;
 }
 
 function fileSizeLabel(value: string | null) {
@@ -413,7 +413,7 @@ function Overview({ detail }: { detail: ProjectDetail }) {
     </div>
     <div className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="mb-2 flex items-center gap-2 font-semibold text-slate-900"><UserRound className="h-4 w-4 text-violet-500" />用户与归属</h2><InfoRow label="用户" value={detail.user?.displayName || '—'} /><InfoRow label="邮箱" value={<span className="inline-flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{detail.user?.email || '—'}</span>} /><InfoRow label="用户类型" value={<span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{userTypeLabel(detail.user?.userType)}</span>} /><InfoRow label="账号来源" value={detail.user?.accountOrigin || '—'} /><InfoRow label="注册方式" value={detail.user?.primaryProvider || '—'} /><InfoRow label="账号状态" value={detail.user?.status || '—'} /><InfoRow label="邮箱验证" value={detail.user?.emailVerified ? '已验证' : '未验证'} /></section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="mb-2 font-semibold text-slate-900">生成参数</h2><InfoRow label="展示模型" value={project.productModelCode} /><InfoRow label="规格" value={`${project.resolution} · ${project.aspectRatio} · ${project.durationSec}s`} /><InfoRow label="格式 / 文件大小" value={`${project.videoFormat.toUpperCase()} · ${fileSizeLabel(project.fileSizeBytes)}`} /></section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="mb-2 font-semibold text-slate-900">生成参数</h2><InfoRow label="展示模型" value={project.productModelCode} /><InfoRow label="分辨率 / 比例" value={`${project.resolution} · ${project.aspectRatio}`} /><InfoRow label="设定时长" value={`${project.durationSec}s`} /><InfoRow label="真实时长" value={`${detail.summary.actualDurationSec || 0}s`} /><InfoRow label="格式 / 文件大小" value={`${project.videoFormat.toUpperCase()} · ${fileSizeLabel(project.fileSizeBytes)}`} /></section>
       <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="mb-2 font-semibold text-slate-900">生命周期与存储</h2><InfoRow label="创建" value={formatDate(project.createdAt)} /><InfoRow label="最后更新" value={formatDate(project.updatedAt)} /><InfoRow label="完成" value={project.succeededAt ? formatDate(project.succeededAt) : '—'} /><InfoRow label="取消请求" value={project.cancelRequestedAt ? formatDate(project.cancelRequestedAt) : '—'} /><InfoRow label="存储到期" value={project.expiresAt ? formatDate(project.expiresAt) : '未设置'} /><InfoRow label="已清理" value={project.expiredAt ? formatDate(project.expiredAt) : '否'} /></section>
     </div>
   </div>;

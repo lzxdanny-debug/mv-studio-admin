@@ -21,6 +21,7 @@ type ProjectRow = {
   productModelCode: string;
   actualModels: string;
   durationSec: number;
+  actualDurationSec: number | string;
   aspectRatio: string;
   resolution: string;
   videoFormat: string;
@@ -95,7 +96,8 @@ export default function AiMusicVideoProjectsPage() {
     { key: 'status', header: '状态', width: 'w-32', render: (row) => <div className="space-y-1"><StatusBadge status={row.status} kind="mvProject" /><p className="text-[10px] text-slate-400">{row.stage} · {row.progressPercent}%</p></div> },
     { key: 'productModelCode', header: 'AI 模型-展示', width: 'w-44', render: (row) => <span className="text-xs text-slate-600">{row.productModelCode || '—'}</span> },
     { key: 'actualModels', header: 'AI 模型-实际', width: 'w-64', render: (row) => <span className="block max-w-60 whitespace-normal break-words text-xs text-slate-600" title={row.actualModels}>{row.actualModels || '—'}</span> },
-    { key: 'durationSec', header: '时长', width: 'w-24', render: (row) => <span className="whitespace-nowrap text-xs text-slate-600">{row.durationSec ? `${row.durationSec}s` : '—'}</span> },
+    { key: 'durationSec', header: '设定时长', width: 'w-24', render: (row) => <span className="whitespace-nowrap text-xs text-slate-600">{row.durationSec ? `${row.durationSec}s` : '—'}</span> },
+    { key: 'actualDurationSec', header: '真实时长', width: 'w-28', render: (row) => <span className="whitespace-nowrap text-xs font-medium text-slate-700">{`${row.actualDurationSec || 0}s`}</span> },
     { key: 'resolution', header: '分辨率', width: 'w-28', render: (row) => <div className="whitespace-nowrap text-xs text-slate-600"><p>{row.resolution || '—'}</p><p className="text-slate-400">{row.aspectRatio || '—'}</p></div> },
     { key: 'videoFormat', header: '视频格式', width: 'w-24', render: (row) => <span className="text-xs uppercase text-slate-600">{row.videoFormat || '—'}</span> },
     { key: 'cost', header: '花费', width: 'w-40', render: (row) => <div className="whitespace-nowrap text-xs text-slate-600"><p>{Number(row.chargedCredits || 0).toLocaleString()} Credits</p><p className="text-slate-400">{row.upstreamCostUsd == null ? '上游待上报' : `上游 $${Number(row.upstreamCostUsd).toFixed(6)}`}</p></div> },
@@ -111,6 +113,6 @@ export default function AiMusicVideoProjectsPage() {
       <button type="button" onClick={() => void exportExcel()} disabled={exporting || !query.data?.total} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">{exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}{exporting ? '导出中…' : '导出 Excel'}</button>
       {exportError ? <span className="w-full text-right text-xs text-red-500">{exportError}</span> : null}
     </div>
-    <DataTable<ProjectRow> columns={columns} rows={query.data?.items} rowKey={(row) => row.id} tableClassName="min-w-[1780px]" isLoading={query.isLoading} isError={query.isError} error={query.error} emptyMessage="暂无 AI Music Video 生成内容" page={query.data?.page ?? page} pageSize={query.data?.pageSize ?? pageSize} total={query.data?.total} onPageChange={setPage} onPageSizeChange={onPageSizeChange} />
+    <DataTable<ProjectRow> columns={columns} rows={query.data?.items} rowKey={(row) => row.id} tableClassName="min-w-[1900px]" isLoading={query.isLoading} isError={query.isError} error={query.error} emptyMessage="暂无 AI Music Video 生成内容" page={query.data?.page ?? page} pageSize={query.data?.pageSize ?? pageSize} total={query.data?.total} onPageChange={setPage} onPageSizeChange={onPageSizeChange} />
   </div>;
 }

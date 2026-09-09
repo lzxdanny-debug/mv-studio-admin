@@ -58,6 +58,7 @@ export const ROUTE_PERMISSION_RULES: Array<{ prefix: string; permission: string;
   { prefix: '/admin/ai-routing', permission: 'ai.routing.view' },
   { prefix: '/admin/logs', permission: 'logs.view' },
   { prefix: '/admin/settings', permission: 'system.manage' },
+  { prefix: '/admin/workers', permission: 'system.manage' },
   { prefix: '/admin/admin-users', permission: 'admin.manage' },
   { prefix: '/admin/roles', permission: 'admin.manage' },
   { prefix: '/admin/karaoke/projects', permission: 'karaoke.projects.view' },

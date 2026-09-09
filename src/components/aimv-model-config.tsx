@@ -178,7 +178,7 @@ function AuxiliaryPriority({ kind }: { kind: 'analysis' | 'image' }) {
   const capability: Capability = kind === 'analysis' ? 'audioAnalyze' : 'imageNanoBanana';
   const endpoint = kind === 'analysis' ? '/admin/aimv-generator/analysis-routing' : '/admin/aimv-generator/image-routing';
   const queryKey = kind === 'analysis' ? 'aimv-analysis-routing' : 'aimv-image-routing';
-  const routing = useQuery<{ routes: ModelRoute[]; source?: string }>({ queryKey: [queryKey], queryFn: () => apiClient.get(endpoint) as Promise<{ routes: ModelRoute[]; source?: string }> });
+  const routing = useQuery<{ routes: ModelRoute[] }>({ queryKey: [queryKey], queryFn: () => apiClient.get(endpoint) as Promise<{ routes: ModelRoute[] }> });
   const catalog = useQuery<Catalog>({ queryKey: ['aimv-model-meta'], queryFn: () => apiClient.get('/admin/aimv-generator/models/meta') as Promise<Catalog> });
   if (routing.isLoading || catalog.isLoading) return <Loading />;
   const auxiliaryCatalog: Catalog = {
@@ -190,7 +190,7 @@ function AuxiliaryPriority({ kind }: { kind: 'analysis' | 'image' }) {
     ? { title: 'AI MV 分析 / LLM 调用链', description: '用于读取音乐、识别人声区间并生成四阶段分镜规划', notice: '这是 AI MV 产品自己的音乐理解模型配置。支持 Mountsea 和 Google，失败后按优先级自动切换。' }
     : { title: 'AI MV 分镜图片调用链', description: '用于人物一致性锚点和每个分镜的故事板图片', notice: '这是 AI MV 产品自己的图片模型配置。图片余额不足或渠道失败时，会按这里的优先级 fallback。' };
   return <div className="space-y-4">
-    <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">{copy.notice}{routing.data?.source === 'global-default' ? ' 当前显示的是从全局路由继承的初始值，保存后即成为产品独立配置。' : ''}</div>
+    <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">{copy.notice} 未配置时不会使用其他产品的全局路由。</div>
     <RouteCard initialRows={routing.data?.routes ?? []} catalog={auxiliaryCatalog} canEdit={canEdit} endpoint={endpoint} queryKey={queryKey} title={copy.title} description={copy.description} />
   </div>;
 }

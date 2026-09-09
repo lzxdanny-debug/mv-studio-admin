@@ -70,9 +70,13 @@ const STATUS_LABELS: Record<string, string> = {
   planning: '规划中',
   reviewing: '等待确认',
   generating: '生成中',
+  queued: '排队中',
   composing: '合成中',
   done: '已完成',
   failed: '失败',
+  cancelled: '已取消',
+  cancelling: '取消中',
+  expired: '已过期',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -80,9 +84,13 @@ const STATUS_COLORS: Record<string, string> = {
   planning: '#3b82f6',
   reviewing: '#f59e0b',
   generating: '#2563eb',
+  queued: '#6366f1',
   composing: '#06b6d4',
   done: '#10b981',
   failed: '#ef4444',
+  cancelled: '#64748b',
+  cancelling: '#78716c',
+  expired: '#a855f7',
 };
 
 function StatCard({

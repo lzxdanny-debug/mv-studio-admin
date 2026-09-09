@@ -2,7 +2,7 @@
 export const BUILD_INFO = {
   "service": "mv-studio-admin",
   "version": "1.0.0",
-  "gitSha": "dc2cbea",
-  "buildTime": "2026-09-07T12:59:17.492Z"
+  "gitSha": "3e8bf75",
+  "buildTime": "2026-09-09T10:47:10.038Z"
 } as const;
 export type BuildInfo = typeof BUILD_INFO;

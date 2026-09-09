@@ -32,6 +32,7 @@ import {
   Terminal,
   Settings,
   HardDrive,
+  ServerCog,
   LogOut,
   CalendarCheck,
   ChevronDown,
@@ -748,6 +749,12 @@ const ALL_NAV_SECTIONS: NavSection[] = [
             permission: 'system.manage',
           },
           {
+            href: '/admin/workers',
+            label: 'Worker 看板',
+            icon: ServerCog,
+            permission: 'system.manage',
+          },
+          {
             href: '/admin/local-storage',
             label: '本地存储',
             icon: HardDrive,
@@ -803,7 +810,7 @@ const HIDDEN_BUSINESS_SECTION_KEYS = new Set([
 const HIDDEN_NAV_SUBGROUP_KEYS = new Set(['billing-pricing', 'billing-music']);
 
 // 暂时隐藏页面入口，保留路由和权限配置，方便后续恢复。
-const HIDDEN_NAV_ITEM_HREFS = new Set(['/admin/logs']);
+const HIDDEN_NAV_ITEM_HREFS = new Set(['/admin/logs', '/admin/ai-routing']);
 
 const NAV_SECTIONS = ALL_NAV_SECTIONS.filter(
   (section) => !HIDDEN_BUSINESS_SECTION_KEYS.has(section.key),
