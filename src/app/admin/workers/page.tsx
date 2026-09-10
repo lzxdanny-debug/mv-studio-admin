@@ -68,6 +68,7 @@ interface OverviewResponse {
 }
 
 type WorkerFilter = 'all' | 'online' | 'attention' | 'offline';
+type SlotGroupKey = 'compose' | 'aimv' | 'cleanup';
 
 const GIB = 1024 ** 3;
 const LOW_DISK_BYTES = 10 * GIB;
@@ -111,12 +112,36 @@ function heartbeatAge(value?: string): string {
   return `${Math.floor(diff / 3_600_000)} 小时前`;
 }
 
-function loadPercent(worker: WorkerInstance): number {
+function legacyLoadPercent(worker: WorkerInstance): number {
   return worker.capacity > 0 ? Math.round((worker.runningJobs / worker.capacity) * 100) : 0;
 }
 
+function slotLoadPercent(slot?: SlotGroup): number {
+  return slot?.max ? Math.round((slot.running / slot.max) * 100) : 0;
+}
+
+function workerLoadPercent(worker: WorkerInstance): number {
+  if (!worker.slotGroups) return legacyLoadPercent(worker);
+  return Math.max(
+    slotLoadPercent(worker.slotGroups.compose),
+    slotLoadPercent(worker.slotGroups.aimv),
+    slotLoadPercent(worker.slotGroups.cleanup),
+  );
+}
+
+function aggregateSlotGroups(workers: WorkerInstance[], key: SlotGroupKey): SlotGroup {
+  return workers.reduce((total, worker) => {
+    if (!worker.online) return total;
+    const slot = worker.slotGroups?.[key];
+    if (!slot) return total;
+    total.running += slot.running;
+    total.max += slot.max;
+    return total;
+  }, { running: 0, max: 0 });
+}
+
 function needsAttention(worker: WorkerInstance): boolean {
-  return !worker.online || loadPercent(worker) >= 90 || (worker.diskFreeBytes != null && worker.diskFreeBytes < LOW_DISK_BYTES);
+  return !worker.online || workerLoadPercent(worker) >= 90 || (worker.diskFreeBytes != null && worker.diskFreeBytes < LOW_DISK_BYTES);
 }
 
 function scopeLabel(scope: string): string {
@@ -168,13 +193,25 @@ function SummaryCard({
   );
 }
 
-function SlotPill({ label, slot }: { label: string; slot?: SlotGroup }) {
+function SlotCard({ label, description, slot, tone }: { label: string; description: string; slot?: SlotGroup; tone: 'violet' | 'blue' | 'emerald' }) {
+  const percent = slotLoadPercent(slot);
+  const colors = {
+    violet: 'bg-violet-500',
+    blue: 'bg-blue-500',
+    emerald: 'bg-emerald-500',
+  }[tone];
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-      <div className="text-[11px] text-slate-500">{label}</div>
-      <div className="mt-0.5 font-semibold tabular-nums text-slate-800">
-        {slot ? `${slot.running} / ${slot.max}` : '—'}
+    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="font-medium text-slate-600">{label}</span>
+        <span className={cn('font-semibold tabular-nums', percent >= 90 ? 'text-amber-700' : 'text-slate-800')}>{slot ? `${slot.running} / ${slot.max}` : '—'}</span>
       </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+        <div className={cn('h-full rounded-full transition-all', percent >= 90 ? 'bg-amber-500' : colors)} style={{ width: `${Math.min(100, percent)}%` }} />
+      </div>
+      <p className="mt-2 text-[11px] text-slate-400">
+        {slot ? `${description} · 空闲 ${Math.max(0, slot.max - slot.running)}` : '旧版本未上报独立槽位'}
+      </p>
     </div>
   );
 }
@@ -195,11 +232,12 @@ export default function AdminWorkersPage() {
   const workers = query.data?.workers ?? [];
   const summary = useMemo(() => {
     const online = workers.filter((worker) => worker.online).length;
-    const running = workers.reduce((sum, worker) => sum + worker.runningJobs, 0);
-    const capacity = workers.reduce((sum, worker) => sum + worker.capacity, 0);
+    const compose = aggregateSlotGroups(workers, 'compose');
+    const aimv = aggregateSlotGroups(workers, 'aimv');
+    const cleanup = aggregateSlotGroups(workers, 'cleanup');
     const attention = workers.filter(needsAttention).length;
     const cache = workers.reduce((sum, worker) => sum + (worker.clipCacheBytes ?? 0), 0);
-    return { online, running, capacity, attention, cache };
+    return { online, compose, aimv, cleanup, attention, cache };
   }, [workers]);
 
   const visibleWorkers = useMemo(() => {
@@ -267,10 +305,11 @@ export default function AdminWorkersPage() {
 
       <QueryState isLoading={query.isLoading} isError={query.isError} error={query.error}>
         <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             <SummaryCard label="在线 Worker" value={`${summary.online} / ${workers.length}`} hint="当前可调度实例" icon={<CheckCircle2 className="h-5 w-5" />} tone="green" />
-            <SummaryCard label="正在运行" value={`${summary.running} / ${summary.capacity}`} hint="任务数 / 总槽位" icon={<Activity className="h-5 w-5" />} tone="blue" />
-            <SummaryCard label="可用槽位" value={Math.max(0, summary.capacity - summary.running)} hint="可立即接收任务" icon={<Database className="h-5 w-5" />} />
+            <SummaryCard label="合成槽位" value={`${summary.compose.running} / ${summary.compose.max}`} hint={`空闲 ${Math.max(0, summary.compose.max - summary.compose.running)} · FFmpeg`} icon={<Activity className="h-5 w-5" />} tone="blue" />
+            <SummaryCard label="AI MV 槽位" value={`${summary.aimv.running} / ${summary.aimv.max}`} hint={`空闲 ${Math.max(0, summary.aimv.max - summary.aimv.running)} · 渠道任务`} icon={<ServerCog className="h-5 w-5" />} tone="blue" />
+            <SummaryCard label="清理槽位" value={`${summary.cleanup.running} / ${summary.cleanup.max}`} hint={`空闲 ${Math.max(0, summary.cleanup.max - summary.cleanup.running)} · 文件任务`} icon={<Trash2 className="h-5 w-5" />} tone="green" />
             <SummaryCard label="需要关注" value={summary.attention} hint="离线、高负载或低磁盘" icon={<AlertTriangle className="h-5 w-5" />} tone={summary.attention ? 'amber' : 'green'} />
             <SummaryCard label="片段缓存" value={formatBytes(summary.cache)} hint="所有 Worker 合计" icon={<HardDrive className="h-5 w-5" />} />
           </div>
@@ -282,7 +321,7 @@ export default function AdminWorkersPage() {
                 <div>
                   <p className="font-semibold">有 {alerts.length} 个 Worker 需要关注</p>
                   <p className="mt-1 text-xs leading-5 text-amber-700">
-                    {alerts.map((worker) => `${worker.workerId}（${!worker.online ? '离线' : loadPercent(worker) >= 90 ? '负载过高' : '磁盘不足 10 GB'}）`).join('、')}
+                    {alerts.map((worker) => `${worker.workerId}（${!worker.online ? '离线' : workerLoadPercent(worker) >= 90 ? '某类槽位负载过高' : '磁盘不足 10 GB'}）`).join('、')}
                   </p>
                 </div>
               </div>
@@ -312,7 +351,6 @@ export default function AdminWorkersPage() {
             ) : (
               <div className="divide-y divide-slate-100">
                 {visibleWorkers.map((worker) => {
-                  const percent = loadPercent(worker);
                   const lowDisk = worker.diskFreeBytes != null && worker.diskFreeBytes < LOW_DISK_BYTES;
                   const activeCount = worker.activeCommands?.length ?? worker.pendingCommands;
                   return (
@@ -336,17 +374,10 @@ export default function AdminWorkersPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-[1.1fr_1.35fr_1fr_1fr_1fr]">
-                        <div className="rounded-lg border border-slate-100 p-3">
-                          <div className="flex items-center justify-between text-xs"><span className="font-medium text-slate-600">总负载</span><span className={cn('font-semibold tabular-nums', percent >= 90 ? 'text-amber-700' : 'text-slate-700')}>{worker.runningJobs} / {worker.capacity} · {percent}%</span></div>
-                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={cn('h-full rounded-full transition-all', percent >= 90 ? 'bg-amber-500' : 'bg-violet-500')} style={{ width: `${Math.min(100, percent)}%` }} /></div>
-                          <p className="mt-2 text-[11px] text-slate-400">空闲 {Math.max(0, worker.capacity - worker.runningJobs)} 个槽位</p>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <SlotPill label="合成" slot={worker.slotGroups?.compose} />
-                          <SlotPill label="AI MV" slot={worker.slotGroups?.aimv} />
-                          <SlotPill label="清理" slot={worker.slotGroups?.cleanup} />
-                        </div>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                        <SlotCard label="合成槽位" description="FFmpeg" slot={worker.slotGroups?.compose} tone="violet" />
+                        <SlotCard label="AI MV 槽位" description="渠道任务" slot={worker.slotGroups?.aimv} tone="blue" />
+                        <SlotCard label="清理槽位" description="文件任务" slot={worker.slotGroups?.cleanup} tone="emerald" />
                         <div className={cn('rounded-lg border p-3', lowDisk ? 'border-amber-200 bg-amber-50' : 'border-slate-100')}>
                           <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600"><HardDrive className="h-3.5 w-3.5" />磁盘与临时文件</div>
                           <div className={cn('mt-1 text-sm font-semibold', lowDisk ? 'text-amber-800' : 'text-slate-800')}>可用 {formatBytes(worker.diskFreeBytes)}</div>

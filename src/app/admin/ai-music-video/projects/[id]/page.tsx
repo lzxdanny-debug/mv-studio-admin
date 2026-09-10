@@ -221,10 +221,14 @@ function fileSizeLabel(value: string | null) {
 function upstreamCostLabel(detail: ProjectDetail) {
   const attempts = detail.units.flatMap(unit => unit.attempts);
   const bills = attempts.flatMap(attempt => attempt.metadata?.mountseaBilling ? [attempt.metadata.mountseaBilling] : []);
-  const amounts = [];
-  if (attempts.some(attempt => attempt.upstreamCostUsd != null)) amounts.push(`$${detail.summary.upstreamCostUsd.toFixed(4)}`);
-  if (bills.length) amounts.push(`${bills.reduce((sum, bill) => sum + Number(bill.amount), 0).toLocaleString()} 渠道积分`);
-  return amounts.join(' + ') || '待对账';
+  const hasUsdCost = attempts.some(attempt => attempt.upstreamCostUsd != null);
+  const mountseaPoints = bills.reduce((sum, bill) => sum + Number(bill.amount), 0);
+  if (hasUsdCost && bills.length) {
+    return `$${detail.summary.upstreamCostUsd.toFixed(4)}（${mountseaPoints.toLocaleString()} Mountsea积分）`;
+  }
+  if (hasUsdCost) return `$${detail.summary.upstreamCostUsd.toFixed(4)}`;
+  if (bills.length) return `${mountseaPoints.toLocaleString()} Mountsea积分`;
+  return '待对账';
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
