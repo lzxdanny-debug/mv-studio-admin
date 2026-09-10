@@ -9,7 +9,8 @@ import { useServerPagination } from '@/lib/use-server-pagination';
 import { formatDate, cn } from '@/lib/utils';
 import { SearchBar } from '@/components/search-bar';
 import { DataTable, DataTableColumn } from '@/components/data-table';
-import { usdAmount, RANGE_LABEL, RangePreset, computeRange } from '../_lib/format';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
+import { usdAmount } from '../_lib/format';
 
 interface ReferralRow {
   id: string;
@@ -34,28 +35,23 @@ interface ListResponse {
   totalPages: number;
 }
 
-const PRESETS: Array<RangePreset | 'all'> = ['all', '7d', '30d', '90d'];
-
 export default function AdminReferralsPage() {
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [search, setSearch] = useState('');
-  const [rangePreset, setRangePreset] = useState<RangePreset | 'all'>('all');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('all'));
 
-  const window = useMemo(
-    () => (rangePreset === 'all' ? null : computeRange(rangePreset)),
-    [rangePreset],
-  );
+  const window = timeRange.fromMs == null || timeRange.toMs == null ? null : timeRange;
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'billing', 'referrals', { page, pageSize, search, rangePreset }],
+    queryKey: ['admin', 'billing', 'referrals', { page, pageSize, search, timeRange }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
       if (search) params.set('search', search);
       if (window) {
-        params.set('from', new Date(window.fromMs).toISOString());
-        params.set('to', new Date(window.toMs).toISOString());
+        params.set('from', new Date(window.fromMs!).toISOString());
+        params.set('to', new Date(window.toMs!).toISOString());
       }
       return apiClient.get(`/admin/billing/referrals?${params.toString()}`) as any;
     },
@@ -180,25 +176,7 @@ export default function AdminReferralsPage() {
             }}
             placeholder="搜索邀请人 / 被邀请人 / 邀请码 / 用户 ID"
           />
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                onClick={() => {
-                  setRangePreset(p);
-                  setPage(1);
-                }}
-                className={cn(
-                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  rangePreset === p
-                    ? 'bg-violet-600 text-white'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                {p === 'all' ? '全部' : RANGE_LABEL[p]}
-              </button>
-            ))}
-          </div>
+          <TimeRangeFilter value={timeRange} onChange={(value) => { setTimeRange(value); setPage(1); }} presets={['all', '7d', '30d', '90d', 'custom']} tone="violet" />
         </div>
 
         <DataTable

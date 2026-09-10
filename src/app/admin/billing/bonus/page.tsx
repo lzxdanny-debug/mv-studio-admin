@@ -9,7 +9,8 @@ import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
 import { SearchBar } from '@/components/search-bar';
 import { DataTable, DataTableColumn } from '@/components/data-table';
-import { usdAmount, RANGE_LABEL, RangePreset, computeRange } from '../_lib/format';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
+import { usdAmount } from '../_lib/format';
 
 interface BonusRow {
   id: string;
@@ -45,8 +46,6 @@ interface BonusSummary {
   bySource: { source: string; credits: number; count: number; usd: number }[];
 }
 
-const PRESETS: Array<RangePreset | 'all'> = ['all', '7d', '30d', '90d'];
-
 const SOURCE_META: Record<BonusRow['source'], { label: string; cls: string }> = {
   signup: { label: '注册赠送', cls: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
   daily_check_in: { label: '每日签到', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
@@ -60,29 +59,26 @@ export default function AdminBonusPage() {
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [search, setSearch] = useState('');
   const [source, setSource] = useState('');
-  const [rangePreset, setRangePreset] = useState<RangePreset | 'all'>('all');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('all'));
 
-  const window = useMemo(
-    () => (rangePreset === 'all' ? null : computeRange(rangePreset)),
-    [rangePreset],
-  );
+  const window = timeRange.fromMs == null || timeRange.toMs == null ? null : timeRange;
 
   const rangeQs = useMemo(() => {
     if (!window) return '';
     const p = new URLSearchParams();
-    p.set('from', new Date(window.fromMs).toISOString());
-    p.set('to', new Date(window.toMs).toISOString());
+    p.set('from', new Date(window.fromMs!).toISOString());
+    p.set('to', new Date(window.toMs!).toISOString());
     return p.toString();
   }, [window]);
 
   const summary = useQuery<BonusSummary>({
-    queryKey: ['admin', 'billing', 'bonus', 'summary', 'list', rangePreset],
+    queryKey: ['admin', 'billing', 'bonus', 'summary', 'list', timeRange],
     queryFn: () => apiClient.get(`/admin/billing/bonus/summary?${rangeQs}`) as any,
     placeholderData: (p) => p,
   });
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'billing', 'bonus', { page, pageSize, search, source, rangePreset }],
+    queryKey: ['admin', 'billing', 'bonus', { page, pageSize, search, source, timeRange }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -90,8 +86,8 @@ export default function AdminBonusPage() {
       if (search) params.set('search', search);
       if (source) params.set('source', source);
       if (window) {
-        params.set('from', new Date(window.fromMs).toISOString());
-        params.set('to', new Date(window.toMs).toISOString());
+        params.set('from', new Date(window.fromMs!).toISOString());
+        params.set('to', new Date(window.toMs!).toISOString());
       }
       return apiClient.get(`/admin/billing/bonus?${params.toString()}`) as any;
     },
@@ -215,23 +211,7 @@ export default function AdminBonusPage() {
               placeholder="搜索邮箱 / 昵称 / 用户 ID"
             />
           </div>
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                onClick={() => {
-                  setRangePreset(p);
-                  setPage(1);
-                }}
-                className={cn(
-                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  rangePreset === p ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                {p === 'all' ? '全部时间' : RANGE_LABEL[p]}
-              </button>
-            ))}
-          </div>
+          <TimeRangeFilter value={timeRange} onChange={(value) => { setTimeRange(value); setPage(1); }} presets={['all', '7d', '30d', '90d', 'custom']} />
           <select
             value={source}
             onChange={(e) => {

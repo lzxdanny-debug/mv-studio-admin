@@ -7,20 +7,18 @@ import { Activity, AlertTriangle, Coins, Film, RefreshCw, Route, WalletCards } f
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import apiClient from '@/lib/api';
 import { QueryState } from '@/components/query-state';
-import { computeRange, RANGE_LABEL, RangePreset, usdAmount } from '../_lib/format';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
+import { usdAmount } from '../_lib/format';
 
 type Summary = { projects: number; successfulProjects: number; failedProjects: number; chargedCredits: number; generatedSeconds: number; attempts: number; successfulAttempts: number; failedAttempts: number; costReportedAttempts: number; totalUsd: number };
 type Breakdown = { provider?: string; model?: string; calls: number; successes: number; failures: number; costReportedCalls: number; usd: number };
 type ProjectRow = { id: string; title: string; status: string; model: string; durationSec: number; chargedCredits: number; errorMessage?: string | null; createdAt: string; calls: number; successes: number; failures: number; costReportedCalls: number; usd: number };
 type CostData = { range: { from: string; to: string }; summary: Summary; byProvider: Breakdown[]; byModel: Breakdown[]; timeline: Array<{ date: string; calls: number; successes: number; failures: number; usd: number }>; projects: { page: number; pageSize: number; total: number; items: ProjectRow[] } };
-const PRESETS: RangePreset[] = ['today', '7d', '30d', '90d', '12m'];
-
 function CostPageContent() {
-  const [preset, setPreset] = useState<RangePreset>('30d');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('30d'));
   const [page, setPage] = useState(1);
-  const range = useMemo(() => computeRange(preset), [preset]);
-  const params = new URLSearchParams({ from: new Date(range.fromMs).toISOString(), to: new Date(range.toMs).toISOString(), page: String(page), pageSize: '20' });
-  const query = useQuery<CostData>({ queryKey: ['aimv-cost', preset, page], queryFn: () => apiClient.get(`/admin/aimv-generator/cost/overview?${params}`) as any });
+  const params = new URLSearchParams({ from: new Date(timeRange.fromMs!).toISOString(), to: new Date(timeRange.toMs!).toISOString(), page: String(page), pageSize: '20' });
+  const query = useQuery<CostData>({ queryKey: ['aimv-cost', timeRange, page], queryFn: () => apiClient.get(`/admin/aimv-generator/cost/overview?${params}`) as any });
   const data = query.data;
   const summary = data?.summary;
   const coverage = summary?.attempts ? summary.costReportedAttempts / summary.attempts : 0;
@@ -28,7 +26,7 @@ function CostPageContent() {
   const pages = Math.max(1, Math.ceil((data?.projects.total ?? 0) / (data?.projects.pageSize ?? 20)));
 
   return <div className="admin-page"><div className="mx-auto w-full max-w-[1680px] space-y-5 p-6">
-    <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-bold text-slate-950">AI MV Generator 成本统计</h1><p className="mt-1 text-sm text-slate-500">仅统计新产品 /create-mv 的项目、渠道尝试、积分结算与上游回传成本。</p></div><div className="flex items-center gap-2"><div className="flex rounded-lg border border-slate-200 bg-white p-1">{PRESETS.map((item) => <button key={item} onClick={() => { setPreset(item); setPage(1); }} className={`rounded-md px-3 py-1.5 text-xs font-medium ${preset === item ? 'bg-violet-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{RANGE_LABEL[item]}</button>)}</div><button onClick={() => query.refetch()} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 hover:text-violet-600" aria-label="刷新"><RefreshCw className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`} /></button></div></header>
+    <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-bold text-slate-950">AI MV Generator 成本统计</h1><p className="mt-1 text-sm text-slate-500">仅统计新产品 /create-mv 的项目、渠道尝试、积分结算与上游回传成本。</p></div><div className="flex items-center gap-2"><TimeRangeFilter value={timeRange} onChange={(value) => { setTimeRange(value); setPage(1); }} presets={['today', '7d', '30d', '90d', '12m', 'custom']} tone="violet" /><button onClick={() => query.refetch()} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 hover:text-violet-600" aria-label="刷新"><RefreshCw className={`h-4 w-4 ${query.isFetching ? 'animate-spin' : ''}`} /></button></div></header>
 
     <QueryState isLoading={query.isLoading} isError={query.isError} error={query.error} isEmpty={!data} height="h-64">{data && summary && <>
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5"><Kpi icon={WalletCards} label="上游已回传成本" value={usdAmount(summary.totalUsd)} sub={`成本覆盖 ${(coverage * 100).toFixed(1)}%`} /><Kpi icon={Film} label="AI MV 项目" value={summary.projects.toLocaleString()} sub={`成功 ${summary.successfulProjects} · 失败 ${summary.failedProjects}`} /><Kpi icon={Route} label="渠道尝试" value={summary.attempts.toLocaleString()} sub={`成功率 ${(successRate * 100).toFixed(1)}%`} /><Kpi icon={Coins} label="成功后扣减积分" value={summary.chargedCredits.toLocaleString()} sub="不包含预扣" /><Kpi icon={Activity} label="成功成片时长" value={`${summary.generatedSeconds.toLocaleString()}s`} sub={`${summary.costReportedAttempts}/${summary.attempts} 次有成本回传`} /></section>

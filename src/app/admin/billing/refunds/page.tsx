@@ -18,6 +18,7 @@ import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
 import { DataTable, DataTableColumn } from '@/components/data-table';
 import { QueryState } from '@/components/query-state';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
 import { useAlert } from '@/components/ui/dialog-provider';
 import {
   usd,
@@ -25,9 +26,6 @@ import {
   pct,
   REFUND_STATUS_META,
   REFUND_KIND_LABEL,
-  RANGE_LABEL,
-  RangePreset,
-  computeRange,
   tsLabel,
 } from '../_lib/format';
 
@@ -44,8 +42,6 @@ interface RefundStats {
   byKind: { kind: string; count: number; cents: number }[];
   byReason: { reason: string; count: number; cents: number }[];
 }
-
-const ANALYTICS_PRESETS: RangePreset[] = ['7d', '30d', '90d', '12m'];
 
 interface RefundRow {
   id: string;
@@ -244,16 +240,15 @@ export default function RefundReviewPage() {
 }
 
 function RefundAnalytics() {
-  const [preset, setPreset] = useState<RangePreset>('30d');
-  const range = useMemo(() => computeRange(preset), [preset]);
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('30d'));
 
   const { data, isLoading, isError, error } = useQuery<RefundStats>({
-    queryKey: ['admin', 'billing', 'refunds', 'analytics', preset],
+    queryKey: ['admin', 'billing', 'refunds', 'analytics', timeRange],
     queryFn: () => {
       const p = new URLSearchParams();
-      p.set('from', new Date(range.fromMs).toISOString());
-      p.set('to', new Date(range.toMs).toISOString());
-      p.set('bucket', range.bucket);
+      p.set('from', new Date(timeRange.fromMs!).toISOString());
+      p.set('to', new Date(timeRange.toMs!).toISOString());
+      p.set('bucket', timeRange.bucket);
       return apiClient.get(`/admin/billing/refunds/analytics?${p.toString()}`) as any;
     },
     placeholderData: (prev) => prev,
@@ -269,20 +264,7 @@ function RefundAnalytics() {
     <div className="admin-card p-5 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h3 className="text-sm font-semibold text-slate-900">退款分析</h3>
-        <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
-          {ANALYTICS_PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setPreset(p)}
-              className={cn(
-                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                preset === p ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700',
-              )}
-            >
-              {RANGE_LABEL[p]}
-            </button>
-          ))}
-        </div>
+        <TimeRangeFilter value={timeRange} onChange={setTimeRange} presets={['7d', '30d', '90d', '12m', 'custom']} />
       </div>
 
       <QueryState isLoading={isLoading} isError={isError} error={error} isEmpty={false} height="h-40">

@@ -11,14 +11,12 @@ import { cn, formatDate } from '@/lib/utils';
 import { SearchBar } from '@/components/search-bar';
 import { DataTable, DataTableColumn } from '@/components/data-table';
 import { downloadCsv } from '@/lib/csv-export';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
 import {
   usd,
   TYPE_LABEL,
   PAYMENT_STATUS_META,
   METHOD_LABEL,
-  RANGE_LABEL,
-  RangePreset,
-  computeRange,
 } from '../_lib/format';
 
 interface AdminPaymentRow {
@@ -64,8 +62,6 @@ interface ListResponse {
   totalPages: number;
 }
 
-const PRESETS: Array<RangePreset | 'all'> = ['all', '7d', '30d', '90d'];
-
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
     try {
@@ -94,16 +90,13 @@ export default function AdminPaymentsPage() {
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
   const [method, setMethod] = useState('');
-  const [rangePreset, setRangePreset] = useState<RangePreset | 'all'>('all');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('all'));
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
-  const window = useMemo(
-    () => (rangePreset === 'all' ? null : computeRange(rangePreset)),
-    [rangePreset],
-  );
+  const window = timeRange.fromMs == null || timeRange.toMs == null ? null : timeRange;
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'billing', 'payments', { page, pageSize, search, status, type, method, rangePreset }],
+    queryKey: ['admin', 'billing', 'payments', { page, pageSize, search, status, type, method, timeRange }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -113,8 +106,8 @@ export default function AdminPaymentsPage() {
       if (type) params.set('type', type);
       if (method) params.set('method', method);
       if (window) {
-        params.set('from', new Date(window.fromMs).toISOString());
-        params.set('to', new Date(window.toMs).toISOString());
+        params.set('from', new Date(window.fromMs!).toISOString());
+        params.set('to', new Date(window.toMs!).toISOString());
       }
       return apiClient.get(`/admin/billing/payments?${params.toString()}`) as any;
     },
@@ -128,8 +121,8 @@ export default function AdminPaymentsPage() {
     if (type) params.set('type', type);
     if (method) params.set('method', method);
     if (window) {
-      params.set('from', new Date(window.fromMs).toISOString());
-      params.set('to', new Date(window.toMs).toISOString());
+      params.set('from', new Date(window.fromMs!).toISOString());
+      params.set('to', new Date(window.toMs!).toISOString());
     }
     return params;
   };
@@ -367,23 +360,7 @@ export default function AdminPaymentsPage() {
               placeholder="搜索订单号 / 邮箱 / Stripe ID"
             />
           </div>
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                onClick={() => {
-                  setRangePreset(p);
-                  setPage(1);
-                }}
-                className={cn(
-                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  rangePreset === p ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                {p === 'all' ? '全部时间' : RANGE_LABEL[p]}
-              </button>
-            ))}
-          </div>
+          <TimeRangeFilter value={timeRange} onChange={(value) => { setTimeRange(value); setPage(1); }} presets={['all', '7d', '30d', '90d', 'custom']} />
           <select
             value={status}
             onChange={(e) => {

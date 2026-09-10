@@ -8,7 +8,7 @@ import { useServerPagination } from '@/lib/use-server-pagination';
 import { cn, formatDate } from '@/lib/utils';
 import { SearchBar } from '@/components/search-bar';
 import { DataTable, DataTableColumn } from '@/components/data-table';
-import { RANGE_LABEL, RangePreset, computeRange } from '../_lib/format';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
 import {
   CREDIT_TYPE_PAGES,
   OVERVIEW_ICON,
@@ -20,28 +20,23 @@ import {
 import { LabelTip } from './_lib/label-tip';
 import { CREDIT_TERM_TIPS, CREDIT_TYPE_TIPS } from './_lib/term-tips';
 
-const PRESETS: Array<RangePreset | 'all'> = ['all', '7d', '30d', '90d'];
-
 export default function AdminCreditsOverviewPage() {
   const { page, setPage, pageSize, onPageSizeChange } = useServerPagination();
   const [search, setSearch] = useState('');
-  const [rangePreset, setRangePreset] = useState<RangePreset | 'all'>('all');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('all'));
 
-  const window = useMemo(
-    () => (rangePreset === 'all' ? null : computeRange(rangePreset)),
-    [rangePreset],
-  );
+  const window = timeRange.fromMs == null || timeRange.toMs == null ? null : timeRange;
 
   const rangeQs = useMemo(() => {
     if (!window) return '';
     const p = new URLSearchParams();
-    p.set('from', new Date(window.fromMs).toISOString());
-    p.set('to', new Date(window.toMs).toISOString());
+    p.set('from', new Date(window.fromMs!).toISOString());
+    p.set('to', new Date(window.toMs!).toISOString());
     return p.toString();
   }, [window]);
 
   const summary = useQuery<CreditsSummary>({
-    queryKey: ['admin', 'billing', 'credits', 'summary', rangePreset],
+    queryKey: ['admin', 'billing', 'credits', 'summary', timeRange],
     queryFn: () => apiClient.get(`/admin/billing/credits/summary?${rangeQs}`) as any,
     placeholderData: (p) => p,
   });
@@ -163,20 +158,7 @@ export default function AdminCreditsOverviewPage() {
               tip={CREDIT_TERM_TIPS.bySource}
               labelClassName="text-sm font-semibold text-slate-700"
             />
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-              {PRESETS.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setRangePreset(p)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                    rangePreset === p ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  {p === 'all' ? '全部时间' : RANGE_LABEL[p]}
-                </button>
-              ))}
-            </div>
+            <TimeRangeFilter value={timeRange} onChange={setTimeRange} presets={['all', '7d', '30d', '90d', 'custom']} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {CREDIT_TYPE_PAGES.map((type) => {

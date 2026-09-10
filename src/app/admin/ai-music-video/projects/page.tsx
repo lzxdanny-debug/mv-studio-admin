@@ -9,7 +9,8 @@ import { DataTable, type DataTableColumn } from '@/components/data-table';
 import { SearchBar } from '@/components/search-bar';
 import { StatusBadge } from '@/components/status-badge';
 import { useServerPagination } from '@/lib/use-server-pagination';
-import { formatDate } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
 
 type ProjectRow = {
   id: string;
@@ -28,6 +29,7 @@ type ProjectRow = {
   reservedCredits: number;
   chargedCredits: number;
   upstreamCostUsd: string | null;
+  usdPerCredit: string | null;
   pendingReconciliationCount: number | string;
   actionableReconciliationCount: number | string;
   resultUrl: string | null;
@@ -36,7 +38,7 @@ type ProjectRow = {
   userDisplayName: string | null;
   userEmail: string | null;
 };
-type ListResponse = { items: ProjectRow[]; total: number; page: number; pageSize: number };
+type ListResponse = { items: ProjectRow[]; total: number; page: number; pageSize: number; usdPerCredit: number };
 type ReconcileProgress = {
   running: boolean;
   total: number;
@@ -63,6 +65,7 @@ export default function AiMusicVideoProjectsPage() {
   const [status, setStatus] = useState('succeeded');
   const [reconciliation, setReconciliation] = useState<'all' | 'pending'>('all');
   const [search, setSearch] = useState('');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('all'));
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -71,12 +74,14 @@ export default function AiMusicVideoProjectsPage() {
   const [reconcileProgress, setReconcileProgress] = useState<ReconcileProgress | null>(null);
   const reconcileLockRef = useRef(false);
   const query = useQuery<ListResponse>({
-    queryKey: ['admin', 'ai-music-video', 'projects', { page, pageSize, status, search, reconciliation }],
+    queryKey: ['admin', 'ai-music-video', 'projects', { page, pageSize, status, search, reconciliation, timeRange }],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
       if (status) params.set('status', status);
       if (search) params.set('search', search);
       if (reconciliation === 'pending') params.set('reconciliation', 'pending');
+      if (timeRange.fromMs != null) params.set('dateFrom', new Date(timeRange.fromMs).toISOString());
+      if (timeRange.toMs != null) params.set('dateTo', new Date(timeRange.toMs).toISOString());
       return apiClient.get(`/admin/aimv-generator/projects?${params.toString()}`) as any;
     },
     placeholderData: (previous) => previous,
@@ -84,7 +89,7 @@ export default function AiMusicVideoProjectsPage() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [page, pageSize, status, search, reconciliation]);
+  }, [page, pageSize, status, search, reconciliation, timeRange]);
 
   const actionableRows = (query.data?.items ?? []).filter((row) => Number(row.actionableReconciliationCount) > 0);
   const allPendingRowsSelected = actionableRows.length > 0 && actionableRows.every((row) => selectedIds.has(row.mvId));
@@ -161,6 +166,8 @@ export default function AiMusicVideoProjectsPage() {
       if (status) params.set('status', status);
       if (search.trim()) params.set('search', search.trim());
       if (reconciliation === 'pending') params.set('reconciliation', 'pending');
+      if (timeRange.fromMs != null) params.set('dateFrom', new Date(timeRange.fromMs).toISOString());
+      if (timeRange.toMs != null) params.set('dateTo', new Date(timeRange.toMs).toISOString());
       const suffix = params.size ? `?${params.toString()}` : '';
       const blob = await apiClient.get(`/admin/aimv-generator/projects/export.xlsx${suffix}`, {
         responseType: 'blob',
@@ -191,7 +198,10 @@ export default function AiMusicVideoProjectsPage() {
     { key: 'actualDurationSec', header: '真实时长', width: 'w-28', render: (row) => <span className="whitespace-nowrap text-xs font-medium text-slate-700">{`${row.actualDurationSec || 0}s`}</span> },
     { key: 'resolution', header: '分辨率', width: 'w-28', render: (row) => <div className="whitespace-nowrap text-xs text-slate-600"><p>{row.resolution || '—'}</p><p className="text-slate-400">{row.aspectRatio || '—'}</p></div> },
     { key: 'videoFormat', header: '视频格式', width: 'w-24', render: (row) => <span className="text-xs uppercase text-slate-600">{row.videoFormat || '—'}</span> },
-    { key: 'cost', header: '花费', width: 'w-48', render: (row) => { const pending = Number(row.pendingReconciliationCount); const actionable = Number(row.actionableReconciliationCount); const missingTrace = Math.max(0, pending - actionable); return <div className="whitespace-nowrap text-xs text-slate-600"><p>{Number(row.chargedCredits || 0).toLocaleString()} Credits</p><p className={pending > 0 ? 'text-amber-600' : 'text-slate-400'}>{pending > 0 ? `待对账 ${pending} 条${missingTrace ? `（${missingTrace} 条缺少 Trace ID）` : ''}` : row.upstreamCostUsd == null ? '上游待上报' : `上游 $${Number(row.upstreamCostUsd).toFixed(6)}`}</p></div>; } },
+    { key: 'reservedCredits', header: '预扣积分', width: 'w-28', render: (row) => <span className="whitespace-nowrap text-xs text-slate-600">{Number(row.reservedCredits || 0).toLocaleString()}</span> },
+    { key: 'chargedCredits', header: '实扣积分', width: 'w-28', render: (row) => <span className="whitespace-nowrap text-xs font-medium text-slate-700">{Number(row.chargedCredits || 0).toLocaleString()}</span> },
+    { key: 'upstreamCostUsd', header: '上游成本', width: 'w-48', render: (row) => { const pending = Number(row.pendingReconciliationCount); const actionable = Number(row.actionableReconciliationCount); const missingTrace = Math.max(0, pending - actionable); return <div className="whitespace-nowrap text-xs text-slate-600"><p>{row.upstreamCostUsd == null ? '待上报' : `$${Number(row.upstreamCostUsd).toFixed(6)}`}</p>{pending > 0 && <p className="text-amber-600">待对账 {pending} 条{missingTrace ? `（${missingTrace} 条缺少 Trace ID）` : ''}</p>}</div>; } },
+    { key: 'grossMarginRatio', header: '毛利率', width: 'w-28', render: (row) => { const usdPerCredit = Number(row.usdPerCredit) > 0 ? Number(row.usdPerCredit) : Number(query.data?.usdPerCredit || 0.01); const chargedUsd = Number(row.chargedCredits || 0) * usdPerCredit; const upstreamUsd = row.upstreamCostUsd == null ? null : Number(row.upstreamCostUsd); const pending = Number(row.pendingReconciliationCount) > 0; const margin = chargedUsd > 0 && upstreamUsd != null && !pending ? (chargedUsd - upstreamUsd) / chargedUsd : null; return <span className={cn('whitespace-nowrap text-xs font-medium', margin == null ? 'text-slate-400' : margin < 0 ? 'text-rose-600' : 'text-emerald-600')} title={`实扣收入 $${chargedUsd.toFixed(2)}（$${usdPerCredit}/积分）；上游成本 ${upstreamUsd == null ? '待上报' : `$${upstreamUsd.toFixed(6)}`}`}>{pending ? '待对账' : margin == null ? '—' : `${(margin * 100).toFixed(2)}%`}</span>; } },
     { key: 'createdAt', header: '创建时间', width: 'w-40', render: (row) => <span className="text-xs text-slate-500">{formatDate(row.createdAt)}</span> },
     { key: 'actions', header: '操作', width: 'w-52', headerClassName: 'sticky right-0 z-20 border-l border-slate-200 bg-slate-100 shadow-[-6px_0_10px_-8px_rgba(15,23,42,0.45)]', cellClassName: 'sticky right-0 z-10 border-l border-slate-100 bg-white shadow-[-6px_0_10px_-8px_rgba(15,23,42,0.35)]', render: (row) => <div className="flex items-center gap-3">{Number(row.actionableReconciliationCount) > 0 ? <button type="button" disabled={reconciling} onClick={() => void reconcileProjects([row.mvId])} className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-amber-600 hover:text-amber-700 disabled:opacity-50"><RefreshCw className={reconciling ? 'h-3 w-3 animate-spin' : 'h-3 w-3'} />对账</button> : Number(row.pendingReconciliationCount) > 0 ? <span title="历史记录没有保存 Mountsea Trace ID，无法自动匹配账单" className="whitespace-nowrap text-[11px] text-slate-400">缺少 Trace ID</span> : null}<Link href={`/admin/ai-music-video/projects/${row.mvId}`} className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-violet-600 hover:text-violet-700"><Eye className="h-3 w-3" />查看详情</Link></div> },
   ];
@@ -200,6 +210,7 @@ export default function AiMusicVideoProjectsPage() {
     <div><h1 className="flex items-center gap-2 text-xl font-bold text-slate-900"><Film className="h-5 w-5 text-violet-600" />AI Music Video 生成内容</h1><p className="mt-1 text-sm text-slate-500">管理 AI Music Video 工作台生成的项目、状态与成片，共 {query.data?.total ?? 0} 条。</p></div>
     <div className="flex flex-wrap items-center gap-2">
       <SearchBar value={search} onChange={(value) => { setPage(1); setSearch(value); }} placeholder="搜索标题 / 用户名 / 邮箱" width="w-72" />
+      <TimeRangeFilter value={timeRange} onChange={(value) => { setTimeRange(value); setPage(1); }} tone="violet" />
       <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">{STATUS_OPTIONS.map((option) => <button key={option.value} onClick={() => { setPage(1); setStatus(option.value); }} className={status === option.value ? 'rounded-lg bg-violet-600 px-2.5 py-1 text-xs font-medium text-white' : 'rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100'}>{option.label}</button>)}</div>
       <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1"><button type="button" onClick={() => { setPage(1); setReconciliation('all'); }} className={reconciliation === 'all' ? 'rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-medium text-white' : 'rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100'}>全部对账状态</button><button type="button" onClick={() => { setPage(1); setStatus(''); setReconciliation('pending'); }} className={reconciliation === 'pending' ? 'rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-medium text-white' : 'rounded-lg px-2.5 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50'}>待对账</button></div>
       <button type="button" onClick={() => void reconcileProjects([...selectedIds])} disabled={!selectedIds.size || reconciling} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50">{reconciling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}{reconciling ? '对账中…' : `批量对账${selectedIds.size ? `（${selectedIds.size}）` : ''}`}</button>
@@ -207,7 +218,7 @@ export default function AiMusicVideoProjectsPage() {
       {exportError ? <span className="w-full text-right text-xs text-red-500">{exportError}</span> : null}
       {reconcileResult ? <span className={reconcileResult.ok ? 'w-full text-right text-xs text-emerald-600' : 'w-full text-right text-xs text-red-500'}>{reconcileResult.text}</span> : null}
     </div>
-    <DataTable<ProjectRow> columns={columns} rows={query.data?.items} rowKey={(row) => row.id} tableClassName="min-w-[2040px]" isLoading={query.isLoading} isError={query.isError} error={query.error} emptyMessage={reconciliation === 'pending' ? '暂无待对账的 AI Music Video 项目' : '暂无 AI Music Video 生成内容'} page={query.data?.page ?? page} pageSize={query.data?.pageSize ?? pageSize} total={query.data?.total} onPageChange={setPage} onPageSizeChange={onPageSizeChange} />
+    <DataTable<ProjectRow> columns={columns} rows={query.data?.items} rowKey={(row) => row.id} tableClassName="min-w-[2320px]" isLoading={query.isLoading} isError={query.isError} error={query.error} emptyMessage={reconciliation === 'pending' ? '暂无待对账的 AI Music Video 项目' : '暂无 AI Music Video 生成内容'} page={query.data?.page ?? page} pageSize={query.data?.pageSize ?? pageSize} total={query.data?.total} onPageChange={setPage} onPageSizeChange={onPageSizeChange} />
     {reconcileProgress ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"><section role="dialog" aria-modal="true" aria-labelledby="aimv-reconcile-progress-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><h2 id="aimv-reconcile-progress-title" className="text-lg font-semibold text-slate-900">{reconcileProgress.running ? '正在同步上游账单' : '对账处理完成'}</h2><p className="mt-1 text-xs text-slate-500">Mountsea Trace ID 精确对账</p></div><button type="button" aria-label="关闭对账进度" disabled={reconcileProgress.running} onClick={() => setReconcileProgress(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-30"><X className="h-4 w-4" /></button></div><div className="mt-6"><div className="mb-2 flex items-center justify-between text-xs text-slate-500"><span>{reconcileProgress.running && reconcileProgress.currentMvId ? `当前：${reconcileProgress.currentMvId}` : '全部项目已处理'}</span><span>{reconcileProgress.completed}/{reconcileProgress.total}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-500 transition-all duration-300" style={{ width: `${reconcileProgress.total ? reconcileProgress.completed / reconcileProgress.total * 100 : 0}%` }} /></div></div><div className="mt-5 grid grid-cols-3 gap-3"><div className="rounded-xl bg-emerald-50 p-3 text-center"><p className="text-[11px] text-emerald-600">成功匹配</p><p className="mt-1 text-xl font-semibold text-emerald-700">{reconcileProgress.matched}</p></div><div className="rounded-xl bg-amber-50 p-3 text-center"><p className="text-[11px] text-amber-600">未匹配</p><p className="mt-1 text-xl font-semibold text-amber-700">{reconcileProgress.unmatched}</p></div><div className="rounded-xl bg-rose-50 p-3 text-center"><p className="text-[11px] text-rose-600">处理失败</p><p className="mt-1 text-xl font-semibold text-rose-700">{reconcileProgress.failed}</p></div></div>{reconcileProgress.firstError ? <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2.5 text-xs leading-5 text-rose-700">{reconcileProgress.firstError}</p> : null}<div className="mt-6 flex justify-end">{reconcileProgress.running ? <div className="inline-flex items-center gap-2 text-sm font-medium text-violet-600"><Loader2 className="h-4 w-4 animate-spin" />请勿重复操作</div> : <button type="button" onClick={() => setReconcileProgress(null)} className="inline-flex h-9 items-center gap-2 rounded-lg bg-violet-600 px-4 text-sm font-medium text-white hover:bg-violet-700"><CheckCircle2 className="h-4 w-4" />完成</button>}</div></section></div> : null}
   </div>;
 }

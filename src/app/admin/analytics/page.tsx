@@ -30,8 +30,8 @@ import {
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
 
-type Preset = 'today' | '7d' | '30d' | '90d';
 type AnalyticsTab = 'overview' | 'events' | 'journeys';
 
 interface AnalyticsOverview {
@@ -122,21 +122,6 @@ interface FilterPayload {
   sourcePages: string[];
 }
 
-const PRESETS: Array<{ value: Preset; label: string }> = [
-  { value: 'today', label: '今天' },
-  { value: '7d', label: '近 7 天' },
-  { value: '30d', label: '近 30 天' },
-  { value: '90d', label: '近 90 天' },
-];
-
-function rangeFor(preset: Preset) {
-  const to = new Date();
-  const from = new Date(to);
-  if (preset === 'today') from.setHours(0, 0, 0, 0);
-  else from.setDate(from.getDate() - Number.parseInt(preset, 10));
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
 function number(value: number) {
   return new Intl.NumberFormat('zh-CN').format(value);
 }
@@ -149,7 +134,7 @@ function dateTime(value: string) {
 
 export default function AnalyticsPage() {
   const [tab, setTab] = useState<AnalyticsTab>('overview');
-  const [preset, setPreset] = useState<Preset>('7d');
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('7d'));
   const [eventName, setEventName] = useState('');
   const [module, setModule] = useState('');
   const [sourcePage, setSourcePage] = useState('');
@@ -159,16 +144,15 @@ export default function AnalyticsPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const pageSize = 30;
-  const range = useMemo(() => rangeFor(preset), [preset]);
 
   const baseQuery = useMemo(() => {
-    const params = new URLSearchParams({ from: range.from, to: range.to });
+    const params = new URLSearchParams({ from: new Date(timeRange.fromMs!).toISOString(), to: new Date(timeRange.toMs!).toISOString() });
     if (eventName) params.set('eventName', eventName);
     if (module) params.set('module', module);
     if (sourcePage) params.set('sourcePage', sourcePage);
     if (result) params.set('result', result);
     return params.toString();
-  }, [eventName, module, range, result, sourcePage]);
+  }, [eventName, module, result, sourcePage, timeRange]);
 
   useEffect(() => { setPage(1); setJourneyPage(1); }, [baseQuery]);
 
@@ -227,14 +211,7 @@ export default function AnalyticsPage() {
             <p className="text-sm text-slate-500 mt-1">核心事件与全局事件的趋势、转化和原始明细</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-              {PRESETS.map((item) => (
-                <button key={item.value} onClick={() => setPreset(item.value)} className={cn(
-                  'px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors',
-                  preset === item.value ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-800',
-                )}>{item.label}</button>
-              ))}
-            </div>
+            <TimeRangeFilter value={timeRange} onChange={setTimeRange} presets={['today', '7d', '30d', '90d', 'custom']} />
             <button onClick={() => { overview.refetch(); events.refetch(); journeys.refetch(); filters.refetch(); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50">
               <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />刷新

@@ -29,13 +29,11 @@ import {
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
+import { createTimeRange, TimeRangeFilter, type TimeRangeSelection } from '@/components/time-range-filter';
 import {
   usdAmount,
   usdAmountCompact,
   pct,
-  RANGE_LABEL,
-  RangePreset,
-  computeRange,
 } from '../_lib/format';
 
 interface ProfitSummaryPayload {
@@ -74,8 +72,6 @@ interface ProfitSummaryPayload {
   }>;
 }
 
-const PRESETS: RangePreset[] = ['today', '7d', '30d', '90d', '12m'];
-
 const BONUS_SOURCE_LABEL: Record<string, string> = {
   signup: '注册',
   daily_check_in: '签到',
@@ -97,18 +93,17 @@ const PIE_COLORS = [
 ];
 
 export default function BillingProfitPage() {
-  const [preset, setPreset] = useState<RangePreset>('today');
-  const range = useMemo(() => computeRange(preset), [preset]);
+  const [timeRange, setTimeRange] = useState<TimeRangeSelection>(() => createTimeRange('today'));
 
   const qs = useMemo(() => {
     const p = new URLSearchParams();
-    p.set('from', new Date(range.fromMs).toISOString());
-    p.set('to', new Date(range.toMs).toISOString());
+    p.set('from', new Date(timeRange.fromMs!).toISOString());
+    p.set('to', new Date(timeRange.toMs!).toISOString());
     return p.toString();
-  }, [range]);
+  }, [timeRange]);
 
   const profit = useQuery<ProfitSummaryPayload>({
-    queryKey: ['admin', 'billing', 'profit', 'summary', preset],
+    queryKey: ['admin', 'billing', 'profit', 'summary', timeRange],
     queryFn: () => apiClient.get(`/admin/billing/profit/summary?${qs}`) as any,
     placeholderData: (p) => p,
   });
@@ -157,23 +152,7 @@ export default function BillingProfitPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
-              {PRESETS.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPreset(p)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                    preset === p
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  {RANGE_LABEL[p]}
-                </button>
-              ))}
-            </div>
+            <TimeRangeFilter value={timeRange} onChange={setTimeRange} presets={['today', '7d', '30d', '90d', '12m', 'custom']} />
             <button
               type="button"
               onClick={() => profit.refetch()}
