@@ -50,6 +50,7 @@ const GENERIC: Record<string, { label: string; className: string }> = {
   instrumental: { label: '纯音乐', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   succeeded: { label: '成功', className: 'bg-green-50 text-green-700 border-green-200' },
   failed: { label: '失败', className: 'bg-red-50 text-red-700 border-red-200' },
+  unknown_abandoned: { label: '未知结果放弃', className: 'bg-amber-50 text-amber-700 border-amber-200' },
   cancelled: { label: '已取消', className: 'bg-slate-100 text-slate-500 border-slate-200' },
 };
 

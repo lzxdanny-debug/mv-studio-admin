@@ -71,6 +71,7 @@ interface AimvSettings {
   shotConcurrency: number;
   storyboardTimeoutSec: number;
   shotTimeoutSec: number;
+  submissionUnknownMaxWaitSec: number;
   storyboardPollIntervalMs: number;
   shotPollIntervalMs: number;
   storageRetentionDays: number;
@@ -202,6 +203,7 @@ const NUMBER_FIELDS: Array<{ key: keyof AimvSettings; label: string; unit: strin
   { key: 'shotConcurrency', label: '项目内镜头并发（0 不限制）', unit: '个' },
   { key: 'storyboardTimeoutSec', label: '故事板超时（0 不限制）', unit: '秒' },
   { key: 'shotTimeoutSec', label: '镜头超时（0 不限制）', unit: '秒' },
+  { key: 'submissionUnknownMaxWaitSec', label: '未知状态最大等待时间', unit: '秒' },
   { key: 'storyboardPollIntervalMs', label: '故事板轮询间隔', unit: 'ms' },
   { key: 'shotPollIntervalMs', label: '镜头轮询间隔', unit: 'ms' },
   { key: 'storageRetentionDays', label: '存储有效期', unit: '天' },
