@@ -40,6 +40,29 @@ interface AdminUserRow {
   giftedRemaining: number;
   orderCount: number;
   spentCents: number;
+  country: string | null;
+  countrySource: 'visit' | 'payment' | null;
+  uiLocale: string | null;
+  browserLanguage: string | null;
+}
+
+interface UserDimensions {
+  totalUsers: number;
+  identifiedCountryUsers: number;
+  identifiedLanguageUsers: number;
+  countries: Array<{ value: string; count: number }>;
+  languages: Array<{ value: string; count: number }>;
+}
+
+const LOCALE_NAMES: Record<string, string> = {
+  en: '英语', de: '德语', es: '西班牙语', fr: '法语', hi: '印地语', it: '意大利语',
+  ja: '日语', ko: '韩语', pt: '葡萄牙语', zh: '简体中文', 'zh-TW': '繁体中文',
+};
+
+function countryName(code: string | null) {
+  if (!code) return '未知';
+  try { return new Intl.DisplayNames(['zh-CN'], { type: 'region' }).of(code) || code; }
+  catch { return code; }
 }
 
 const STATUS_META: Record<UserStatus, { label: string; cls: string }> = {
@@ -70,9 +93,16 @@ export default function AdminUsersPage() {
   const [status, setStatus] = useState('');
   const [accountOrigin, setAccountOrigin] = useState('');
   const [identity, setIdentity] = useState('');
+  const [country, setCountry] = useState('');
+  const [uiLocale, setUiLocale] = useState('');
+
+  const dimensions = useQuery<UserDimensions>({
+    queryKey: ['admin', 'users', 'dimensions'],
+    queryFn: () => apiClient.get('/admin/users/dimensions') as Promise<UserDimensions>,
+  });
 
   const { data, isLoading, isError, error } = useQuery<ListResponse>({
-    queryKey: ['admin', 'users', { page, pageSize, search, status, accountOrigin, identity }],
+    queryKey: ['admin', 'users', { page, pageSize, search, status, accountOrigin, identity, country, uiLocale }],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -81,6 +111,8 @@ export default function AdminUsersPage() {
       if (status) params.set('status', status);
       if (accountOrigin) params.set('accountOrigin', accountOrigin);
       if (identity) params.set('identity', identity);
+      if (country) params.set('country', country);
+      if (uiLocale) params.set('uiLocale', uiLocale);
       return apiClient.get(`/admin/users?${params.toString()}`) as any;
     },
     placeholderData: (prev) => prev,
@@ -99,6 +131,8 @@ export default function AdminUsersPage() {
       if (status) params.set('status', status);
       if (accountOrigin) params.set('accountOrigin', accountOrigin);
       if (identity) params.set('identity', identity);
+      if (country) params.set('country', country);
+      if (uiLocale) params.set('uiLocale', uiLocale);
       return apiClient.get(`/admin/users/export?${params.toString()}`) as Promise<ListResponse>;
     },
     onSuccess: (payload) => downloadCsv(`users-${new Date().toISOString().slice(0, 10)}.csv`, [
@@ -108,6 +142,10 @@ export default function AdminUsersPage() {
       { header: '身份', value: (row: AdminUserRow) => row.identity },
       { header: '账号来源', value: (row: AdminUserRow) => row.accountOrigin === 'order_signup' ? '订单注册' : '用户注册' },
       { header: '账号状态', value: (row: AdminUserRow) => STATUS_META[row.status]?.label ?? row.status },
+      { header: '国家/地区', value: (row: AdminUserRow) => row.country ? `${countryName(row.country)} (${row.country})` : '' },
+      { header: '国家来源', value: (row: AdminUserRow) => row.countrySource === 'visit' ? '最近访问 IP' : row.countrySource === 'payment' ? '支付信息' : '' },
+      { header: '使用语言', value: (row: AdminUserRow) => row.uiLocale ? `${LOCALE_NAMES[row.uiLocale] ?? row.uiLocale} (${row.uiLocale})` : '' },
+      { header: '浏览器语言', value: (row: AdminUserRow) => row.browserLanguage },
       { header: '注册方式', value: (row: AdminUserRow) => row.primaryProvider },
       { header: '总发放积分', value: (row: AdminUserRow) => row.totalGranted },
       { header: '总使用积分', value: (row: AdminUserRow) => row.totalUsed },
@@ -217,6 +255,18 @@ export default function AdminUsersPage() {
       },
     },
     {
+      key: 'region',
+      header: '国家/地区',
+      width: 'w-32',
+      render: (row) => row.country ? <div className="text-xs text-slate-700"><p>{countryName(row.country)}</p><p className="mt-0.5 text-[10px] text-slate-400">{row.country} · {row.countrySource === 'visit' ? '访问 IP' : '支付信息'}</p></div> : <span className="text-xs text-slate-400">未知</span>,
+    },
+    {
+      key: 'language',
+      header: '使用语言',
+      width: 'w-28',
+      render: (row) => row.uiLocale ? <div className="text-xs text-slate-700"><p>{LOCALE_NAMES[row.uiLocale] ?? row.uiLocale}</p>{row.browserLanguage && <p className="mt-0.5 text-[10px] text-slate-400">浏览器 {row.browserLanguage}</p>}</div> : <span className="text-xs text-slate-400">未知</span>,
+    },
+    {
       key: 'lastLogin',
       header: '最近登录',
       width: 'w-36',
@@ -305,6 +355,7 @@ export default function AdminUsersPage() {
           <p className="text-sm text-slate-500 mt-1">
             共 {data?.total ?? 0} 名注册用户 · 后台管理员请至「系统 → 后台管理员」
           </p>
+          {dimensions.data && <p className="mt-1 text-xs text-slate-400">国家/地区可识别 {dimensions.data.identifiedCountryUsers}/{dimensions.data.totalUsers} 人 · 使用语言可识别 {dimensions.data.identifiedLanguageUsers}/{dimensions.data.totalUsers} 人</p>}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -337,6 +388,8 @@ export default function AdminUsersPage() {
           </div>
           <select value={identity} onChange={(event) => { setPage(1); setIdentity(event.target.value); }} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"><option value="">全部身份</option><option value="Pro">Pro</option><option value="Free">Free</option></select>
           <select value={accountOrigin} onChange={(event) => { setPage(1); setAccountOrigin(event.target.value); }} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"><option value="">全部来源</option><option value="user_signup">用户注册</option><option value="order_signup">订单注册</option></select>
+          <select value={country} onChange={(event) => { setPage(1); setCountry(event.target.value); }} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"><option value="">全部国家/地区</option>{(dimensions.data?.countries ?? []).map((item) => <option key={item.value} value={item.value}>{countryName(item.value)}（{item.count}）</option>)}</select>
+          <select value={uiLocale} onChange={(event) => { setPage(1); setUiLocale(event.target.value); }} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"><option value="">全部使用语言</option>{(dimensions.data?.languages ?? []).map((item) => <option key={item.value} value={item.value}>{LOCALE_NAMES[item.value] ?? item.value}（{item.count}）</option>)}</select>
           <button type="button" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending || !data?.total} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"><Download className="h-3.5 w-3.5" />{exportMutation.isPending ? '导出中…' : '导出 CSV'}</button>
         </div>
 
@@ -353,7 +406,7 @@ export default function AdminUsersPage() {
           total={data?.total}
           onPageChange={setPage}
           onPageSizeChange={onPageSizeChange}
-          tableClassName="min-w-[1900px] [&_td]:whitespace-nowrap"
+          tableClassName="min-w-[2150px] [&_td]:whitespace-nowrap"
         />
       </div>
     </div>

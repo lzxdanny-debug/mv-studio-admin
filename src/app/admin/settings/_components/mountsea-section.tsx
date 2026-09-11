@@ -7,11 +7,10 @@ import { CheckCircle2, ExternalLink, Save, XCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { QueryState } from '@/components/query-state';
-import { SecretInput } from '@/components/secret-input';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { FromEnvBadge } from './from-env-badge';
-import { CONTROL_WIDE, SECRET_INPUT_CLS } from './settings-form-styles';
+import { CONTROL_WIDE } from './settings-form-styles';
 
 interface AiProviderStatus {
   configured: boolean;
@@ -24,9 +23,6 @@ interface MountseaOpsConfigView {
   userApiUrlFromEnv: boolean;
   usageBaseUrl: string;
   usageBaseUrlFromEnv: boolean;
-  usageTokenMasked: string;
-  usageTokenConfigured: boolean;
-  usageTokenFromEnv: boolean;
   ssoEnabled: boolean;
   reconcileEnabled: boolean;
   aiProviders: {
@@ -40,7 +36,6 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
   const [form, setForm] = useState({
     userApiUrl: '',
     usageBaseUrl: '',
-    usageToken: '',
   });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -64,7 +59,6 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
       apiClient.patch('/admin/settings/mountsea', payload) as any,
     onSuccess: () => {
       setMsg({ ok: true, text: 'Mountsea 配置已保存，SSO 与对账将立即使用新值。' });
-      setForm((f) => ({ ...f, usageToken: '' }));
       qc.invalidateQueries({ queryKey: ['admin', 'settings', 'mountsea'] });
     },
     onError: () => setMsg({ ok: false, text: '保存失败，请检查输入后重试。' }),
@@ -77,7 +71,6 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
       userApiUrl: form.userApiUrl,
       usageBaseUrl: form.usageBaseUrl,
     };
-    if (form.usageToken) payload.usageToken = form.usageToken;
     save.mutate(payload);
   };
 
@@ -125,11 +118,11 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
                   对账 {reconcileOk ? '就绪' : '未配置'}
                 </span>
                 {data && (
-                  <FromEnvBadge fromEnv={data.userApiUrlFromEnv || data.usageTokenFromEnv} />
+                  <FromEnvBadge fromEnv={data.userApiUrlFromEnv || data.usageBaseUrlFromEnv} />
                 )}
               </div>
               <p className="mt-1 text-sm text-slate-600">
-                用户端 API 用于登录与 SSO；Usage Token 用于成本对账。AI Key 请在渠道凭证页配置。
+                用户端 API 用于登录与 SSO；成本对账直接使用 AI 渠道凭证中的 Mountsea API Key。
               </p>
             </div>
             {ssoOk && reconcileOk ? (
@@ -191,21 +184,6 @@ export function MountseaSection({ embedded = false }: { embedded?: boolean }) {
                   value={form.usageBaseUrl}
                   onChange={(e) => setForm((f) => ({ ...f, usageBaseUrl: e.target.value }))}
                   placeholder="https://dk.mountsea.ai"
-                />
-              </FormField>
-              <FormField
-                label="Usage Token"
-                description="用户 JWT（MOUNTSEA_USAGE_TOKEN）。登录后从 Network Bearer 复制，约 24h 有效。留空保存表示不修改。"
-                controlClassName={CONTROL_WIDE}
-              >
-                <SecretInput
-                  configured={data?.usageTokenConfigured}
-                  maskedPreview={data?.usageTokenMasked}
-                  value={form.usageToken}
-                  onChange={(usageToken) => setForm((f) => ({ ...f, usageToken }))}
-                  placeholder="eyJhbGciOiJIUzI1NiIs..."
-                  showToggle
-                  className={SECRET_INPUT_CLS}
                 />
               </FormField>
             </div>
