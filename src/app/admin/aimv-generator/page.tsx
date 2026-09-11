@@ -408,6 +408,24 @@ function TemplatesTab() {
   const [isSingerPickerOpen, setIsSingerPickerOpen] = useState(false);
   const [editorTab, setEditorTab] = useState<TemplateEditorTab>('basic');
   const [draft, setDraft] = useState<TemplateDraft>(EMPTY_TEMPLATE);
+  const uploadTemplateMedia = useMutation({
+    mutationFn: async ({ file, kind }: { file: File; kind: 'cover' | 'preview' }) => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('kind', kind);
+      const uploaded = await apiClient.post('/admin/aimv-generator/templates/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: kind === 'preview' ? 10 * 60 * 1000 : 2 * 60 * 1000,
+      }) as { url: string };
+      return { kind, url: uploaded.url };
+    },
+    onSuccess: ({ kind, url }) => {
+      setDraft((current) => ({
+        ...current,
+        ...(kind === 'cover' ? { coverUrl: url } : { previewVideoUrl: url }),
+      }));
+    },
+  });
   const uploadSingerReference = useMutation({
     mutationFn: async (file: File) => {
       const form = new FormData();
@@ -520,7 +538,7 @@ function TemplatesTab() {
       queryClient.invalidateQueries({ queryKey: ['aimv-templates'] });
     },
   });
-  const mutationPending = save.isPending || retry.isPending || preprocess.isPending || generatePreview.isPending || uploadSingerReference.isPending || remove.isPending;
+  const mutationPending = save.isPending || retry.isPending || preprocess.isPending || generatePreview.isPending || uploadTemplateMedia.isPending || uploadSingerReference.isPending || remove.isPending;
   const deleteTemplate = async (row: AimvTemplate) => {
     if (mutationPending) return;
     const accepted = await confirm({
@@ -650,8 +668,9 @@ function TemplatesTab() {
             <TemplateField label="场景类型" hint="用于用户端筛选；它与视觉风格是两个独立维度。"><select value={draft.sceneCategory} onChange={(e) => set('sceneCategory', e.target.value as TemplateDraft['sceneCategory'])}><option value="performance">舞台表演</option><option value="story">剧情叙事</option><option value="dance">舞蹈</option><option value="lyrics">歌词 / 文字</option><option value="animation">动画</option><option value="fashion">时尚</option><option value="cinematic">电影感</option><option value="other">其他</option></select></TemplateField>
             <TemplateField label="主体类型" hint="建议同时维护人物、动物和非写实角色模板。"><select value={draft.subjectType} onChange={(e) => set('subjectType', e.target.value as TemplateDraft['subjectType'])}><option value="person">人物</option><option value="animal">动物</option><option value="mixed">人物 + 动物 / 多主体</option><option value="character">动画 / 虚拟角色</option><option value="abstract">抽象 / 无主角</option></select></TemplateField>
             <TemplateField label="风格标签" hint="英语逗号分隔，例如 realistic, cinematic, anime。此处仅用于模板发现，不会覆盖创作风格。"><input value={draft.styleTags} onChange={(e) => set('styleTags', e.target.value)} placeholder="realistic, cinematic" /></TemplateField>
-            <TemplateField label="封面图片 URL"><input value={draft.coverUrl} onChange={(e) => set('coverUrl', e.target.value)} placeholder="https://..." /></TemplateField>
-            <TemplateField label="示例视频 URL" hint="用于用户端模板预览；建议使用可公开访问的 MP4 地址。"><input value={draft.previewVideoUrl} onChange={(e) => set('previewVideoUrl', e.target.value)} placeholder="https://.../sample.mp4" /></TemplateField>
+            <TemplateField label="封面图片 URL"><div className="flex gap-2"><input className="min-w-0 flex-1" value={draft.coverUrl} onChange={(e) => set('coverUrl', e.target.value)} placeholder="https://..." /><label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-violet-200 bg-white px-3 text-xs font-semibold text-violet-700 hover:bg-violet-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"><Upload className="h-3.5 w-3.5" />上传<input hidden disabled={uploadTemplateMedia.isPending} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadTemplateMedia.mutate({ file, kind: 'cover' }); event.target.value = ''; }} /></label></div></TemplateField>
+            <TemplateField label="示例视频 URL" hint="用于用户端模板预览；可上传 MP4，或填写可公开访问的视频地址。"><div className="flex gap-2"><input className="min-w-0 flex-1" value={draft.previewVideoUrl} onChange={(e) => set('previewVideoUrl', e.target.value)} placeholder="https://.../sample.mp4" /><label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-violet-200 bg-white px-3 text-xs font-semibold text-violet-700 hover:bg-violet-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50"><Upload className="h-3.5 w-3.5" />{uploadTemplateMedia.isPending ? '上传中…' : '上传'}<input hidden disabled={uploadTemplateMedia.isPending} type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadTemplateMedia.mutate({ file, kind: 'preview' }); event.target.value = ''; }} /></label></div></TemplateField>
+            {uploadTemplateMedia.isError && <p className="text-xs text-red-600 md:col-span-2">{(uploadTemplateMedia.error as Error).message || '模板素材上传失败'}</p>}
           </div>
           </>}
           {editorTab === 'creation' && <>
