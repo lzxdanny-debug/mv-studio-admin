@@ -22,6 +22,7 @@ import {
 interface AdminPaymentRow {
   id: string;
   userId: string | null;
+  orderEmail: string | null;
   userEmail: string | null;
   userDisplayName: string | null;
   type: string;
@@ -132,7 +133,7 @@ export default function AdminPaymentsPage() {
     onSuccess: (payload) => downloadCsv(`payments-${new Date().toISOString().slice(0, 10)}.csv`, [
       { header: '订单号', value: (row: AdminPaymentRow) => row.id },
       { header: '下单时间', value: (row: AdminPaymentRow) => row.createdAt },
-      { header: '邮箱', value: (row: AdminPaymentRow) => row.userEmail },
+      { header: '邮箱', value: (row: AdminPaymentRow) => row.orderEmail },
       { header: '类型', value: (row: AdminPaymentRow) => TYPE_LABEL[row.type] ?? row.type },
       { header: '状态', value: (row: AdminPaymentRow) => PAYMENT_STATUS_META[row.status]?.label ?? row.status },
       { header: '方案', value: (row: AdminPaymentRow) => row.packageCode ?? row.planCode },
@@ -221,7 +222,7 @@ export default function AdminPaymentsPage() {
       header: '邮箱',
       width: 'w-56',
       render: (row) => {
-        const email = row.userEmail || '—';
+        const email = row.orderEmail || '—';
         return (
           <span className="block truncate text-sm text-slate-500" title={email}>
             {email}
@@ -371,7 +372,9 @@ export default function AdminPaymentsPage() {
           >
             <option value="">全部状态</option>
             <option value="pending">待支付</option>
+            <option value="processing">Pending</option>
             <option value="failed">支付失败</option>
+            <option value="timed_out">支付超时</option>
             <option value="succeeded">支付成功</option>
             <option value="expired">过期</option>
             <option value="refunded">全额退款</option>

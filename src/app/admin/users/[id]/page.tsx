@@ -86,8 +86,10 @@ interface UserDetail {
 
 const PAYMENT_STATUS_META: Record<string, { label: string; cls: string }> = {
   pending: { label: '待支付', cls: 'text-amber-700 bg-amber-50 border-amber-100' },
+  processing: { label: 'Pending', cls: 'text-orange-700 bg-orange-50 border-orange-100' },
   succeeded: { label: '已支付', cls: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
   failed: { label: '失败', cls: 'text-red-700 bg-red-50 border-red-100' },
+  timed_out: { label: '支付超时', cls: 'text-slate-600 bg-slate-100 border-slate-200' },
   refunded: { label: '已退款', cls: 'text-blue-700 bg-blue-50 border-blue-100' },
 };
 

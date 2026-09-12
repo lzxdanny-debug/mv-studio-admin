@@ -36,6 +36,8 @@ interface ProductModel {
   code: string;
   nameEn: string;
   descriptionEn: string;
+  supportedResolutions: string[];
+  defaultResolution: string;
   sortOrder: number;
   enabled: boolean;
   translationStatus: string;
@@ -124,7 +126,7 @@ function DisplayModels() {
     </section>
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-5 py-4"><h2 className="font-semibold text-slate-900">用户端展示列表</h2><p className="mt-1 text-xs text-slate-500">展示开关与路由开关相互独立；产品开放还需要至少一条全局路由和有效计价。</p></div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[1180px] text-sm"><thead className="bg-slate-50 text-left text-xs text-slate-500"><tr><th className="px-5 py-3">模型</th><th className="px-3 py-3">英文展示名称</th><th className="px-3 py-3">展示顺序</th><th className="px-3 py-3">首选执行</th><th className="px-3 py-3">计价</th><th className="px-5 py-3 text-right">展示开关 / 保存</th></tr></thead><tbody className="divide-y divide-slate-100">{(models.data ?? []).map((model) => <DisplayRow key={model.id} model={model} catalog={catalog.data!} canEdit={canEdit} />)}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[1320px] text-sm"><thead className="bg-slate-50 text-left text-xs text-slate-500"><tr><th className="px-5 py-3">模型</th><th className="px-3 py-3">英文展示名称</th><th className="px-3 py-3">展示顺序</th><th className="px-3 py-3">默认分辨率</th><th className="px-3 py-3">首选执行</th><th className="px-3 py-3">计价</th><th className="px-5 py-3 text-right">展示开关 / 保存</th></tr></thead><tbody className="divide-y divide-slate-100">{(models.data ?? []).map((model) => <DisplayRow key={model.id} model={model} catalog={catalog.data!} canEdit={canEdit} />)}</tbody></table></div>
       {!models.data?.length && <Empty text="尚未添加展示模型" />}
     </section>
   </>;
@@ -134,19 +136,24 @@ function DisplayRow({ model, catalog, canEdit }: { model: ProductModel; catalog:
   const qc = useQueryClient();
   const [nameEn, setNameEn] = useState(model.nameEn);
   const [sortOrder, setSortOrder] = useState(model.sortOrder);
+  const resolutionOptions = model.supportedResolutions?.length ? model.supportedResolutions : ['480p', '720p', '1080p', '4k'];
+  const initialDefaultResolution = resolutionOptions.includes(model.defaultResolution)
+    ? model.defaultResolution
+    : resolutionOptions.includes('720p') ? '720p' : resolutionOptions[0];
+  const [defaultResolution, setDefaultResolution] = useState(initialDefaultResolution);
   const [enabled, setEnabled] = useState(model.enabled);
   const routeOptions = useMemo(() => catalog.capabilities.filter((capability) => capability !== 'videoLipsync').flatMap((capability) => catalog.providers.flatMap((provider) =>
     (catalog.capabilityModels[capability]?.[provider] ?? []).filter((exactModel) => familyOf(exactModel) === model.code).map((exactModel) => ({ capability, provider, exactModel })),
   )), [catalog, model.code]);
   const routeKey = (route: Pick<ModelRoute, 'capability' | 'provider' | 'exactModel'>) => `${route.capability}|${route.provider}|${route.exactModel}`;
   const [primaryKey, setPrimaryKey] = useState(model.routes[0] ? routeKey(model.routes[0]) : '');
-  useEffect(() => { setNameEn(model.nameEn); setSortOrder(model.sortOrder); setEnabled(model.enabled); setPrimaryKey(model.routes[0] ? routeKey(model.routes[0]) : ''); }, [model]);
+  useEffect(() => { setNameEn(model.nameEn); setSortOrder(model.sortOrder); setDefaultResolution(initialDefaultResolution); setEnabled(model.enabled); setPrimaryKey(model.routes[0] ? routeKey(model.routes[0]) : ''); }, [initialDefaultResolution, model]);
   const selectedRoute = routeOptions.find((route) => routeKey(route) === primaryKey);
   const save = useMutation({ mutationFn: () => Promise.all([
-    apiClient.patch(`/admin/aimv-generator/models/${model.id}`, { nameEn, sortOrder, enabled }),
+    apiClient.patch(`/admin/aimv-generator/models/${model.id}`, { nameEn, sortOrder, defaultResolution, enabled }),
     apiClient.put(`/admin/aimv-generator/models/${model.id}/routes`, { routes: selectedRoute ? [{ ...selectedRoute, priority: 0, timeoutSec: 900, maxAttempts: 1, enabled: true }] : [] }),
   ]), onSuccess: () => qc.invalidateQueries({ queryKey: ['aimv-models'] }) });
-  return <tr><td className="px-5 py-4"><div className="font-semibold text-slate-900">{displayName(model.code)}</div><code className="text-xs text-slate-400">{model.code}</code></td><td className="px-3 py-4"><input disabled={!canEdit || save.isPending} value={nameEn} onChange={(event) => setNameEn(event.target.value)} className="control max-w-[220px]" /></td><td className="px-3 py-4"><input disabled={!canEdit || save.isPending} type="number" value={sortOrder} onChange={(event) => setSortOrder(Number(event.target.value))} className="control w-20" /></td><td className="px-3 py-4"><select disabled={!canEdit || save.isPending} value={primaryKey} onChange={(event) => setPrimaryKey(event.target.value)} className="control min-w-[300px]"><option value="">请选择首选渠道</option>{routeOptions.map((route) => <option key={routeKey(route)} value={routeKey(route)}>{route.provider} · {route.exactModel} · {CAPABILITY_LABELS[route.capability]}</option>)}</select></td><td className="px-3 py-4"><Status ok={!!model.price?.enabled}>{model.price?.enabled ? '已配置' : '待配置'}</Status></td><td className="px-5 py-4"><div className="flex items-center justify-end gap-4"><Switch checked={enabled} onChange={setEnabled} disabled={!canEdit || save.isPending} label={`${model.nameEn} 展示开关`} />{canEdit && <button disabled={save.isPending || !nameEn.trim() || !selectedRoute} onClick={() => { if (!save.isPending) save.mutate(); }} className="secondary-button"><Save className="h-4 w-4" />保存</button>}</div>{save.isError && <ErrorText error={save.error} />}</td></tr>;
+  return <tr><td className="px-5 py-4"><div className="font-semibold text-slate-900">{displayName(model.code)}</div><code className="text-xs text-slate-400">{model.code}</code></td><td className="px-3 py-4"><input disabled={!canEdit || save.isPending} value={nameEn} onChange={(event) => setNameEn(event.target.value)} className="control max-w-[220px]" /></td><td className="px-3 py-4"><input disabled={!canEdit || save.isPending} type="number" value={sortOrder} onChange={(event) => setSortOrder(Number(event.target.value))} className="control w-20" /></td><td className="px-3 py-4"><select disabled={!canEdit || save.isPending} value={defaultResolution} onChange={(event) => setDefaultResolution(event.target.value)} className="control w-28">{resolutionOptions.map((item) => <option key={item} value={item}>{item.toUpperCase()}</option>)}</select></td><td className="px-3 py-4"><select disabled={!canEdit || save.isPending} value={primaryKey} onChange={(event) => setPrimaryKey(event.target.value)} className="control min-w-[300px]"><option value="">请选择首选渠道</option>{routeOptions.map((route) => <option key={routeKey(route)} value={routeKey(route)}>{route.provider} · {route.exactModel} · {CAPABILITY_LABELS[route.capability]}</option>)}</select></td><td className="px-3 py-4"><Status ok={!!model.price?.enabled}>{model.price?.enabled ? '已配置' : '待配置'}</Status></td><td className="px-5 py-4"><div className="flex items-center justify-end gap-4"><Switch checked={enabled} onChange={setEnabled} disabled={!canEdit || save.isPending} label={`${model.nameEn} 展示开关`} />{canEdit && <button disabled={save.isPending || !nameEn.trim() || !defaultResolution || !selectedRoute} onClick={() => { if (!save.isPending) save.mutate(); }} className="secondary-button"><Save className="h-4 w-4" />保存</button>}</div>{save.isError && <ErrorText error={save.error} />}</td></tr>;
 }
 
 function RoutingPriority() {

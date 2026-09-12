@@ -31,6 +31,7 @@ interface RefundRow {
 
 interface PaymentDetail {
   id: string;
+  orderEmail: string | null;
   user: {
     id: string | null;
     email: string | null;
@@ -250,7 +251,7 @@ export default function PaymentDetailPage({
                       data.user.email || '游客订单'
                     )}
                   </Row>
-                  <Row label="邮箱">{data.user.email ?? '—'}</Row>
+                  <Row label="下单邮箱">{data.orderEmail ?? '—'}</Row>
                   <Row label="发放积分">
                     {data.creditAmount != null ? (
                       <span className="text-amber-600 font-medium">+{data.creditAmount}</span>

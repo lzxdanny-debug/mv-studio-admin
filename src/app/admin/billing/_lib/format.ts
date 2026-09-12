@@ -47,8 +47,10 @@ export const PAYMENT_STATUS_META: Record<
   { label: string; cls: string }
 > = {
   pending: { label: '待支付', cls: 'bg-amber-50 text-amber-700 border-amber-100' },
+  processing: { label: 'Pending', cls: 'bg-orange-50 text-orange-700 border-orange-100' },
   succeeded: { label: '支付成功', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
   failed: { label: '支付失败', cls: 'bg-red-50 text-red-700 border-red-100' },
+  timed_out: { label: '支付超时', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
   canceled: { label: '支付失败', cls: 'bg-red-50 text-red-700 border-red-100' },
   expired: { label: '过期', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
   refunded: { label: '全额退款', cls: 'bg-red-50 text-red-700 border-red-100' },
