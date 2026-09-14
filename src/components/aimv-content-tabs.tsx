@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Save, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Loader2, Pencil, Plus, Save, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
@@ -54,6 +54,21 @@ const EMPTY_DRAFT: DraftState = {
   sortOrder: 0,
 };
 
+function draftFromAsset(row: LibraryAsset): DraftState {
+  return {
+    code: row.code,
+    nameEn: row.nameEn,
+    descriptionEn: row.descriptionEn,
+    category: row.category,
+    stylePrompt: typeof row.metadata?.prompt === 'string' ? row.metadata.prompt : '',
+    artist: typeof row.metadata?.artist === 'string' ? row.metadata.artist : '',
+    durationSec: Number(row.metadata?.durationSec) || 0,
+    hot: row.hot,
+    enabled: row.enabled,
+    sortOrder: row.sortOrder,
+  };
+}
+
 const SINGER_CATEGORY_OPTIONS: Array<{ value: Exclude<SingerCategory, 'all'>; label: string }> = [
   { value: 'female', label: 'Female' },
   { value: 'male', label: 'Male' },
@@ -76,6 +91,8 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
   const isHotMusicConfig = lockedKind === 'hot_music';
   const [seedMessage, setSeedMessage] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<LibraryAsset | null>(null);
+  const [editDraft, setEditDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [singerCategoryFilter, setSingerCategoryFilter] = useState<SingerCategory>('all');
 
   const query = useQuery<LibraryAsset[]>({
@@ -202,6 +219,34 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['aimv-library-assets'] }),
   });
 
+  const saveEdit = useMutation({
+    mutationFn: ({ row, draft: next }: { row: LibraryAsset; draft: DraftState }) => {
+      const metadata = row.kind === 'hot_music'
+        ? {
+            ...(row.metadata ?? {}),
+            artist: next.artist.trim(),
+            durationSec: next.durationSec > 0 ? next.durationSec : undefined,
+          }
+        : row.kind === 'mv_style'
+          ? { ...(row.metadata ?? {}), prompt: next.stylePrompt.trim() }
+          : row.metadata ?? {};
+      return apiClient.patch(`/admin/aimv-generator/library-assets/${row.id}`, {
+        code: next.code.trim(),
+        nameEn: next.nameEn.trim(),
+        descriptionEn: next.descriptionEn.trim(),
+        category: next.category.trim(),
+        metadata,
+        hot: next.hot,
+        enabled: next.enabled,
+        sortOrder: next.sortOrder,
+      });
+    },
+    onSuccess: () => {
+      setEditingAsset(null);
+      qc.invalidateQueries({ queryKey: ['aimv-library-assets'] });
+    },
+  });
+
   const remove = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/admin/aimv-generator/library-assets/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['aimv-library-assets'] }),
@@ -212,7 +257,14 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
     }),
   });
 
-  const assetActionPending = update.isPending || remove.isPending;
+  const assetActionPending = update.isPending || saveEdit.isPending || remove.isPending;
+
+  const editAsset = (row: LibraryAsset) => {
+    if (!canEdit || assetActionPending) return;
+    setEditingAsset(row);
+    setEditDraft(draftFromAsset(row));
+    saveEdit.reset();
+  };
 
   const deleteAsset = async (row: LibraryAsset) => {
     if (!canEdit || assetActionPending) return;
@@ -569,6 +621,184 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
         </div>
       )}
 
+      {editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/45 p-4 py-8 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={`编辑 ${editingAsset.nameEn}`}
+            className="flex max-h-[calc(100vh-4rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">编辑素材</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {editingAsset.kind === 'hot_music'
+                    ? '修改歌名、歌手、时长和展示状态，保存后 C 端 Hot Music 列表立即读取新数据。'
+                    : editingAsset.kind === 'singer_photo'
+                      ? '修改歌手信息、分类、排序和展示状态。'
+                      : '修改视觉风格信息、提示词、排序和展示状态。'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAsset(null)}
+                disabled={saveEdit.isPending}
+                className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+                aria-label="关闭编辑弹窗"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="text-xs font-medium text-slate-600">
+                  唯一 code
+                  <input
+                    value={editDraft.code}
+                    onChange={(event) => setEditDraft({ ...editDraft, code: event.target.value })}
+                    disabled={saveEdit.isPending}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="text-xs font-medium text-slate-600">
+                  英文名称
+                  <input
+                    value={editDraft.nameEn}
+                    onChange={(event) => setEditDraft({ ...editDraft, nameEn: event.target.value })}
+                    disabled={saveEdit.isPending}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="text-xs font-medium text-slate-600 md:col-span-2">
+                  英文描述
+                  <textarea
+                    value={editDraft.descriptionEn}
+                    onChange={(event) => setEditDraft({ ...editDraft, descriptionEn: event.target.value })}
+                    disabled={saveEdit.isPending}
+                    className="mt-1 min-h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                  />
+                </label>
+
+                {editingAsset.kind === 'singer_photo' ? (
+                  <label className="text-xs font-medium text-slate-600">
+                    歌手分类
+                    <select
+                      value={editDraft.category}
+                      onChange={(event) => setEditDraft({ ...editDraft, category: event.target.value })}
+                      disabled={saveEdit.isPending}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                    >
+                      {SINGER_CATEGORY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </label>
+                ) : (
+                  <label className="text-xs font-medium text-slate-600">
+                    分类
+                    <input
+                      value={editDraft.category}
+                      onChange={(event) => setEditDraft({ ...editDraft, category: event.target.value })}
+                      disabled={saveEdit.isPending}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                    />
+                  </label>
+                )}
+
+                <label className="text-xs font-medium text-slate-600">
+                  排序
+                  <input
+                    type="number"
+                    value={editDraft.sortOrder}
+                    onChange={(event) => setEditDraft({ ...editDraft, sortOrder: Number(event.target.value) })}
+                    disabled={saveEdit.isPending}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                  />
+                </label>
+
+                {editingAsset.kind === 'hot_music' && <>
+                  <label className="text-xs font-medium text-slate-600">
+                    歌手名称
+                    <input
+                      value={editDraft.artist}
+                      onChange={(event) => setEditDraft({ ...editDraft, artist: event.target.value })}
+                      disabled={saveEdit.isPending}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-600">
+                    时长（秒）
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={editDraft.durationSec || ''}
+                      onChange={(event) => setEditDraft({ ...editDraft, durationSec: Number(event.target.value) })}
+                      disabled={saveEdit.isPending}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                    />
+                  </label>
+                </>}
+
+                {editingAsset.kind === 'mv_style' && (
+                  <label className="text-xs font-medium text-slate-600 md:col-span-2">
+                    风格提示词
+                    <textarea
+                      value={editDraft.stylePrompt}
+                      onChange={(event) => setEditDraft({ ...editDraft, stylePrompt: event.target.value })}
+                      disabled={saveEdit.isPending}
+                      className="mt-1 min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+                    />
+                  </label>
+                )}
+
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                  <span className="text-sm font-medium text-slate-700">上架状态</span>
+                  <Switch
+                    checked={editDraft.enabled}
+                    onChange={(enabled) => setEditDraft({ ...editDraft, enabled })}
+                    disabled={saveEdit.isPending}
+                    label="上架状态"
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                  <span className="text-sm font-medium text-slate-700">Hot 标记</span>
+                  <Switch
+                    checked={editDraft.hot}
+                    onChange={(hot) => setEditDraft({ ...editDraft, hot })}
+                    disabled={saveEdit.isPending}
+                    label="Hot 标记"
+                  />
+                </div>
+              </div>
+              {saveEdit.isError && (
+                <p className="mt-3 text-sm text-red-600">{(saveEdit.error as Error).message || '保存失败，请稍后重试'}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setEditingAsset(null)}
+                disabled={saveEdit.isPending}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={saveEdit.isPending || !editDraft.code.trim() || !editDraft.nameEn.trim() || (editingAsset.kind === 'singer_photo' && !editDraft.category)}
+                onClick={() => saveEdit.mutate({ row: editingAsset, draft: editDraft })}
+                className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {saveEdit.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saveEdit.isPending ? '保存中…' : '保存修改'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {isSingerConfig && (
         <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3">
           {([['all', '全部'], ['female', 'Female'], ['male', 'Male'], ['other', 'Others']] as Array<[SingerCategory, string]>).map(([value, label]) => {
@@ -661,10 +891,10 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
                         {SINGER_CATEGORY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </select>
                     ) : row.kind === 'hot_music' ? (
-                      <>
-                        {typeof row.metadata?.artist === 'string' ? row.metadata.artist : '—'}
+                      <div>
+                        <span>{typeof row.metadata?.artist === 'string' && row.metadata.artist.trim() ? row.metadata.artist : '—'}</span>
                         <p className="text-xs text-slate-400">{row.category || '-'}</p>
-                      </>
+                      </div>
                     ) : (
                       <>
                         {row.kind}
@@ -704,17 +934,24 @@ export function AimvAssetsTab({ lockedKind }: { lockedKind?: AssetKind }) {
                     </div>
                   </td>
                   <td className="p-3 text-right">
-                    {canEdit && (
+                    {canEdit && <div className="flex items-center justify-end gap-3">
+                      <button
+                        disabled={assetActionPending}
+                        onClick={() => editAsset(row)}
+                        className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> 编辑
+                      </button>
                       <button
                         disabled={assetActionPending}
                         onClick={() => void deleteAsset(row)}
-                        className="text-red-600 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-red-600 disabled:opacity-50"
                       >
                         {remove.isPending && remove.variables === row.id
-                          ? <Loader2 className="inline h-4 w-4 animate-spin" />
-                          : <Trash2 className="inline h-4 w-4" />} 删除
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Trash2 className="h-4 w-4" />} 删除
                       </button>
-                    )}
+                    </div>}
                   </td>
                 </tr>
               ))}
