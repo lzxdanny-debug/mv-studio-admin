@@ -13,9 +13,11 @@ import { AimvCreationStylesTab } from '@/components/aimv-creation-styles-tab';
 import { Switch } from '@/components/ui/switch';
 import { AdminDataTransferActions } from '@/components/admin-data-transfer-actions';
 import { useConfirm } from '@/components/ui/dialog-provider';
+import { AimvParameterManagement } from '@/components/aimv-parameter-management';
 
 type TabKey =
   | 'settings'
+  | 'parameters'
   | 'templates'
   | 'singers'
   | 'hot-music'
@@ -31,6 +33,7 @@ type TemplateEditorTab = 'basic' | 'creation';
 
 const TABS: Array<{ key: TabKey; label: string; permission: string }> = [
   { key: 'settings', label: '基础设置', permission: 'aimv.settings.view' },
+  { key: 'parameters', label: '参数管理', permission: 'aimv.settings.view' },
   { key: 'templates', label: '模板与类型', permission: 'aimv.content.view' },
   { key: 'singers', label: '歌手配置', permission: 'aimv.content.view' },
   { key: 'hot-music', label: 'Hot 音乐', permission: 'aimv.content.view' },
@@ -214,7 +217,6 @@ const LIST_FIELDS: Array<{ key: keyof AimvSettings; label: string; hint: string 
   { key: 'musicMimeTypes', label: '音乐 MIME', hint: 'audio/mpeg, audio/wav' },
   { key: 'imageExtensions', label: '图片扩展名', hint: 'jpg, png, webp' },
   { key: 'imageMimeTypes', label: '图片 MIME', hint: 'image/jpeg, image/png' },
-  { key: 'allowedAspectRatios', label: '允许画面比例', hint: '16:9, 9:16, 1:1' },
   { key: 'allowedResolutions', label: '允许分辨率', hint: '720p, 1080p' },
   { key: 'allowedVideoFormats', label: '允许视频格式', hint: 'mp4,mov,avi,webm（偏好统计；合成仍输出 mp4）' },
 ];
@@ -280,7 +282,9 @@ export default function AimvGeneratorConfigPage() {
       <main className="min-h-0 flex-1 overflow-y-auto p-6">
         <div className="w-full [&>div]:!mx-0 [&>div]:!max-w-none [&>div]:!w-full">
           {tab === 'settings' ? (
-            <SettingsTab onSaved={() => queryClient.invalidateQueries({ queryKey: ['aimv-settings'] })} />
+            <BaseSettingsTab onSaved={() => queryClient.invalidateQueries({ queryKey: ['aimv-settings'] })} />
+          ) : tab === 'parameters' ? (
+            <AimvParameterManagement />
           ) : tab === 'templates' ? (
             <TemplatesTab />
           ) : tab === 'singers' ? (
@@ -310,7 +314,7 @@ export default function AimvGeneratorConfigPage() {
   );
 }
 
-function SettingsTab({ onSaved }: { onSaved: () => void }) {
+function BaseSettingsTab({ onSaved }: { onSaved: () => void }) {
   const canEdit = useAdminAuthStore((state) => state.hasPermission('aimv.settings.edit'));
   const [form, setForm] = useState<AimvSettings | null>(null);
   const [message, setMessage] = useState('');
