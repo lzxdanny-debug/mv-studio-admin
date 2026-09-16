@@ -82,6 +82,11 @@ interface PaymentDetail {
   refunds: RefundRow[];
 }
 
+function stripeDashboardUrl(providerPaymentId: string): string {
+  const collection = providerPaymentId.startsWith('in_') ? 'invoices' : 'payments';
+  return `https://dashboard.stripe.com/${collection}/${providerPaymentId}`;
+}
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
@@ -330,7 +335,7 @@ export default function PaymentDetailPage({
                 </Row>
                 {data.providerPaymentId && (
                   <a
-                    href={`https://dashboard.stripe.com/payments/${data.providerPaymentId}`}
+                    href={stripeDashboardUrl(data.providerPaymentId)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-2"
