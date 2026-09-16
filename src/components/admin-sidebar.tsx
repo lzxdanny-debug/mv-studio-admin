@@ -216,6 +216,13 @@ const ALL_NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    key: 'inspiration',
+    title: 'Inspiration',
+    items: [
+      { href: '/admin/inspiration', label: '产品与运行配置', icon: Sparkles, permission: 'inspiration.content.view' },
+    ],
+  },
+  {
     key: 'karaoke',
     title: 'Karaoke 业务',
     subgroups: [
