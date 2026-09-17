@@ -121,7 +121,7 @@ function DisplayModels() {
         <div className="min-w-[280px] max-w-xl flex-1"><Label>展示模型</Label><select disabled={create.isPending} value={family} onChange={(event) => setFamily(event.target.value)} className="control"><option value="">暂无可添加模型</option>{available.map((item) => <option key={item} value={item}>{displayName(item)}</option>)}</select></div>
         {canEdit && <button disabled={!family || create.isPending} onClick={() => { if (!create.isPending) create.mutate(family); }} className="primary-button h-10">{create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{create.isPending ? '添加中' : '加入展示'}</button>}
       </div>
-      <p className="mt-3 text-xs text-slate-500">展示模型只决定用户端看到的名称，与实际调用渠道没有绑定关系。候选名称来自已配置渠道中的视频模型，并合并 fast、版本号和生成方式。</p>
+      <p className="mt-3 text-xs text-slate-500">展示模型决定用户端名称和支持规格；当用户选择的模型支持当前画面比例时，系统会优先调用这里配置的“首选执行”。候选名称来自已配置渠道中的视频模型，并合并 fast、版本号和生成方式。</p>
       {create.isError && <ErrorText error={create.error} />}
     </section>
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -163,7 +163,7 @@ function RoutingPriority() {
   if (routing.isLoading || catalog.isLoading) return <Loading />;
   const standardCatalog = { ...catalog.data!, capabilities: catalog.data!.capabilities.filter((capability) => capability !== 'videoLipsync') };
   return <div className="space-y-4">
-    <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">路由与展示模型完全独立。系统严格按照优先级 1、2、3…依次调用；上一项失败或超时才进入下一项，全部失败后退款。</div>
+    <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">这是用户所选模型失败后的全局兜底链。所选模型支持当前画面比例时，先调用其“首选执行”，失败或超时后再按这里的优先级依次尝试；所选模型不支持该比例时，直接使用对应的画面比例路由。</div>
     <RouteCard initialRows={routing.data?.routes ?? []} catalog={standardCatalog} canEdit={canEdit} endpoint="/admin/aimv-generator/routing" queryKey="aimv-routing" title="AI MV 全局调用链" description="每个优先级可以独立选择视频能力、渠道和精确模型" />
   </div>;
 }
