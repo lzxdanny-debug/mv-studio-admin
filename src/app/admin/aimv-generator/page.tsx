@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { CheckCircle2, CircleHelp, Languages, Loader2, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,7 @@ type TabKey =
 
 type TemplateEditorTab = 'basic' | 'creation';
 
-const TABS: Array<{ key: TabKey; label: string; permission: string }> = [
+const ALL_TABS: Array<{ key: TabKey; label: string; permission: string }> = [
   { key: 'settings', label: '基础设置', permission: 'aimv.settings.view' },
   { key: 'parameters', label: '参数管理', permission: 'aimv.settings.view' },
   { key: 'templates', label: '模板与类型', permission: 'aimv.content.view' },
@@ -43,8 +43,23 @@ const TABS: Array<{ key: TabKey; label: string; permission: string }> = [
   { key: 'capacity', label: '并发与速率', permission: 'aimv.routing.view' },
   { key: 'queue', label: '排队管理池', permission: 'aimv.queue.view' },
   { key: 'retention', label: '存储清理', permission: 'aimv.queue.view' },
-  { key: 'pricing', label: '计费与会员', permission: 'aimv.pricing.view' },
+  { key: 'pricing', label: '计费设置', permission: 'aimv.pricing.view' },
 ];
+
+const PAGE_META: Record<TabKey, { title: string; description: string; translatable?: boolean }> = {
+  settings: { title: 'AIMV 产品设置', description: '配置 AIMV 产品开关、上传规则、生成时长和默认输出规格。' },
+  parameters: { title: 'AIMV 参数管理', description: '配置 AIMV 画面比例及其生成模型候选顺序。' },
+  templates: { title: 'AIMV 模板管理', description: '维护 AIMV 模板、类型、预览素材和创建参数。', translatable: true },
+  singers: { title: '歌手配置', description: '维护产品中心共用的歌手图片和展示信息。', translatable: true },
+  'hot-music': { title: 'Hot 音乐', description: '维护产品中心共用的热门音乐素材。', translatable: true },
+  'creation-styles': { title: '创作风格库', description: '维护产品中心共用的创作风格和预览素材。', translatable: true },
+  assets: { title: '素材库', description: '统一管理产品中心生成流程使用的公共素材。', translatable: true },
+  resolvers: { title: '歌曲链接识别', description: '配置歌曲链接的解析与识别规则。' },
+  capacity: { title: '并发配置', description: '管理模型容量、全局并发、提交速率与排队超时。' },
+  queue: { title: '队列管理', description: '查看生成任务队列，并处理加急、取消、重试和异常状态。' },
+  retention: { title: '存储清理', description: '管理 AIMV 成片到期提醒、对象存储清理任务及失败重试。' },
+  pricing: { title: '计费设置', description: '配置模型价格、积分换算、盈利系数与分辨率倍率。' },
+};
 
 interface AimvSettings {
   enabled: boolean;
@@ -212,72 +227,34 @@ const NUMBER_FIELDS: Array<{ key: keyof AimvSettings; label: string; unit: strin
   { key: 'storageRetentionDays', label: '存储有效期', unit: '天' },
 ];
 
-const LIST_FIELDS: Array<{ key: keyof AimvSettings; label: string; hint: string }> = [
-  { key: 'musicExtensions', label: '音乐扩展名', hint: 'mp3, wav, m4a' },
-  { key: 'musicMimeTypes', label: '音乐 MIME', hint: 'audio/mpeg, audio/wav' },
-  { key: 'imageExtensions', label: '图片扩展名', hint: 'jpg, png, webp' },
-  { key: 'imageMimeTypes', label: '图片 MIME', hint: 'image/jpeg, image/png' },
-  { key: 'allowedResolutions', label: '允许分辨率', hint: '720p, 1080p' },
-  { key: 'allowedVideoFormats', label: '允许视频格式', hint: 'mp4,mov,avi,webm（偏好统计；合成仍输出 mp4）' },
-];
-
-function splitList(value: string): string[] {
-  return value.split(',').map((item) => item.trim()).filter(Boolean);
-}
-
 export default function AimvGeneratorConfigPage() {
   const queryClient = useQueryClient();
   const pathname = usePathname();
-  const router = useRouter();
-  const permissions = useAdminAuthStore((state) => state.permissions);
-  const hasPermission = useAdminAuthStore((state) => state.hasPermission);
-  const visibleTabs = useMemo(
-    () => TABS.filter((tab) => permissions.includes('*') || hasPermission(tab.permission)),
-    [hasPermission, permissions],
-  );
   const routeTab = pathname.split('/').filter(Boolean).at(-1);
   const [tab, setTab] = useState<TabKey>(
-    TABS.some((item) => item.key === routeTab) ? routeTab as TabKey : 'settings',
+    ALL_TABS.some((item) => item.key === routeTab) ? routeTab as TabKey : 'settings',
   );
 
   useEffect(() => {
-    if (TABS.some((item) => item.key === routeTab)) setTab(routeTab as TabKey);
+    if (ALL_TABS.some((item) => item.key === routeTab)) setTab(routeTab as TabKey);
   }, [routeTab]);
 
-  useEffect(() => {
-    if (!visibleTabs.some((item) => item.key === tab) && visibleTabs[0]) setTab(visibleTabs[0].key);
-  }, [tab, visibleTabs]);
+  const pageMeta = PAGE_META[tab];
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b border-slate-200 bg-white px-6 pt-5">
+      <header className="shrink-0 border-b border-slate-200 bg-white px-6 py-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900">
-              <Sparkles className="h-5 w-5 text-violet-600" />AI MV Generator 配置中心
+              <Sparkles className="h-5 w-5 text-violet-600" />{pageMeta.title}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">配置只作用于新产品，不影响现有 MV、Dance、Karaoke 和 Video Effects。</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">{pageMeta.description}</p>
           </div>
-          <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+          {pageMeta.translatable ? <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
             运营只填写英语，其他语言保存时自动生成
-          </div>
+          </div> : null}
         </div>
-        <nav className="mt-5 flex gap-1 overflow-x-auto">
-          {visibleTabs.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => router.push(`/admin/aimv-generator/${item.key}`)}
-              className={cn(
-                'whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors',
-                tab === item.key
-                  ? 'border-violet-600 font-medium text-violet-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800',
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto p-6">
         <div className="w-full [&>div]:!mx-0 [&>div]:!max-w-none [&>div]:!w-full">
@@ -306,7 +283,7 @@ export default function AimvGeneratorConfigPage() {
           ) : tab === 'pricing' ? (
             <PricingTab />
           ) : (
-            <PlannedTab tab={TABS.find((item) => item.key === tab)?.label ?? ''} />
+            <PlannedTab tab={ALL_TABS.find((item) => item.key === tab)?.label ?? ''} />
           )}
         </div>
       </main>
@@ -352,17 +329,6 @@ function BaseSettingsTab({ onSaved }: { onSaved: () => void }) {
                 <input disabled={!canEdit || save.isPending} type="number" min={['storyboardConcurrency', 'shotConcurrency', 'storyboardTimeoutSec', 'shotTimeoutSec'].includes(field.key) ? 0 : 1} value={Number(form[field.key])} onChange={(e) => set(field.key, Number(e.target.value) as never)} className="min-w-0 flex-1 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50" />
                 <span className="px-3 py-2 text-slate-400">{field.unit}</span>
               </div>
-            </label>
-          ))}
-        </div>
-      </section>
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-900">格式白名单</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {LIST_FIELDS.map((field) => (
-            <label key={field.key} className="text-sm text-slate-600">
-              <span>{field.label}</span>
-              <input disabled={!canEdit || save.isPending} value={(form[field.key] as string[]).join(', ')} placeholder={field.hint} onChange={(e) => set(field.key, splitList(e.target.value) as never)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-violet-400 disabled:bg-slate-50" />
             </label>
           ))}
         </div>

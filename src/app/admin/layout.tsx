@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 import { AdminSidebar } from '@/components/admin-sidebar';
 import { ForbiddenPanel } from '@/components/forbidden-panel';
+import { isMvProductCenterPath, MvProductCenterTabs } from '@/components/mv-product-center-tabs';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { adminUser, isAuthenticated, refreshSession, hasRoutePermission } =
@@ -43,12 +44,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const routeAllowed = hasRoutePermission(pathname);
+  const inMvProductCenter = isMvProductCenterPath(pathname);
 
   return (
     <div className="h-screen bg-slate-50 text-slate-900 flex overflow-hidden">
       <AdminSidebar />
       <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-        {routeAllowed ? children : <ForbiddenPanel />}
+        {routeAllowed ? inMvProductCenter ? <>
+          <MvProductCenterTabs />
+          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+        </> : children : <ForbiddenPanel />}
       </main>
     </div>
   );

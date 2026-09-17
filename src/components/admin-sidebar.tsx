@@ -112,97 +112,60 @@ const ALL_NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    key: 'mv',
-    title: 'MV 业务',
+    key: 'mv-product-center',
+    title: 'MV 产品中心',
     subgroups: [
       {
-        key: 'mv-project',
-        label: '项目管理',
-        icon: FolderKanban,
+        key: 'mv-center-aimv',
+        label: 'AIMV',
+        icon: Wand2,
         items: [
-          { href: '/admin/mv/projects', label: 'MV 项目', icon: Film, permission: 'project.view' },
+          { href: '/admin/aimv-generator/settings', label: '产品设置', icon: SlidersHorizontal, permission: 'aimv.settings.view' },
+          { href: '/admin/aimv-generator/templates', label: '模板管理', icon: Clapperboard, permission: 'aimv.content.view' },
+          { href: '/admin/aimv-generator/models', label: '产品模型', icon: Route, permission: 'aimv.routing.view' },
+        ],
+      },
+      {
+        key: 'mv-center-inspiration',
+        label: 'Inspiration',
+        icon: Sparkles,
+        items: [
+          { href: '/admin/inspiration/products', label: '模板与版本', icon: Layers, permission: 'inspiration.content.view' },
+          { href: '/admin/inspiration/forms', label: '产品形态', icon: Boxes, permission: 'inspiration.content.view' },
+          { href: '/admin/inspiration/models', label: '模型绑定', icon: Route, permission: 'inspiration.models.view' },
+          { href: '/admin/inspiration/tasks', label: '生成任务', icon: Activity, permission: 'inspiration.tasks.view' },
+        ],
+      },
+      {
+        key: 'mv-center-common',
+        label: '通用配置',
+        icon: Settings,
+        items: [
+          { href: '/admin/mv-product-center/common/parameters', label: '参数配置', icon: Settings },
+          { href: '/admin/mv-product-center/common/runtime', label: '运行配置', icon: Gauge },
+          { href: '/admin/aimv-generator/retention', label: '存储清理', icon: HardDrive, permission: 'aimv.queue.view' },
+          { href: '/admin/aimv-generator/pricing', label: '计费设置', icon: Coins, permission: 'aimv.pricing.view' },
+        ],
+      },
+      {
+        key: 'mv-center-content',
+        label: '生成内容',
+        icon: Film,
+        items: [
+          { href: '/admin/mv-product-center/content', label: '成片列表', icon: Clapperboard, permission: 'aimv.queue.view' },
+        ],
+      },
+      {
+        key: 'mv-center-legacy',
+        label: 'MV 基础能力',
+        icon: Film,
+        items: [
+          { href: '/admin/mv/projects', label: 'MV 项目', icon: FolderKanban, permission: 'project.view' },
           { href: '/admin/mv/charts', label: '热门榜单', icon: ListOrdered, permission: 'project.view' },
-        ],
-      },
-      {
-        key: 'mv-content',
-        label: '内容配置',
-        icon: Layers,
-        items: [
-          { href: '/admin/mv/styles', label: '风格库', icon: Palette, permission: 'asset.view' },
-          {
-            href: '/admin/mv/dance-styles',
-            label: '舞蹈风格库',
-            icon: PersonStanding,
-            permission: 'asset.view',
-          },
-          {
-            href: '/admin/mv/beat-effects',
-            label: '节拍特效库',
-            icon: Activity,
-            permission: 'asset.view',
-          },
-          {
-            href: '/admin/mv/character-presets',
-            label: '默认角色图',
-            icon: UserSquare,
-            permission: 'asset.view',
-          },
-          {
-            href: '/admin/mv/defaults',
-            label: 'MV 字幕默认',
-            icon: SlidersHorizontal,
-            permission: 'system.manage',
-          },
-          {
-            href: '/admin/content/discovery',
-            label: 'Discovery 搜索',
-            icon: Sparkles,
-            permission: 'system.manage',
-          },
-        ],
-      },
-      {
-        key: 'mv-marketing',
-        label: '内容运营',
-        icon: Clapperboard,
-        items: [
-          {
-            href: '/admin/content/showcase',
-            label: '营销素材 / 灵感跑马灯',
-            icon: Clapperboard,
-            permission: 'marketing.view',
-          },
-          {
-            href: '/admin/content/articles',
-            label: '文章',
-            icon: FileText,
-            permission: 'blog.view',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    key: 'ai-music-video',
-    title: 'AI MV Generator',
-    subgroups: [
-      {
-        key: 'aimv-product-content',
-        label: '产品配置',
-        icon: Layers,
-        items: [
-          { href: '/admin/aimv-generator/settings', label: '配置中心', icon: SlidersHorizontal, permission: 'aimv.settings.view' },
-          { href: '/admin/aimv-generator/models', label: '模型配置', icon: Route, permission: 'aimv.routing.view' },
-          { href: '/admin/ai-music-video/styles', label: '风格库', icon: Palette, permission: 'marketing.view' },
-        ],
-      },
-      {
-        key: 'aimv-project-management',
-        label: '项目管理',
-        icon: Activity,
-        items: [
-          { href: '/admin/ai-music-video/projects', label: '生成内容', icon: Film, permission: 'aimv.queue.view' },
+          { href: '/admin/mv/styles', label: '基础风格库', icon: Palette, permission: 'asset.view' },
+          { href: '/admin/mv/character-presets', label: '默认角色图', icon: UserSquare, permission: 'asset.view' },
+          { href: '/admin/mv/defaults', label: '字幕默认值', icon: SlidersHorizontal, permission: 'system.manage' },
+          { href: '/admin/content/discovery', label: 'Discovery 搜索', icon: Sparkles, permission: 'system.manage' },
         ],
       },
     ],
@@ -213,13 +176,6 @@ const ALL_NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/admin/music/tasks', label: '音乐任务', icon: Disc3, permission: 'music.view' },
       { href: '/admin/tools/lrc', label: 'LRC 任务', icon: FileText, permission: 'tools.lrc.view' },
-    ],
-  },
-  {
-    key: 'inspiration',
-    title: 'Inspiration',
-    items: [
-      { href: '/admin/inspiration', label: '产品与运行配置', icon: Sparkles, permission: 'inspiration.content.view' },
     ],
   },
   {
@@ -814,10 +770,10 @@ const HIDDEN_BUSINESS_SECTION_KEYS = new Set([
 ]);
 
 // 新产品使用 AI MV Generator 自己的模型与计费配置；旧创作/音乐定价暂不展示。
-const HIDDEN_NAV_SUBGROUP_KEYS = new Set(['billing-pricing', 'billing-music']);
+const HIDDEN_NAV_SUBGROUP_KEYS = new Set(['billing-pricing', 'billing-music', 'mv-center-legacy']);
 
 // 暂时隐藏页面入口，保留路由和权限配置，方便后续恢复。
-const HIDDEN_NAV_ITEM_HREFS = new Set(['/admin/logs', '/admin/ai-routing']);
+const HIDDEN_NAV_ITEM_HREFS = new Set(['/admin/logs', '/admin/content/articles']);
 
 const NAV_SECTIONS = ALL_NAV_SECTIONS.filter(
   (section) => !HIDDEN_BUSINESS_SECTION_KEYS.has(section.key),
@@ -1020,11 +976,11 @@ function NavSectionBlock({
   const sectionActive = sectionHasActive(pathname, section);
 
   const sectionHeader = (
-    <div className="px-3 pt-3 pb-2">
+    <div className={cn('px-3 pt-3 pb-2', section.key === 'mv-product-center' && 'mx-1 mt-1 rounded-lg bg-gradient-to-r from-violet-50 to-blue-50 py-2.5')}>
       <span
         className={cn(
-          'text-[10px] font-semibold tracking-wide',
-          sectionActive ? 'text-slate-600' : 'text-slate-400',
+          'text-[10px] font-semibold tracking-[.12em]',
+          section.key === 'mv-product-center' ? 'text-violet-700' : sectionActive ? 'text-slate-600' : 'text-slate-400',
         )}
       >
         {section.title}
