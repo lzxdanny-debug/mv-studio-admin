@@ -80,6 +80,7 @@ interface AimvSettings {
   defaultVideoFormat: string;
   creativeDescriptionMaxLength: number;
   activeMvConcurrency: number;
+  userActiveMvConcurrency: number;
   storyboardConcurrency: number;
   shotConcurrency: number;
   releaseNextProjectAfterShotsCompleted: boolean;

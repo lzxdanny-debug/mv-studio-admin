@@ -46,6 +46,7 @@ interface Capacity { id: string; provider: Provider; exactModel: string; globalC
 
 interface AimvRuntimeSettings {
   activeMvConcurrency: number;
+  userActiveMvConcurrency: number;
   storyboardConcurrency: number;
   shotConcurrency: number;
   releaseNextProjectAfterShotsCompleted: boolean;
@@ -64,6 +65,7 @@ interface AimvSettingsResponse {
 
 const RUNTIME_NUMBER_FIELDS: Array<{ key: keyof Omit<AimvRuntimeSettings, 'releaseNextProjectAfterShotsCompleted'>; label: string; unit: string; hint: string }> = [
   { key: 'activeMvConcurrency', label: '同时生成 MV 上限', unit: '部', hint: '0 表示不限制；超过上限的项目保持 Waiting。' },
+  { key: 'userActiveMvConcurrency', label: '单用户同时生成 MV 上限', unit: '部', hint: '0 表示不限制；同一用户超过上限的项目保持 Waiting。' },
   { key: 'storyboardConcurrency', label: '单部 MV 故事板并发', unit: '个', hint: '同一部 MV 同时生成的故事板图片数；0 表示不限制。' },
   { key: 'shotConcurrency', label: '单部 MV 镜头并发', unit: '个', hint: '同一部 MV 同时生成的视频镜头数；0 表示不限制。' },
   { key: 'storyboardTimeoutSec', label: '故事板超时', unit: '秒', hint: '单个故事板任务的最长执行时间；0 表示不限制。' },
@@ -84,6 +86,7 @@ export function AimvProjectRuntimeTab() {
     const settings = query.data.settings;
     setForm({
       activeMvConcurrency: settings.activeMvConcurrency,
+      userActiveMvConcurrency: settings.userActiveMvConcurrency,
       storyboardConcurrency: settings.storyboardConcurrency,
       shotConcurrency: settings.shotConcurrency,
       releaseNextProjectAfterShotsCompleted: settings.releaseNextProjectAfterShotsCompleted,
@@ -97,7 +100,7 @@ export function AimvProjectRuntimeTab() {
   const save = useMutation({
     mutationFn: () => apiClient.put('/admin/aimv-generator/settings', form),
     onSuccess: () => {
-      setMessage('运行配置已保存。MV 总并发动态生效；单项目并发、超时和轮询对新创建项目生效。');
+      setMessage('运行配置已保存。MV 总并发和单用户 MV 并发动态生效；单项目并发、超时和轮询对新创建项目生效。');
       qc.invalidateQueries({ queryKey: ['aimv-settings'] });
     },
     onError: (error: Error) => setMessage(error.message || '保存失败'),
@@ -110,11 +113,11 @@ export function AimvProjectRuntimeTab() {
     || form.storyboardPollIntervalMs < 1
     || form.shotPollIntervalMs < 1;
   return <div className="w-full space-y-5">
-    <Info>这里控制 AI MV 的项目级排队和单项目执行节奏。MV 总并发动态生效，降低后不会中断已运行项目；单项目并发、超时和轮询会冻结到项目快照，对新创建项目生效。</Info>
+    <Info>这里控制 AI MV 的项目级排队和单项目执行节奏。MV 总并发与单用户 MV 并发动态生效，降低后不会中断已运行项目；单项目并发、超时和轮询会冻结到项目快照，对新创建项目生效。</Info>
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div><h2 className="font-semibold text-slate-900">项目调度与并发</h2><p className="mt-1 text-sm text-slate-500">控制同时开工的 MV 数量，以及每部 MV 内部的故事板和镜头并发。</p></div>
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        {RUNTIME_NUMBER_FIELDS.slice(0, 3).map((field) => <NumberInput key={field.key} disabled={!canEdit || save.isPending} label={field.label} hint={field.hint} value={form[field.key]} onChange={(value) => setNumber(field.key, value)} />)}
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {RUNTIME_NUMBER_FIELDS.slice(0, 4).map((field) => <NumberInput key={field.key} disabled={!canEdit || save.isPending} label={field.label} hint={field.hint} value={form[field.key]} onChange={(value) => setNumber(field.key, value)} />)}
       </div>
       <div className="mt-5 flex items-center justify-between gap-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
         <div><h3 className="text-sm font-semibold text-slate-800">镜头完成后释放下一部 MV</h3><p className="mt-1 text-xs leading-5 text-slate-500">开启后，镜头全部成功且最终合成已入队便释放 MV 名额；关闭后等待整部 MV 进入终态。</p></div>
@@ -124,7 +127,7 @@ export function AimvProjectRuntimeTab() {
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div><h2 className="font-semibold text-slate-900">超时与轮询</h2><p className="mt-1 text-sm text-slate-500">执行保护参数；一般只在上游模型耗时发生明显变化时调整。</p></div>
       <div className="mt-5 grid gap-4 md:grid-cols-3">
-        {RUNTIME_NUMBER_FIELDS.slice(3).map((field) => <NumberInput key={field.key} disabled={!canEdit || save.isPending} label={`${field.label}（${field.unit}）`} hint={field.hint} value={form[field.key]} onChange={(value) => setNumber(field.key, value)} />)}
+        {RUNTIME_NUMBER_FIELDS.slice(4).map((field) => <NumberInput key={field.key} disabled={!canEdit || save.isPending} label={`${field.label}（${field.unit}）`} hint={field.hint} value={form[field.key]} onChange={(value) => setNumber(field.key, value)} />)}
       </div>
     </section>
     <div className="flex items-center justify-end gap-3">{message && <span className="text-sm text-slate-600">{message}</span>}{canEdit && <Action disabled={save.isPending || invalid} loading={save.isPending} onClick={() => { if (!save.isPending) save.mutate(); }}><Save className="h-4 w-4" />保存运行配置</Action>}</div>
