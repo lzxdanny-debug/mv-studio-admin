@@ -24,7 +24,7 @@ export function ModelRoutingTab() {
   if (models.isLoading || catalog.isLoading) return <Loading />;
   return <div className="w-full space-y-5">
     <Info>用户端只展示一级模型，例如 Veo。候选链只能选择现有渠道目录中的精确视频模型，按从上到下依次 fallback。</Info>
-    {canEdit && <section className="rounded-xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">新增一级模型</h2><div className="mt-3 grid gap-3 md:grid-cols-3"><Input disabled={create.isPending} value={draft.code} onChange={(v) => setDraft({ ...draft, code: v })} placeholder="code，例如 veo" /><Input disabled={create.isPending} value={draft.nameEn} onChange={(v) => setDraft({ ...draft, nameEn: v })} placeholder="Name (English)" /><Input disabled={create.isPending} value={draft.descriptionEn} onChange={(v) => setDraft({ ...draft, descriptionEn: v })} placeholder="Description (English)" /></div><div className="mt-3 flex justify-end"><Action disabled={create.isPending || !draft.code || !draft.nameEn} onClick={() => { if (!create.isPending) create.mutate(); }}><Plus className="h-4 w-4" />保存并自动翻译</Action></div>{create.isError && <ErrorText error={create.error} />}</section>}
+    {canEdit && <section className="rounded-xl border border-slate-200 bg-white p-5"><h2 className="font-semibold">新增一级模型</h2><div className="mt-3 grid gap-3 md:grid-cols-3"><Input disabled={create.isPending} value={draft.code} onChange={(v) => setDraft({ ...draft, code: v })} placeholder="code，例如 veo" /><Input disabled={create.isPending} value={draft.nameEn} onChange={(v) => setDraft({ ...draft, nameEn: v })} placeholder="Name (English)" /><Input disabled={create.isPending} value={draft.descriptionEn} onChange={(v) => setDraft({ ...draft, descriptionEn: v })} placeholder="Description (English)" /></div><div className="mt-3 flex justify-end"><Action disabled={create.isPending || !draft.code || !draft.nameEn} loading={create.isPending} onClick={() => { if (!create.isPending) create.mutate(); }}><Plus className="h-4 w-4" />保存并自动翻译</Action></div>{create.isError && <ErrorText error={create.error} />}</section>}
     {(models.data ?? []).map((model) => <RouteEditor key={model.id} model={model} catalog={catalog.data!} canEdit={canEdit} />)}
     {!models.data?.length && <Empty text="尚未配置一级模型" />}
   </div>;
@@ -43,6 +43,133 @@ function RouteEditor({ model, catalog, canEdit }: { model: ProductModel; catalog
 }
 
 interface Capacity { id: string; provider: Provider; exactModel: string; globalConcurrency: number; projectConcurrency: number; userConcurrency: number; submissionsPerMinute: number; burstSize: number; maxQueueSize: number; queueTimeoutSec: number; capacityGroup: string | null; capacityGroupConcurrency: number | null; paused: boolean; enabled: boolean }
+
+interface AimvRuntimeSettings {
+  activeMvConcurrency: number;
+  storyboardConcurrency: number;
+  shotConcurrency: number;
+  releaseNextProjectAfterShotsCompleted: boolean;
+  storyboardTimeoutSec: number;
+  shotTimeoutSec: number;
+  submissionUnknownMaxWaitSec: number;
+  storyboardPollIntervalMs: number;
+  shotPollIntervalMs: number;
+}
+
+interface AimvSettingsResponse {
+  settings: AimvRuntimeSettings & Record<string, unknown>;
+  version: number;
+  updatedAt: string | null;
+}
+
+const RUNTIME_NUMBER_FIELDS: Array<{ key: keyof Omit<AimvRuntimeSettings, 'releaseNextProjectAfterShotsCompleted'>; label: string; unit: string; hint: string }> = [
+  { key: 'activeMvConcurrency', label: '同时生成 MV 上限', unit: '部', hint: '0 表示不限制；超过上限的项目保持 Waiting。' },
+  { key: 'storyboardConcurrency', label: '单部 MV 故事板并发', unit: '个', hint: '同一部 MV 同时生成的故事板图片数；0 表示不限制。' },
+  { key: 'shotConcurrency', label: '单部 MV 镜头并发', unit: '个', hint: '同一部 MV 同时生成的视频镜头数；0 表示不限制。' },
+  { key: 'storyboardTimeoutSec', label: '故事板超时', unit: '秒', hint: '单个故事板任务的最长执行时间；0 表示不限制。' },
+  { key: 'shotTimeoutSec', label: '镜头超时', unit: '秒', hint: '单个视频镜头任务的最长执行时间；0 表示不限制。' },
+  { key: 'submissionUnknownMaxWaitSec', label: '未知状态最大等待', unit: '秒', hint: '渠道提交结果不明确时，自动处理前的最长等待时间。' },
+  { key: 'storyboardPollIntervalMs', label: '故事板轮询间隔', unit: 'ms', hint: '查询故事板上游任务状态的间隔。' },
+  { key: 'shotPollIntervalMs', label: '镜头轮询间隔', unit: 'ms', hint: '查询视频上游任务状态的间隔。' },
+];
+
+export function AimvProjectRuntimeTab() {
+  const qc = useQueryClient();
+  const canEdit = useAdminAuthStore((s) => s.hasPermission('aimv.settings.edit'));
+  const query = useQuery<AimvSettingsResponse>({ queryKey: ['aimv-settings'], queryFn: () => apiClient.get('/admin/aimv-generator/settings') as Promise<AimvSettingsResponse> });
+  const [form, setForm] = useState<AimvRuntimeSettings | null>(null);
+  const [message, setMessage] = useState('');
+  useEffect(() => {
+    if (!query.data) return;
+    const settings = query.data.settings;
+    setForm({
+      activeMvConcurrency: settings.activeMvConcurrency,
+      storyboardConcurrency: settings.storyboardConcurrency,
+      shotConcurrency: settings.shotConcurrency,
+      releaseNextProjectAfterShotsCompleted: settings.releaseNextProjectAfterShotsCompleted,
+      storyboardTimeoutSec: settings.storyboardTimeoutSec,
+      shotTimeoutSec: settings.shotTimeoutSec,
+      submissionUnknownMaxWaitSec: settings.submissionUnknownMaxWaitSec,
+      storyboardPollIntervalMs: settings.storyboardPollIntervalMs,
+      shotPollIntervalMs: settings.shotPollIntervalMs,
+    });
+  }, [query.data]);
+  const save = useMutation({
+    mutationFn: () => apiClient.put('/admin/aimv-generator/settings', form),
+    onSuccess: () => {
+      setMessage('运行配置已保存。MV 总并发动态生效；单项目并发、超时和轮询对新创建项目生效。');
+      qc.invalidateQueries({ queryKey: ['aimv-settings'] });
+    },
+    onError: (error: Error) => setMessage(error.message || '保存失败'),
+  });
+  if (query.isLoading || !form) return <Loading />;
+  if (query.isError) return <ErrorText error={query.error} />;
+  const setNumber = (key: keyof Omit<AimvRuntimeSettings, 'releaseNextProjectAfterShotsCompleted'>, value: number) => setForm({ ...form, [key]: value });
+  const invalid = RUNTIME_NUMBER_FIELDS.some((field) => !Number.isInteger(form[field.key]) || form[field.key] < 0)
+    || form.submissionUnknownMaxWaitSec < 1
+    || form.storyboardPollIntervalMs < 1
+    || form.shotPollIntervalMs < 1;
+  return <div className="w-full space-y-5">
+    <Info>这里控制 AI MV 的项目级排队和单项目执行节奏。MV 总并发动态生效，降低后不会中断已运行项目；单项目并发、超时和轮询会冻结到项目快照，对新创建项目生效。</Info>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div><h2 className="font-semibold text-slate-900">项目调度与并发</h2><p className="mt-1 text-sm text-slate-500">控制同时开工的 MV 数量，以及每部 MV 内部的故事板和镜头并发。</p></div>
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {RUNTIME_NUMBER_FIELDS.slice(0, 3).map((field) => <NumberInput key={field.key} disabled={!canEdit || save.isPending} label={field.label} hint={field.hint} value={form[field.key]} onChange={(value) => setNumber(field.key, value)} />)}
+      </div>
+      <div className="mt-5 flex items-center justify-between gap-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div><h3 className="text-sm font-semibold text-slate-800">镜头完成后释放下一部 MV</h3><p className="mt-1 text-xs leading-5 text-slate-500">开启后，镜头全部成功且最终合成已入队便释放 MV 名额；关闭后等待整部 MV 进入终态。</p></div>
+        <Switch checked={form.releaseNextProjectAfterShotsCompleted} onChange={(checked) => setForm({ ...form, releaseNextProjectAfterShotsCompleted: checked })} disabled={!canEdit || save.isPending} label="镜头完成后释放队列" size="lg" />
+      </div>
+    </section>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div><h2 className="font-semibold text-slate-900">超时与轮询</h2><p className="mt-1 text-sm text-slate-500">执行保护参数；一般只在上游模型耗时发生明显变化时调整。</p></div>
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {RUNTIME_NUMBER_FIELDS.slice(3).map((field) => <NumberInput key={field.key} disabled={!canEdit || save.isPending} label={`${field.label}（${field.unit}）`} hint={field.hint} value={form[field.key]} onChange={(value) => setNumber(field.key, value)} />)}
+      </div>
+    </section>
+    <div className="flex items-center justify-end gap-3">{message && <span className="text-sm text-slate-600">{message}</span>}{canEdit && <Action disabled={save.isPending || invalid} loading={save.isPending} onClick={() => { if (!save.isPending) save.mutate(); }}><Save className="h-4 w-4" />保存运行配置</Action>}</div>
+  </div>;
+}
+
+interface WorkerRuntimeOverview {
+  workers: Array<{ workerId: string; online: boolean; slotGroups?: { aimv: { running: number; max: number } } }>;
+  workerRuntime: { aimvMaxSlots: number | null };
+}
+
+export function AimvWorkerCapacityTab() {
+  const qc = useQueryClient();
+  const query = useQuery<WorkerRuntimeOverview>({ queryKey: ['admin', 'worker-dashboard'], queryFn: () => apiClient.get('/admin/system/local-storage') as Promise<WorkerRuntimeOverview>, refetchInterval: 10_000 });
+  const [draft, setDraft] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [message, setMessage] = useState('');
+  useEffect(() => {
+    if (!dirty && query.data?.workerRuntime) setDraft(query.data.workerRuntime.aimvMaxSlots == null ? '' : String(query.data.workerRuntime.aimvMaxSlots));
+  }, [dirty, query.data?.workerRuntime]);
+  const save = useMutation({
+    mutationFn: () => apiClient.patch('/admin/system/local-storage/workers/runtime-config', { aimvMaxSlots: draft === '' ? null : Number(draft) }),
+    onSuccess: () => { setDirty(false); setMessage('Worker 槽位已保存，将在下一次心跳动态生效。'); qc.invalidateQueries({ queryKey: ['admin', 'worker-dashboard'] }); },
+    onError: (error: Error) => setMessage(error.message || '保存失败'),
+  });
+  if (query.isLoading) return <Loading />;
+  if (query.isError) return <ErrorText error={query.error} />;
+  const workers = query.data?.workers ?? [];
+  const online = workers.filter((worker) => worker.online);
+  const running = online.reduce((sum, worker) => sum + (worker.slotGroups?.aimv.running ?? 0), 0);
+  const max = online.reduce((sum, worker) => sum + (worker.slotGroups?.aimv.max ?? 0), 0);
+  const invalid = draft !== '' && (!Number.isInteger(Number(draft)) || Number(draft) < 0 || Number(draft) > 1000);
+  return <div className="w-full space-y-5">
+    <Info>该配置按单台 Worker 生效。多台 Worker 的总 AI MV 容量为各在线实例槽位之和；模型容量和项目并发仍会继续限制实际吞吐。</Info>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg bg-slate-50 p-4"><p className="text-xs text-slate-500">在线 Worker</p><p className="mt-1 text-2xl font-bold text-slate-900">{online.length} / {workers.length}</p></div>
+        <div className="rounded-lg bg-slate-50 p-4"><p className="text-xs text-slate-500">当前 AI MV 总槽位</p><p className="mt-1 text-2xl font-bold text-slate-900">{running} / {max}</p></div>
+        <label className="rounded-lg border border-blue-100 bg-blue-50/60 p-4 text-xs font-medium text-slate-600">每台 Worker AIMV 槽位<input type="number" min={0} max={1000} step={1} value={draft} placeholder={online[0]?.slotGroups?.aimv ? `环境值 ${online[0].slotGroups?.aimv.max}` : '使用环境变量'} onChange={(event) => { setDraft(event.target.value); setDirty(true); }} className="mt-2 block w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" /></label>
+      </div>
+      <p className="mt-3 text-xs text-slate-500">留空回退各 Worker 的 WORKER_AIMV_MAX_SLOTS；设为 0 暂停领取新片段。正在执行的片段不会被中断。</p>
+    </section>
+    <div className="flex items-center justify-end gap-3">{message && <span className="text-sm text-slate-600">{message}</span>}<Action disabled={!dirty || save.isPending || invalid} loading={save.isPending} onClick={() => save.mutate()}><Save className="h-4 w-4" />保存 Worker 槽位</Action></div>
+  </div>;
+}
 
 function modelFamily(exactModel: string): string {
   const segments = exactModel.split('/').filter(Boolean);
@@ -66,7 +193,7 @@ export function CapacityTab() {
   const videoModels = (catalog.data?.models[activeProvider] ?? []).filter((model) => !isTextModel(model));
   const families = [...new Set(videoModels.map(modelFamily))];
   return <div className="w-full space-y-5">
-    <Info>按渠道和精确模型配置容量。全局并发限制模型总量；项目并发限制单部 MV；用户并发限制同一用户。三层限制同时生效，实际可用值取最先达到的上限。</Info>
+    <Info>按渠道和精确模型配置容量。全局并发限制模型任务总量；用户并发限制同一用户跨多部 MV 的模型任务总量。单部 MV 的镜头速度统一在“产品设置 → 项目内镜头并发”配置。</Info>
     <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
       {catalog.data?.providers.map((provider) => <button key={provider} type="button" onClick={() => setActiveProvider(provider)} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium capitalize ${activeProvider === provider ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{provider}</button>)}
     </div>
@@ -84,25 +211,23 @@ function CapacityFamilyEditor({ provider, family, exactModels, rows, canEdit }: 
   const qc = useQueryClient();
   const configured = rows.filter((row) => row.provider === provider && exactModels.includes(row.exactModel));
   const configuredGlobalConcurrency = configured[0]?.globalConcurrency ?? 8;
-  const configuredProjectConcurrency = configured[0]?.projectConcurrency ?? 3;
   const configuredUserConcurrency = configured[0]?.userConcurrency ?? 3;
   const configuredQueueTimeoutSec = configured[0]?.queueTimeoutSec ?? 3600;
   const [globalConcurrency, setGlobalConcurrency] = useState(configuredGlobalConcurrency);
-  const [projectConcurrency, setProjectConcurrency] = useState(configuredProjectConcurrency);
   const [userConcurrency, setUserConcurrency] = useState(configuredUserConcurrency);
   const [queueTimeoutSec, setQueueTimeoutSec] = useState(configuredQueueTimeoutSec);
   useEffect(() => {
     setGlobalConcurrency(configuredGlobalConcurrency);
-    setProjectConcurrency(configuredProjectConcurrency);
     setUserConcurrency(configuredUserConcurrency);
     setQueueTimeoutSec(configuredQueueTimeoutSec);
-  }, [provider, family, configuredGlobalConcurrency, configuredProjectConcurrency, configuredUserConcurrency, configuredQueueTimeoutSec]);
+  }, [provider, family, configuredGlobalConcurrency, configuredUserConcurrency, configuredQueueTimeoutSec]);
   const save = useMutation({
     mutationFn: () => Promise.all(exactModels.map((exactModel) => {
       const current = configured.find((row) => row.exactModel === exactModel);
       return apiClient.put('/admin/aimv-generator/capacities', {
         provider, exactModel, globalConcurrency, queueTimeoutSec,
-        projectConcurrency,
+        // 兼容旧字段；实际单部 MV 并发统一由产品设置中的 shotConcurrency 控制。
+        projectConcurrency: globalConcurrency,
         userConcurrency,
         submissionsPerMinute: current?.submissionsPerMinute ?? 30,
         burstSize: current?.burstSize ?? 5,
@@ -119,12 +244,11 @@ function CapacityFamilyEditor({ provider, family, exactModels, rows, canEdit }: 
     <div className="flex items-center justify-between"><h3 className="font-semibold text-slate-900">{family}</h3><span className="text-xs text-slate-400">{configured.length ? '已配置' : '未配置'}</span></div>
     <div className="mt-4 grid gap-3 sm:grid-cols-2">
       <NumberInput disabled={save.isPending} label="全局并发" hint="该渠道精确模型在所有项目上的总并发。" value={globalConcurrency} onChange={setGlobalConcurrency} />
-      <NumberInput disabled={save.isPending} label="单项目并发" hint="同一部 MV 最多同时占用的模型任务数。" value={projectConcurrency} onChange={setProjectConcurrency} />
       <NumberInput disabled={save.isPending} label="单用户并发" hint="同一用户跨多部 MV 最多同时占用的模型任务数。" value={userConcurrency} onChange={setUserConcurrency} />
       <NumberInput disabled={save.isPending} label="排队超时（秒）" value={queueTimeoutSec} onChange={setQueueTimeoutSec} />
     </div>
-    {(projectConcurrency > globalConcurrency || userConcurrency > globalConcurrency) && <p className="mt-3 text-xs text-red-600">单项目并发和单用户并发不能超过全局并发。</p>}
-    {canEdit && <div className="mt-4 flex justify-end"><Action disabled={save.isPending || globalConcurrency < 1 || projectConcurrency < 1 || userConcurrency < 1 || projectConcurrency > globalConcurrency || userConcurrency > globalConcurrency || queueTimeoutSec < 1} onClick={() => { if (!save.isPending) save.mutate(); }}><Save className="h-4 w-4" />保存</Action></div>}
+    {userConcurrency > globalConcurrency && <p className="mt-3 text-xs text-red-600">单用户并发不能超过全局并发。</p>}
+    {canEdit && <div className="mt-4 flex justify-end"><Action disabled={save.isPending || globalConcurrency < 1 || userConcurrency < 1 || userConcurrency > globalConcurrency || queueTimeoutSec < 1} onClick={() => { if (!save.isPending) save.mutate(); }}><Save className="h-4 w-4" />保存</Action></div>}
     {save.isError && <ErrorText error={save.error} />}
   </div>;
 }
@@ -278,7 +402,7 @@ function NumberInput({ label, hint, value, onChange, step = 1, disabled }: { lab
 
   return <label className="text-xs text-slate-500"><span className="flex items-center gap-1">{label}{hint && <span title={hint} aria-label={hint}><CircleHelp className="h-3.5 w-3.5 text-slate-400" /></span>}</span><input disabled={disabled} type="text" inputMode={allowsDecimal ? 'decimal' : 'numeric'} value={draft} onFocus={() => setFocused(true)} onBlur={commitDraft} onChange={(event) => updateDraft(event.target.value)} className="mt-1 w-full rounded border border-slate-200 px-2 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100" /></label>;
 }
-function Action({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) { return <button disabled={disabled} onClick={onClick} className="inline-flex items-center justify-center gap-1 rounded-lg bg-violet-600 px-3 py-2 text-sm text-white disabled:opacity-50">{disabled && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{children}</button>; }
+function Action({ children, disabled, loading, onClick }: { children: React.ReactNode; disabled?: boolean; loading?: boolean; onClick: () => void }) { return <button disabled={disabled} onClick={onClick} className="inline-flex items-center justify-center gap-1 rounded-lg bg-violet-600 px-3 py-2 text-sm text-white disabled:opacity-50">{loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{children}</button>; }
 function Loading() { return <div className="flex justify-center p-12"><Loader2 className="h-5 w-5 animate-spin text-violet-600" /></div>; }
 function Empty({ text }: { text: string }) { return <div className="p-10 text-center text-sm text-slate-400">{text}</div>; }
 function ErrorText({ error }: { error: unknown }) { return <p className="mt-2 text-sm text-red-600">{error instanceof Error ? error.message : '操作失败'}</p>; }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,7 +11,6 @@ import {
   Database,
   HardDrive,
   RefreshCw,
-  Save,
   Search,
   ServerCog,
   Trash2,
@@ -66,7 +65,6 @@ interface WorkerInstance {
 interface OverviewResponse {
   workers: WorkerInstance[];
   recentWorkerCommands: WorkerCommand[];
-  workerRuntime: { aimvMaxSlots: number | null };
 }
 
 type WorkerFilter = 'all' | 'online' | 'attention' | 'offline';
@@ -224,8 +222,6 @@ export default function AdminWorkersPage() {
   const alert = useAlert();
   const [filter, setFilter] = useState<WorkerFilter>('all');
   const [keyword, setKeyword] = useState('');
-  const [aimvMaxSlotsDraft, setAimvMaxSlotsDraft] = useState('');
-  const [runtimeConfigDirty, setRuntimeConfigDirty] = useState(false);
 
   const query = useQuery<OverviewResponse>({
     queryKey: ['admin', 'worker-dashboard'],
@@ -234,11 +230,6 @@ export default function AdminWorkersPage() {
   });
 
   const workers = query.data?.workers ?? [];
-  useEffect(() => {
-    if (!runtimeConfigDirty && query.data?.workerRuntime) {
-      setAimvMaxSlotsDraft(query.data.workerRuntime.aimvMaxSlots == null ? '' : String(query.data.workerRuntime.aimvMaxSlots));
-    }
-  }, [query.data?.workerRuntime, runtimeConfigDirty]);
   const summary = useMemo(() => {
     const online = workers.filter((worker) => worker.online).length;
     const compose = aggregateSlotGroups(workers, 'compose');
@@ -273,19 +264,6 @@ export default function AdminWorkersPage() {
     },
   });
 
-  const saveRuntimeConfig = useMutation({
-    mutationFn: () => apiClient.patch('/admin/system/local-storage/workers/runtime-config', {
-      aimvMaxSlots: aimvMaxSlotsDraft === '' ? null : Number(aimvMaxSlotsDraft),
-    }),
-    onSuccess: () => {
-      setRuntimeConfigDirty(false);
-      queryClient.invalidateQueries({ queryKey: ['admin', 'worker-dashboard'] });
-    },
-    onError: async (error: Error) => {
-      await alert({ title: '槽位保存失败', description: error.message || '请稍后重试', variant: 'danger' });
-    },
-  });
-
   const requestCleanup = async (worker: WorkerInstance, scope: 'stale' | 'clip_cache') => {
     if ((worker.activeCommands?.length ?? worker.pendingCommands) > 0) {
       await alert({ title: '已有指令执行中', description: '请等待当前指令完成后再操作。', variant: 'warning' });
@@ -314,6 +292,7 @@ export default function AdminWorkersPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-400">每 10 秒刷新 · 超过 120 秒未心跳视为离线</span>
+          <Link href="/admin/mv-product-center/common/runtime" className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100">运行配置</Link>
           <button
             type="button"
             onClick={() => query.refetch()}
@@ -335,44 +314,6 @@ export default function AdminWorkersPage() {
             <SummaryCard label="需要关注" value={summary.attention} hint="离线、高负载或低磁盘" icon={<AlertTriangle className="h-5 w-5" />} tone={summary.attention ? 'amber' : 'green'} />
             <SummaryCard label="片段缓存" value={formatBytes(summary.cache)} hint="所有 Worker 合计" icon={<HardDrive className="h-5 w-5" />} />
           </div>
-
-          <section className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div className="max-w-3xl">
-                <h2 className="font-semibold text-slate-900">Worker AI MV 槽位配置</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  设置每台 Worker 同时领取和执行的 AI MV 片段数。保存后由心跳动态下发，通常 30 秒内生效，无需重启；留空则各 Worker 使用本机 WORKER_AIMV_MAX_SLOTS。
-                </p>
-                <p className="mt-1 text-xs text-slate-500">设为 0 会暂停领取新片段；正在执行的片段不会被中断。多台 Worker 的总槽位等于各实例槽位之和。</p>
-              </div>
-              <div className="flex items-end gap-2">
-                <label className="text-xs font-medium text-slate-600">
-                  每台 Worker 槽位
-                  <input
-                    type="number"
-                    min={0}
-                    max={1000}
-                    step={1}
-                    value={aimvMaxSlotsDraft}
-                    placeholder={workers[0]?.slotGroups?.aimv ? `环境值 ${workers[0].slotGroups.aimv.max}` : '使用环境变量'}
-                    onChange={(event) => {
-                      setAimvMaxSlotsDraft(event.target.value);
-                      setRuntimeConfigDirty(true);
-                    }}
-                    className="mt-1 block w-44 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                  />
-                </label>
-                <button
-                  type="button"
-                  disabled={!runtimeConfigDirty || saveRuntimeConfig.isPending || (aimvMaxSlotsDraft !== '' && (!Number.isInteger(Number(aimvMaxSlotsDraft)) || Number(aimvMaxSlotsDraft) < 0 || Number(aimvMaxSlotsDraft) > 1000))}
-                  onClick={() => saveRuntimeConfig.mutate()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Save className="h-4 w-4" />{saveRuntimeConfig.isPending ? '保存中…' : '保存槽位'}
-                </button>
-              </div>
-            </div>
-          </section>
 
           {alerts.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

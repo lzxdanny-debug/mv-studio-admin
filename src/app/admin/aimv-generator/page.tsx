@@ -7,7 +7,7 @@ import { CheckCircle2, CircleHelp, Languages, Loader2, Pencil, Plus, RefreshCw, 
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
-import { CapacityTab, PricingTab, QueueTab } from '@/components/aimv-runtime-tabs';
+import { PricingTab } from '@/components/aimv-runtime-tabs';
 import { AimvAssetsTab, AimvResolversTab, AimvRetentionTab } from '@/components/aimv-content-tabs';
 import { AimvCreationStylesTab } from '@/components/aimv-creation-styles-tab';
 import { Switch } from '@/components/ui/switch';
@@ -24,8 +24,6 @@ type TabKey =
   | 'creation-styles'
   | 'assets'
   | 'resolvers'
-  | 'capacity'
-  | 'queue'
   | 'retention'
   | 'pricing';
 
@@ -40,14 +38,12 @@ const ALL_TABS: Array<{ key: TabKey; label: string; permission: string }> = [
   { key: 'creation-styles', label: '创建风格库', permission: 'aimv.content.view' },
   { key: 'assets', label: '素材库', permission: 'aimv.content.view' },
   { key: 'resolvers', label: '歌曲链接识别', permission: 'aimv.settings.view' },
-  { key: 'capacity', label: '并发与速率', permission: 'aimv.routing.view' },
-  { key: 'queue', label: '排队管理池', permission: 'aimv.queue.view' },
   { key: 'retention', label: '存储清理', permission: 'aimv.queue.view' },
   { key: 'pricing', label: '计费设置', permission: 'aimv.pricing.view' },
 ];
 
 const PAGE_META: Record<TabKey, { title: string; description: string; translatable?: boolean }> = {
-  settings: { title: 'AIMV 产品设置', description: '配置 AIMV 产品开关、上传规则、生成时长和默认输出规格。' },
+  settings: { title: 'AIMV 产品设置', description: '配置 AIMV 产品开关、产品时长和独有业务规则。运行与上传限制已迁移到产品中心公共配置。' },
   parameters: { title: 'AIMV 参数管理', description: '配置 AIMV 画面比例及其生成模型候选顺序。' },
   templates: { title: 'AIMV 模板管理', description: '维护 AIMV 模板、类型、预览素材和创建参数。', translatable: true },
   singers: { title: '歌手配置', description: '维护产品中心共用的歌手图片和展示信息。', translatable: true },
@@ -55,8 +51,6 @@ const PAGE_META: Record<TabKey, { title: string; description: string; translatab
   'creation-styles': { title: '创作风格库', description: '维护产品中心共用的创作风格和预览素材。', translatable: true },
   assets: { title: '素材库', description: '统一管理产品中心生成流程使用的公共素材。', translatable: true },
   resolvers: { title: '歌曲链接识别', description: '配置歌曲链接的解析与识别规则。' },
-  capacity: { title: '并发配置', description: '管理模型容量、全局并发、提交速率与排队超时。' },
-  queue: { title: '队列管理', description: '查看生成任务队列，并处理加急、取消、重试和异常状态。' },
   retention: { title: '存储清理', description: '管理 AIMV 成片到期提醒、对象存储清理任务及失败重试。' },
   pricing: { title: '计费设置', description: '配置模型价格、积分换算、盈利系数与分辨率倍率。' },
 };
@@ -85,6 +79,7 @@ interface AimvSettings {
   allowedVideoFormats: string[];
   defaultVideoFormat: string;
   creativeDescriptionMaxLength: number;
+  activeMvConcurrency: number;
   storyboardConcurrency: number;
   shotConcurrency: number;
   releaseNextProjectAfterShotsCompleted: boolean;
@@ -220,17 +215,17 @@ const NUMBER_FIELDS: Array<{ key: keyof AimvSettings; label: string; unit: strin
   { key: 'maxDurationSec', label: 'MV 最长时长', unit: '秒' },
   { key: 'minMusicDurationSec', label: '音乐最短时长', unit: '秒' },
   { key: 'maxMusicDurationSec', label: '音乐最长时长', unit: '秒' },
-  { key: 'musicMaxFileSizeMb', label: '音乐最大文件', unit: 'MB' },
-  { key: 'imageMaxFileSizeMb', label: '图片最大文件', unit: 'MB' },
   { key: 'creativeDescriptionMaxLength', label: '创意描述上限', unit: '字符' },
-  { key: 'storyboardConcurrency', label: '项目内故事板并发（0 不限制）', unit: '个' },
-  { key: 'shotConcurrency', label: '项目内镜头并发（0 不限制）', unit: '个' },
-  { key: 'storyboardTimeoutSec', label: '故事板超时（0 不限制）', unit: '秒' },
-  { key: 'shotTimeoutSec', label: '镜头超时（0 不限制）', unit: '秒' },
-  { key: 'submissionUnknownMaxWaitSec', label: '未知状态最大等待时间', unit: '秒' },
-  { key: 'storyboardPollIntervalMs', label: '故事板轮询间隔', unit: 'ms' },
-  { key: 'shotPollIntervalMs', label: '镜头轮询间隔', unit: 'ms' },
-  { key: 'storageRetentionDays', label: '存储有效期', unit: '天' },
+];
+
+const PRODUCT_SETTINGS_KEYS: Array<keyof AimvSettings> = [
+  'enabled',
+  'minDurationSec',
+  'defaultDurationSec',
+  'maxDurationSec',
+  'minMusicDurationSec',
+  'maxMusicDurationSec',
+  'creativeDescriptionMaxLength',
 ];
 
 export default function AimvGeneratorConfigPage() {
@@ -280,10 +275,6 @@ export default function AimvGeneratorConfigPage() {
             <AimvAssetsTab />
           ) : tab === 'resolvers' ? (
             <AimvResolversTab />
-          ) : tab === 'capacity' ? (
-            <CapacityTab />
-          ) : tab === 'queue' ? (
-            <QueueTab />
           ) : tab === 'retention' ? (
             <AimvRetentionTab />
           ) : tab === 'pricing' ? (
@@ -307,7 +298,7 @@ function BaseSettingsTab({ onSaved }: { onSaved: () => void }) {
   });
   useEffect(() => { if (query.data) setForm(query.data.settings); }, [query.data]);
   const save = useMutation({
-    mutationFn: (payload: AimvSettings) => apiClient.put('/admin/aimv-generator/settings', payload),
+    mutationFn: (payload: AimvSettings) => apiClient.put('/admin/aimv-generator/settings', Object.fromEntries(PRODUCT_SETTINGS_KEYS.map((key) => [key, payload[key]]))),
     onSuccess: () => { setMessage('基础设置已保存，只对新创建项目生效。'); onSaved(); },
     onError: (error: Error) => setMessage(error.message || '保存失败'),
   });
@@ -326,22 +317,14 @@ function BaseSettingsTab({ onSaved }: { onSaved: () => void }) {
         </div>
       </section>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between gap-6">
-          <div>
-            <h2 className="font-semibold text-slate-900">镜头完成后释放下一部 MV</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">开启后，全部镜头成功且最终合成已入队，即允许同一用户的下一部 MV 开始生成；关闭后等待整部 MV 进入终态。</p>
-          </div>
-          <Switch checked={form.releaseNextProjectAfterShotsCompleted} onChange={(checked) => set('releaseNextProjectAfterShotsCompleted', checked)} disabled={!canEdit || save.isPending} size="lg" label="镜头完成后释放队列" />
-        </div>
-      </section>
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-900">时长、上传与存储</h2>
+        <h2 className="font-semibold text-slate-900">时长与内容限制</h2>
+        <p className="mt-1 text-sm text-slate-500">定义 AIMV 产品允许创建的内容范围；调度、并发和超时已统一迁移到产品中心的运行配置。</p>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {NUMBER_FIELDS.map((field) => (
             <label key={field.key} className="text-sm text-slate-600">
               <span>{field.label}</span>
               <div className="mt-1 flex rounded-lg border border-slate-200 bg-white focus-within:border-violet-400">
-                <input disabled={!canEdit || save.isPending} type="number" min={['storyboardConcurrency', 'shotConcurrency', 'storyboardTimeoutSec', 'shotTimeoutSec'].includes(field.key) ? 0 : 1} value={Number(form[field.key])} onChange={(e) => set(field.key, Number(e.target.value) as never)} className="min-w-0 flex-1 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50" />
+                <input disabled={!canEdit || save.isPending} type="number" min={1} value={Number(form[field.key])} onChange={(e) => set(field.key, Number(e.target.value) as never)} className="min-w-0 flex-1 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50" />
                 <span className="px-3 py-2 text-slate-400">{field.unit}</span>
               </div>
             </label>

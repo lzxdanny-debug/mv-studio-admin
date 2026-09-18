@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, Plus, Save, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -1076,7 +1076,8 @@ interface CleanupJob {
 export function AimvRetentionTab() {
   const qc = useQueryClient();
   const canManage = useAdminAuthStore((s) => s.hasPermission('aimv.queue.manage'));
-  const query = useQuery<{ items: CleanupJob[]; total: number }>({
+  const canEditSettings = useAdminAuthStore((s) => s.hasPermission('aimv.settings.edit'));
+  const cleanupQuery = useQuery<{ items: CleanupJob[]; total: number }>({
     queryKey: ['aimv-cleanup-jobs'],
     queryFn: () =>
       apiClient.get('/admin/aimv-generator/cleanup-jobs?page=1&pageSize=100') as Promise<{
@@ -1084,6 +1085,18 @@ export function AimvRetentionTab() {
         total: number;
       }>,
     refetchInterval: 15000,
+  });
+  const settingsQuery = useQuery<{ settings: { storageRetentionDays: number; expiryReminderDays: number[]; deleteExpiredAssets: boolean } }>({
+    queryKey: ['aimv-settings'],
+    queryFn: () => apiClient.get('/admin/aimv-generator/settings') as Promise<{ settings: { storageRetentionDays: number; expiryReminderDays: number[]; deleteExpiredAssets: boolean } }>,
+  });
+  const [policy, setPolicy] = useState<{ storageRetentionDays: number; expiryReminderDays: number[]; deleteExpiredAssets: boolean } | null>(null);
+  const [policyMessage, setPolicyMessage] = useState('');
+  useEffect(() => { if (settingsQuery.data) setPolicy(settingsQuery.data.settings); }, [settingsQuery.data]);
+  const savePolicy = useMutation({
+    mutationFn: () => apiClient.put('/admin/aimv-generator/settings', policy),
+    onSuccess: () => { setPolicyMessage('存储清理策略已保存。'); qc.invalidateQueries({ queryKey: ['aimv-settings'] }); },
+    onError: (error: Error) => setPolicyMessage(error.message || '保存失败'),
   });
   const retry = useMutation({
     mutationFn: (id: string) => apiClient.post(`/admin/aimv-generator/cleanup-jobs/${id}/retry`, {}),
@@ -1095,8 +1108,17 @@ export function AimvRetentionTab() {
         每天 03:10（上海时区）发送到期提醒；每小时第 17 分钟分批投递到期清理任务。Worker
         独立限流执行，失败自动退避重试，8 次失败后进入 dead_letter。
       </div>
+      {policy && <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <div><h2 className="font-semibold text-slate-900">存储清理策略</h2><p className="mt-1 text-sm text-slate-500">配置 AIMV 成片保留周期、到期提醒和自动删除策略。</p></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <Field label="存储有效期（天）"><input disabled={!canEditSettings || savePolicy.isPending} type="number" min={2} value={policy.storageRetentionDays} onChange={(event) => setPolicy({ ...policy, storageRetentionDays: Number(event.target.value) })}/></Field>
+          <Field label="到期提醒（天，逗号分隔）"><input disabled={!canEditSettings || savePolicy.isPending} value={policy.expiryReminderDays.join(', ')} onChange={(event) => setPolicy({ ...policy, expiryReminderDays: event.target.value.split(',').map((item) => Number(item.trim())).filter((item) => Number.isInteger(item) && item > 0) })}/></Field>
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><div><p className="text-sm font-medium text-slate-700">自动删除过期资产</p><p className="mt-1 text-xs text-slate-500">关闭后仍会发送提醒，但不创建删除任务。</p></div><Switch checked={policy.deleteExpiredAssets} onChange={(checked) => setPolicy({ ...policy, deleteExpiredAssets: checked })} disabled={!canEditSettings || savePolicy.isPending} label="自动删除过期资产"/></div>
+        </div>
+        <div className="mt-4 flex items-center justify-end gap-3">{policyMessage && <span className="text-sm text-slate-600">{policyMessage}</span>}{canEditSettings && <button disabled={savePolicy.isPending || policy.expiryReminderDays.some((day) => day >= policy.storageRetentionDays)} onClick={() => savePolicy.mutate()} className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm text-white disabled:opacity-50">{savePolicy.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}保存清理策略</button>}</div>
+      </section>}
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {query.isLoading ? (
+        {cleanupQuery.isLoading ? (
           <Loading />
         ) : (
           <table className="w-full text-left text-sm">
@@ -1111,7 +1133,7 @@ export function AimvRetentionTab() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {query.data?.items.map((row) => (
+              {cleanupQuery.data?.items.map((row) => (
                 <tr key={row.id}>
                   <td className="p-3 font-mono text-xs">{row.projectId}</td>
                   <td className="p-3">{row.status}</td>

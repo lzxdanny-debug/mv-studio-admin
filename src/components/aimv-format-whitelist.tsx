@@ -18,6 +18,15 @@ const FIELDS = [
   { key: 'allowedVideoFormats', label: '允许视频格式', hint: 'mp4, mov, avi, webm' },
 ] as const;
 
+const NUMERIC_FIELDS = [
+  { key: 'musicMaxFileSizeMb', label: '音乐最大文件', unit: 'MB' },
+  { key: 'imageMaxFileSizeMb', label: '图片最大文件', unit: 'MB' },
+  { key: 'imageMinWidth', label: '图片最小宽度', unit: 'px' },
+  { key: 'imageMinHeight', label: '图片最小高度', unit: 'px' },
+  { key: 'imageMaxWidth', label: '图片最大宽度', unit: 'px' },
+  { key: 'imageMaxHeight', label: '图片最大高度', unit: 'px' },
+] as const;
+
 function splitList(value: string) {
   return value.split(',').map((item) => item.trim()).filter(Boolean);
 }
@@ -30,7 +39,10 @@ export function AimvFormatWhitelist() {
   const query = useQuery<SettingsResponse>({ queryKey: ['aimv-settings'], queryFn: () => apiClient.get('/admin/aimv-generator/settings') as Promise<SettingsResponse> });
   useEffect(() => { if (query.data) setForm(query.data.settings); }, [query.data]);
   const save = useMutation({
-    mutationFn: (payload: SettingsRecord) => apiClient.put('/admin/aimv-generator/settings', payload),
+    mutationFn: (payload: SettingsRecord) => apiClient.put('/admin/aimv-generator/settings', Object.fromEntries([
+      ...FIELDS.map((field) => [field.key, payload[field.key]]),
+      ...NUMERIC_FIELDS.map((field) => [field.key, payload[field.key]]),
+    ])),
     onSuccess: () => { setMessage('格式白名单已保存，只对新创建项目生效。'); void queryClient.invalidateQueries({ queryKey: ['aimv-settings'] }); },
     onError: (error: Error) => setMessage(error.message || '保存失败'),
   });
@@ -43,6 +55,12 @@ export function AimvFormatWhitelist() {
       <div><h2 className="font-semibold text-slate-900">格式白名单</h2><p className="mt-1 text-sm text-slate-500">控制产品中心允许上传和生成的音乐、图片及视频格式。</p></div>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {FIELDS.map((field) => <label key={field.key} className="text-sm text-slate-600"><span>{field.label}</span><input disabled={!canEdit || save.isPending} value={(Array.isArray(form[field.key]) ? form[field.key] as string[] : []).join(', ')} placeholder={field.hint} onChange={(event) => setForm({ ...form, [field.key]: splitList(event.target.value) })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-violet-400 disabled:bg-slate-50"/></label>)}
+      </div>
+    </section>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div><h2 className="font-semibold text-slate-900">上传大小与图片尺寸</h2><p className="mt-1 text-sm text-slate-500">控制 AIMV 用户上传素材的体积和像素范围，与上方格式白名单共同校验。</p></div>
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {NUMERIC_FIELDS.map((field) => <label key={field.key} className="text-sm text-slate-600"><span>{field.label}</span><div className="mt-1 flex rounded-lg border border-slate-200 bg-white focus-within:border-violet-400"><input disabled={!canEdit || save.isPending} type="number" min={1} step={1} value={Number(form[field.key] ?? 0)} onChange={(event) => setForm({ ...form, [field.key]: Number(event.target.value) })} className="min-w-0 flex-1 rounded-lg px-3 py-2 outline-none disabled:bg-slate-50"/><span className="px-3 py-2 text-slate-400">{field.unit}</span></div></label>)}
       </div>
     </section>
     <div className="flex items-center justify-end gap-3">{message ? <span className="text-sm text-slate-600">{message}</span> : null}<button disabled={!canEdit || save.isPending} onClick={() => save.mutate(form)} className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{save.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}保存白名单</button></div>
