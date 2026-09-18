@@ -688,15 +688,6 @@ function PlanCard({
             )}
 
             <FieldGroup title="产能与队列">
-              <FormField label="同时合成任务上限" description="只限制最终成片合成任务，不限制 AI 图片或视频生成任务。">
-                <NumberInput
-                  size="sm"
-                  unit="路"
-                  min={1}
-                  value={local.maxConcurrentJobs ?? 1}
-                  onChange={(n) => patch({ maxConcurrentJobs: Math.max(1, Math.round(n)) })}
-                />
-              </FormField>
               <FormField label="队列优先级" description="用于 AIMV 项目排队和最终合成队列；数值越小，优先级越高。">
                 <NumberInput
                   size="sm"
