@@ -17,6 +17,7 @@ import { AdminConfigSync } from '@/components/admin-config-sync';
 
 type RoutingProvider =
   | 'mountsea'
+  | 'mountseaNewApi'
   | 'apisale'
   | 'smartfashion'
   | 'aitokens'
@@ -54,6 +55,7 @@ interface ModelConcurrencyResp {
 
 const PROVIDER_LABEL: Record<RoutingProvider, string> = {
   mountsea: 'Mountsea',
+  mountseaNewApi: 'Mountsea New API',
   apisale: 'apisale',
   smartfashion: 'smartfashion',
   aitokens: 'aitokens',

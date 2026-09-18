@@ -66,7 +66,7 @@ export function CapacityTab() {
   const videoModels = (catalog.data?.models[activeProvider] ?? []).filter((model) => !isTextModel(model));
   const families = [...new Set(videoModels.map(modelFamily))];
   return <div className="w-full space-y-5">
-    <Info>按渠道配置一级模型容量。页面只开放全局并发和排队超时；更细的限流字段继续由系统保留。</Info>
+    <Info>按渠道和精确模型配置容量。全局并发限制模型总量；项目并发限制单部 MV；用户并发限制同一用户。三层限制同时生效，实际可用值取最先达到的上限。</Info>
     <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
       {catalog.data?.providers.map((provider) => <button key={provider} type="button" onClick={() => setActiveProvider(provider)} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium capitalize ${activeProvider === provider ? 'border-violet-600 text-violet-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{provider}</button>)}
     </div>
@@ -84,20 +84,26 @@ function CapacityFamilyEditor({ provider, family, exactModels, rows, canEdit }: 
   const qc = useQueryClient();
   const configured = rows.filter((row) => row.provider === provider && exactModels.includes(row.exactModel));
   const configuredGlobalConcurrency = configured[0]?.globalConcurrency ?? 8;
+  const configuredProjectConcurrency = configured[0]?.projectConcurrency ?? 3;
+  const configuredUserConcurrency = configured[0]?.userConcurrency ?? 3;
   const configuredQueueTimeoutSec = configured[0]?.queueTimeoutSec ?? 3600;
   const [globalConcurrency, setGlobalConcurrency] = useState(configuredGlobalConcurrency);
+  const [projectConcurrency, setProjectConcurrency] = useState(configuredProjectConcurrency);
+  const [userConcurrency, setUserConcurrency] = useState(configuredUserConcurrency);
   const [queueTimeoutSec, setQueueTimeoutSec] = useState(configuredQueueTimeoutSec);
   useEffect(() => {
     setGlobalConcurrency(configuredGlobalConcurrency);
+    setProjectConcurrency(configuredProjectConcurrency);
+    setUserConcurrency(configuredUserConcurrency);
     setQueueTimeoutSec(configuredQueueTimeoutSec);
-  }, [provider, family, configuredGlobalConcurrency, configuredQueueTimeoutSec]);
+  }, [provider, family, configuredGlobalConcurrency, configuredProjectConcurrency, configuredUserConcurrency, configuredQueueTimeoutSec]);
   const save = useMutation({
     mutationFn: () => Promise.all(exactModels.map((exactModel) => {
       const current = configured.find((row) => row.exactModel === exactModel);
       return apiClient.put('/admin/aimv-generator/capacities', {
         provider, exactModel, globalConcurrency, queueTimeoutSec,
-        projectConcurrency: Math.min(current?.projectConcurrency ?? 3, globalConcurrency),
-        userConcurrency: Math.min(current?.userConcurrency ?? 3, globalConcurrency),
+        projectConcurrency,
+        userConcurrency,
         submissionsPerMinute: current?.submissionsPerMinute ?? 30,
         burstSize: current?.burstSize ?? 5,
         maxQueueSize: current?.maxQueueSize ?? 1000,
@@ -112,10 +118,13 @@ function CapacityFamilyEditor({ provider, family, exactModels, rows, canEdit }: 
   return <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
     <div className="flex items-center justify-between"><h3 className="font-semibold text-slate-900">{family}</h3><span className="text-xs text-slate-400">{configured.length ? '已配置' : '未配置'}</span></div>
     <div className="mt-4 grid gap-3 sm:grid-cols-2">
-      <NumberInput disabled={save.isPending} label="全局并发" value={globalConcurrency} onChange={setGlobalConcurrency} />
+      <NumberInput disabled={save.isPending} label="全局并发" hint="该渠道精确模型在所有项目上的总并发。" value={globalConcurrency} onChange={setGlobalConcurrency} />
+      <NumberInput disabled={save.isPending} label="单项目并发" hint="同一部 MV 最多同时占用的模型任务数。" value={projectConcurrency} onChange={setProjectConcurrency} />
+      <NumberInput disabled={save.isPending} label="单用户并发" hint="同一用户跨多部 MV 最多同时占用的模型任务数。" value={userConcurrency} onChange={setUserConcurrency} />
       <NumberInput disabled={save.isPending} label="排队超时（秒）" value={queueTimeoutSec} onChange={setQueueTimeoutSec} />
     </div>
-    {canEdit && <div className="mt-4 flex justify-end"><Action disabled={save.isPending || globalConcurrency < 1 || queueTimeoutSec < 1} onClick={() => { if (!save.isPending) save.mutate(); }}><Save className="h-4 w-4" />保存</Action></div>}
+    {(projectConcurrency > globalConcurrency || userConcurrency > globalConcurrency) && <p className="mt-3 text-xs text-red-600">单项目并发和单用户并发不能超过全局并发。</p>}
+    {canEdit && <div className="mt-4 flex justify-end"><Action disabled={save.isPending || globalConcurrency < 1 || projectConcurrency < 1 || userConcurrency < 1 || projectConcurrency > globalConcurrency || userConcurrency > globalConcurrency || queueTimeoutSec < 1} onClick={() => { if (!save.isPending) save.mutate(); }}><Save className="h-4 w-4" />保存</Action></div>}
     {save.isError && <ErrorText error={save.error} />}
   </div>;
 }
@@ -230,7 +239,7 @@ export function QueueTab() {
     if (!action.isPending) action.mutate(payload);
   };
   const actionClass = 'disabled:cursor-not-allowed disabled:opacity-45';
-  return <div className="mx-auto max-w-6xl space-y-4"><div className="flex items-center justify-between"><Info>只有尚未提交渠道的任务可以直接取消并进入退款流程；提交状态未知时禁止直接重试，必须先人工对账。</Info><select value={status} onChange={(e) => setStatus(e.target.value)} className="ml-4 rounded border border-slate-200 bg-white px-3 py-2 text-sm"><option value="">全部状态</option>{['queued','claimed','ready_to_submit','submit_started','submitted','polling','succeeded','failed','cancelled','submission_unknown'].map((s) => <option key={s}>{s}</option>)}</select></div>{query.isLoading ? <Loading /> : <section className="overflow-hidden rounded-xl border border-slate-200 bg-white"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">一级模型</th><th className="p-3">渠道 / 精确模型</th><th className="p-3">状态</th><th className="p-3">优先级</th><th className="p-3">排队时间</th><th className="p-3 text-right">操作</th></tr></thead><tbody className="divide-y">{query.data?.items.map((row) => <tr key={row.id}><td className="p-3 font-medium">{row.productModelCode}</td><td className="p-3">{row.provider}<div className="text-xs text-slate-500">{row.exactModel}</div></td><td className="p-3">{row.status}</td><td className="p-3">{row.priority}</td><td className="p-3">{new Date(row.queuedAt).toLocaleString()}</td><td className="p-3 text-right">{canManage && row.status === 'queued' && <><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'priority', body: { priority: Math.min(100, row.priority + 10), note: '后台人工加急' } })} className={`mr-3 text-violet-700 ${actionClass}`}>加急</button><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'cancel', body: { note: '后台取消未提交任务' } })} className={`text-red-600 ${actionClass}`}>取消</button></>}{canManage && row.status === 'failed' && !row.submittedAt && <button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'retry' })} className={`text-violet-700 ${actionClass}`}><RefreshCw className="inline h-4 w-4" /> 重试</button>}{canManage && row.status === 'submission_unknown' && <><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'reconcile', body: { outcome: 'not_submitted', note: '后台对账确认未提交渠道' } })} className={`mr-3 text-emerald-700 ${actionClass}`}>确认未提交</button><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'reconcile', body: { outcome: 'failed', note: '后台对账确认渠道失败' } })} className={`text-amber-700 ${actionClass}`}>确认失败</button></>}</td></tr>)}</tbody></table>{!query.data?.items.length && <Empty text="当前没有排队任务" />}</section>}</div>;
+  return <div className="mx-auto max-w-6xl space-y-4"><div className="flex items-center justify-between"><Info>队列按会员等级和 MV 入队时间进行项目级调度；“加急”会提升整部 MV，而不是单个片段。只有尚未提交渠道的任务可以直接取消；提交状态未知时必须先人工对账。</Info><select value={status} onChange={(e) => setStatus(e.target.value)} className="ml-4 rounded border border-slate-200 bg-white px-3 py-2 text-sm"><option value="">全部状态</option>{['queued','claimed','ready_to_submit','submit_started','submitted','polling','succeeded','failed','cancelled','submission_unknown'].map((s) => <option key={s}>{s}</option>)}</select></div>{query.isLoading ? <Loading /> : <section className="overflow-hidden rounded-xl border border-slate-200 bg-white"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">一级模型</th><th className="p-3">渠道 / 精确模型</th><th className="p-3">状态</th><th className="p-3">项目加急值</th><th className="p-3">排队时间</th><th className="p-3 text-right">操作</th></tr></thead><tbody className="divide-y">{query.data?.items.map((row) => <tr key={row.id}><td className="p-3 font-medium">{row.productModelCode}</td><td className="p-3">{row.provider}<div className="text-xs text-slate-500">{row.exactModel}</div></td><td className="p-3">{row.status}</td><td className="p-3">{row.priority}</td><td className="p-3">{new Date(row.queuedAt).toLocaleString()}</td><td className="p-3 text-right">{canManage && row.status === 'queued' && <><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'priority', body: { priority: Math.min(100, row.priority + 10), note: '后台整部 MV 加急' } })} className={`mr-3 text-violet-700 ${actionClass}`}>整部 MV 加急</button><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'cancel', body: { note: '后台取消未提交任务' } })} className={`text-red-600 ${actionClass}`}>取消</button></>}{canManage && row.status === 'failed' && !row.submittedAt && <button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'retry' })} className={`text-violet-700 ${actionClass}`}><RefreshCw className="inline h-4 w-4" /> 重试</button>}{canManage && row.status === 'submission_unknown' && <><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'reconcile', body: { outcome: 'not_submitted', note: '后台对账确认未提交渠道' } })} className={`mr-3 text-emerald-700 ${actionClass}`}>确认未提交</button><button disabled={action.isPending} onClick={() => runAction({ id: row.id, kind: 'reconcile', body: { outcome: 'failed', note: '后台对账确认渠道失败' } })} className={`text-amber-700 ${actionClass}`}>确认失败</button></>}</td></tr>)}</tbody></table>{!query.data?.items.length && <Empty text="当前没有排队任务" />}</section>}</div>;
 }
 
 function Info({ children }: { children: React.ReactNode }) { return <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">{children}</div>; }

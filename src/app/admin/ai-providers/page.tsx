@@ -41,13 +41,18 @@ const CONTROL_WIDE = 'sm:w-[360px] w-[220px]';
 // 类型 —— 与后端 CredentialView / 字段定义一一对应
 // ──────────────────────────────────────────────────────────────────────
 
-type AiProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
+type AiProvider =
+  | 'mountsea'
+  | 'mountseaNewApi'
+  | 'apisale'
+  | 'smartfashion'
+  | 'aitokens'
+  | 'google';
 
 const ALL_AI_PROVIDERS: AiProvider[] = [
   'mountsea',
+  'mountseaNewApi',
   'apisale',
-  'smartfashion',
-  'aitokens',
   'google',
 ];
 
@@ -134,6 +139,27 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     ],
     hasBaseUrl: true,
     baseUrlPlaceholder: 'https://api.mountsea.ai (默认)',
+  },
+  mountseaNewApi: {
+    provider: 'mountseaNewApi',
+    title: 'Mountsea New API',
+    icon: ServerCog,
+    iconWrap: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
+    desc:
+      '新文本渠道：OpenAI-compatible /v1/chat/completions，提供 Gemini 与 GPT。与旧 Mountsea 图片、视频及账单渠道相互独立。',
+    consoleUrl: 'https://newapi.mountsea.ai',
+    secretFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key',
+        placeholder: 'sk-xxxxxxxxxxxxxxxxxxxx',
+        secret: true,
+        hint: '环境变量 MOUNTSEA_NEW_API_KEY；Authorization: Bearer …',
+      },
+    ],
+    hasBaseUrl: true,
+    baseUrlPlaceholder: 'https://newapi.mountsea.ai (默认)',
   },
   apisale: {
     provider: 'apisale',
@@ -274,7 +300,7 @@ export default function AiProvidersPage() {
               AI Provider 凭证
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              管理 Mountsea / apisale / smartfashion / aitokens 的 API 凭证。AES-256-GCM 加密存储，DB 缺失时回落 env。
+              管理当前启用渠道的 API 凭证。AES-256-GCM 加密存储，DB 缺失时回落 env。
             </p>
           </div>
           <button

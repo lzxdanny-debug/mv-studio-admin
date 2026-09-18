@@ -87,6 +87,7 @@ interface AimvSettings {
   creativeDescriptionMaxLength: number;
   storyboardConcurrency: number;
   shotConcurrency: number;
+  releaseNextProjectAfterShotsCompleted: boolean;
   storyboardTimeoutSec: number;
   shotTimeoutSec: number;
   submissionUnknownMaxWaitSec: number;
@@ -208,6 +209,11 @@ function resolvePublicAssetUrl(url: string | null | undefined): string {
   return url.startsWith('/') ? `${MAIN_APP_ORIGIN}${url}` : url;
 }
 
+function layoutForAspectRatio(aspectRatio: string): TemplateDraft['category'] {
+  const [width, height] = aspectRatio.split(':').map(Number);
+  return Number.isFinite(width) && Number.isFinite(height) && width >= height ? 'landscape' : 'portrait';
+}
+
 const NUMBER_FIELDS: Array<{ key: keyof AimvSettings; label: string; unit: string }> = [
   { key: 'minDurationSec', label: 'MV 最短时长', unit: '秒' },
   { key: 'defaultDurationSec', label: 'MV 默认时长', unit: '秒' },
@@ -320,6 +326,15 @@ function BaseSettingsTab({ onSaved }: { onSaved: () => void }) {
         </div>
       </section>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between gap-6">
+          <div>
+            <h2 className="font-semibold text-slate-900">镜头完成后释放下一部 MV</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">开启后，全部镜头成功且最终合成已入队，即允许同一用户的下一部 MV 开始生成；关闭后等待整部 MV 进入终态。</p>
+          </div>
+          <Switch checked={form.releaseNextProjectAfterShotsCompleted} onChange={(checked) => set('releaseNextProjectAfterShotsCompleted', checked)} disabled={!canEdit || save.isPending} size="lg" label="镜头完成后释放队列" />
+        </div>
+      </section>
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-semibold text-slate-900">时长、上传与存储</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {NUMBER_FIELDS.map((field) => (
@@ -335,7 +350,7 @@ function BaseSettingsTab({ onSaved }: { onSaved: () => void }) {
       </section>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-semibold text-slate-900">固定产品规则</h2>
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><CheckCircle2 className="h-4 w-4" />所有 MV 必须选择歌手照片；充值和会员用户在本产品中平权。</div>
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><CheckCircle2 className="h-4 w-4" />所有 MV 必须选择歌手照片；会员 queuePriority 决定项目级排队优先级。</div>
       </section>
       <div className="flex items-center justify-end gap-3">
         {message && <span className="text-sm text-slate-600">{message}</span>}
@@ -432,7 +447,9 @@ function TemplatesTab() {
         code: draft.code,
         nameEn: draft.nameEn,
         descriptionEn: draft.descriptionEn,
-        category: draft.category,
+        // category remains a compatibility field for older API/worker versions.
+        // The operator-facing source of truth is now the configured screen ratio.
+        category: layoutForAspectRatio(draft.aspectRatio),
         coverUrl: draft.coverUrl,
         previewVideoUrl: draft.previewVideoUrl,
         defaults: {
@@ -570,6 +587,7 @@ function TemplatesTab() {
     item.enabled || item.metadata?.source === 'template-custom-upload' || item.id === draft.singerPhotoAssetId
   ));
   const selectedPhotoAsset = photoAssets.find((item) => item.id === draft.singerPhotoAssetId);
+  const templateAspectRatios = [...new Set([...(settings.data?.settings.allowedAspectRatios ?? []), draft.aspectRatio].filter(Boolean))];
   const templateResolutions = [...new Set([...(settings.data?.settings.allowedResolutions ?? []), draft.resolution].filter(Boolean))];
   const catalogCoverage = useMemo(() => {
     const rows = query.data ?? [];
@@ -583,8 +601,8 @@ function TemplatesTab() {
     }));
     return {
       total: rows.length,
-      landscape: count((row) => ['youtube', 'landscape'].includes(row.category)),
-      portrait: count((row) => !['youtube', 'landscape'].includes(row.category)),
+      landscape: count((row) => layoutForAspectRatio(row.createSimilarConfig?.aspectRatio || (['youtube', 'landscape'].includes(row.category) ? '16:9' : '9:16')) === 'landscape'),
+      portrait: count((row) => layoutForAspectRatio(row.createSimilarConfig?.aspectRatio || (['youtube', 'landscape'].includes(row.category) ? '16:9' : '9:16')) === 'portrait'),
       people: count((_, catalog) => !catalog.subjectType || catalog.subjectType === 'person'),
       animals: count((_, catalog) => catalog.subjectType === 'animal'),
       characters: count((_, catalog) => ['mixed', 'character', 'abstract'].includes(String(catalog.subjectType))),
@@ -632,7 +650,7 @@ function TemplatesTab() {
           </section>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <TemplateField label="唯一 code" hint="用于接口和数据关联；发布后请不要随意修改。"><input value={draft.code} onChange={(e) => set('code', e.target.value)} placeholder="例如 neon-concert-landscape" /></TemplateField>
-            <TemplateField label="版式类型" hint="横屏对应桌面端和 YouTube；竖屏对应手机端、Shorts、Reels 与 TikTok。"><select value={draft.category} onChange={(e) => { const category = e.target.value as TemplateDraft['category']; setDraft((current) => ({ ...current, category, aspectRatio: category === 'landscape' ? '16:9' : '9:16' })); }}><option value="landscape">横屏（电脑版 / YouTube）</option><option value="portrait">竖屏（手机版 / Shorts、Reels、TikTok）</option></select></TemplateField>
+            <TemplateField label="屏幕比例" hint="选项来自“通用配置 → 参数配置 → 比例设置”；保存时系统会自动维护旧版横屏/竖屏兼容值。"><select value={draft.aspectRatio} onChange={(e) => setDraft((current) => ({ ...current, aspectRatio: e.target.value, category: layoutForAspectRatio(e.target.value) }))}>{templateAspectRatios.map((ratio) => <option key={ratio} value={ratio}>{ratio}</option>)}</select></TemplateField>
             <TemplateField label="Name (English)"><input value={draft.nameEn} onChange={(e) => set('nameEn', e.target.value)} /></TemplateField>
             <TemplateField label="Description (English)"><input value={draft.descriptionEn} onChange={(e) => set('descriptionEn', e.target.value)} /></TemplateField>
             <TemplateField label="场景类型" hint="用于用户端筛选；它与视觉风格是两个独立维度。"><select value={draft.sceneCategory} onChange={(e) => set('sceneCategory', e.target.value as TemplateDraft['sceneCategory'])}><option value="performance">舞台表演</option><option value="story">剧情叙事</option><option value="dance">舞蹈</option><option value="lyrics">歌词 / 文字</option><option value="animation">动画</option><option value="fashion">时尚</option><option value="cinematic">电影感</option><option value="other">其他</option></select></TemplateField>
@@ -676,7 +694,6 @@ function TemplatesTab() {
             </div>
             <TemplateField label="模板风格" hint="风格与模板是两个独立维度。选择后，Create Similar 会回填该风格，用户仍可替换。"><select value={draft.styleCode} onChange={(e) => set('styleCode', e.target.value)}><option value="">不预选</option>{(creationStyles.data ?? []).map((item) => <option key={item.id} value={item.code}>{item.name}（{item.code}）</option>)}</select></TemplateField>
             <TemplateField label="模板时长（秒）" hint="这是 Create Similar 回填的成片时长，不再由单个镜头相加得出。"><input type="number" min={1} max={settings.data?.settings.maxDurationSec ?? 300} value={draft.durationSec} onChange={(e) => set('durationSec', Math.max(1, Number(e.target.value)))} /></TemplateField>
-            <TemplateField label="画面比例"><input value={draft.aspectRatio} onChange={(e) => set('aspectRatio', e.target.value)} placeholder="16:9 / 9:16" /></TemplateField>
             <TemplateField label="分辨率" hint="仅显示当前启用的分辨率；请在“计费与会员”中维护可用项。已停用的历史模板值会保留，方便运营迁移。"><select value={draft.resolution} onChange={(e) => set('resolution', e.target.value)}>{templateResolutions.map((resolution) => <option key={resolution} value={resolution}>{resolution}</option>)}</select></TemplateField>
             <TemplateField label="排序"><input type="number" value={draft.sortOrder} onChange={(e) => set('sortOrder', Number(e.target.value))} /></TemplateField>
             <TemplateField label="开始生效"><input type="datetime-local" value={draft.effectiveFrom} onChange={(e) => set('effectiveFrom', e.target.value)} /></TemplateField>
@@ -715,11 +732,12 @@ function TemplatesTab() {
       )}
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         {query.isLoading ? <Loading /> : query.isError ? <ErrorText text={(query.error as Error).message} /> : (
-          <table className="w-full text-left text-sm"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-4 py-3">模板</th><th className="px-4 py-3">版式</th><th className="px-4 py-3">创作参数</th><th className="px-4 py-3">预设内容</th><th className="px-4 py-3">翻译</th><th className="px-4 py-3">状态</th><th className="px-4 py-3 text-right">操作</th></tr></thead><tbody className="divide-y divide-slate-100">{(query.data ?? []).map((row) => {
+          <table className="w-full text-left text-sm"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-4 py-3">模板</th><th className="px-4 py-3">屏幕比例</th><th className="px-4 py-3">创作参数</th><th className="px-4 py-3">预设内容</th><th className="px-4 py-3">翻译</th><th className="px-4 py-3">状态</th><th className="px-4 py-3 text-right">操作</th></tr></thead><tbody className="divide-y divide-slate-100">{(query.data ?? []).map((row) => {
             const preview = ((row.defaults?.previewGeneration ?? {}) as PreviewGenerationState);
             const previewGenerating = preview.status === 'generating';
             const previewLabel = previewGenerating ? '示例视频生成中' : preview.status === 'failed' ? '示例视频失败' : row.previewVideoUrl ? '有示例视频' : '无示例视频';
-            return <tr key={row.id}><td className="px-4 py-3"><div className="flex items-center gap-3">{row.coverUrl ? <img src={resolvePublicAssetUrl(row.coverUrl)} alt="" className="h-12 w-16 rounded-lg object-cover" /> : <div className="h-12 w-16 rounded-lg bg-slate-100" />}<div><div className="font-medium text-slate-900">{row.nameEn}</div><div className="text-xs text-slate-400">{row.code}</div></div></div></td><td className="px-4 py-3 text-slate-600">{['youtube', 'landscape'].includes(row.category) ? '横屏' : '竖屏'}</td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.aspectRatio || '—'} · {row.createSimilarConfig?.durationSec || '—'}s · {row.createSimilarConfig?.resolution || '—'}</div><div title={preview.error || ''} className={cn('mt-1', preview.status === 'failed' && 'text-red-600')}>{previewLabel} · {row.createSimilarConfig?.productModelCode || '默认模型'}</div></td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.musicAssetId ? '音乐' : '无音乐'} · {row.createSimilarConfig?.singerPhotoAssetId ? '角色图' : '无角色图'}</div><div className="mt-1">{row.createSimilarConfig?.styleCode ? '已选风格' : '默认风格'} · 整条 MV 预设</div></td><td className="px-4 py-3"><TranslationBadge row={row} /></td><td className="px-4 py-3">{row.enabled ? '启用' : '停用'}</td><td className="px-4 py-3 text-right"><div className="flex flex-wrap items-center justify-end gap-3">{canEdit && <button disabled={mutationPending} onClick={() => edit(row)} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" />编辑</button>}{canEdit && <button disabled={mutationPending || previewGenerating || !row.segments.length} onClick={() => { if (!mutationPending) generatePreview.mutate({ id: row.id, force: Boolean(row.previewVideoUrl) }); }} className="inline-flex items-center gap-1 text-violet-700 disabled:cursor-not-allowed disabled:opacity-50" title={preview.error || '根据整条 MV 预设生成用户端示例视频'}>{previewGenerating || generatePreview.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{row.previewVideoUrl ? '重新生成示例视频' : '生成示例视频'}</button>}{row.translationStatus === 'failed' && canEdit && <button disabled={mutationPending} onClick={() => { if (!mutationPending) retry.mutate(row.id); }} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><RefreshCw className="h-3.5 w-3.5" />重新翻译</button>}{canEdit && <button disabled={mutationPending} onClick={() => void deleteTemplate(row)} className="inline-flex items-center gap-1 text-red-600 transition hover:text-red-700 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />删除</button>}</div></td></tr>;
+            const aspectRatio = row.createSimilarConfig?.aspectRatio || (['youtube', 'landscape'].includes(row.category) ? '16:9' : '9:16');
+            return <tr key={row.id}><td className="px-4 py-3"><div className="flex items-center gap-3">{row.coverUrl ? <img src={resolvePublicAssetUrl(row.coverUrl)} alt="" className="h-12 w-16 rounded-lg object-cover" /> : <div className="h-12 w-16 rounded-lg bg-slate-100" />}<div><div className="font-medium text-slate-900">{row.nameEn}</div><div className="text-xs text-slate-400">{row.code}</div></div></div></td><td className="px-4 py-3 font-medium text-slate-700">{aspectRatio}</td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.durationSec || '—'}s · {row.createSimilarConfig?.resolution || '—'}</div><div title={preview.error || ''} className={cn('mt-1', preview.status === 'failed' && 'text-red-600')}>{previewLabel} · {row.createSimilarConfig?.productModelCode || '默认模型'}</div></td><td className="px-4 py-3 text-xs text-slate-500"><div>{row.createSimilarConfig?.musicAssetId ? '音乐' : '无音乐'} · {row.createSimilarConfig?.singerPhotoAssetId ? '角色图' : '无角色图'}</div><div className="mt-1">{row.createSimilarConfig?.styleCode ? '已选风格' : '默认风格'} · 整条 MV 预设</div></td><td className="px-4 py-3"><TranslationBadge row={row} /></td><td className="px-4 py-3">{row.enabled ? '启用' : '停用'}</td><td className="px-4 py-3 text-right"><div className="flex flex-wrap items-center justify-end gap-3">{canEdit && <button disabled={mutationPending} onClick={() => edit(row)} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><Pencil className="h-3.5 w-3.5" />编辑</button>}{canEdit && <button disabled={mutationPending || previewGenerating || !row.segments.length} onClick={() => { if (!mutationPending) generatePreview.mutate({ id: row.id, force: Boolean(row.previewVideoUrl) }); }} className="inline-flex items-center gap-1 text-violet-700 disabled:cursor-not-allowed disabled:opacity-50" title={preview.error || '根据整条 MV 预设生成用户端示例视频'}>{previewGenerating || generatePreview.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{row.previewVideoUrl ? '重新生成示例视频' : '生成示例视频'}</button>}{row.translationStatus === 'failed' && canEdit && <button disabled={mutationPending} onClick={() => { if (!mutationPending) retry.mutate(row.id); }} className="inline-flex items-center gap-1 text-violet-700 disabled:opacity-50"><RefreshCw className="h-3.5 w-3.5" />重新翻译</button>}{canEdit && <button disabled={mutationPending} onClick={() => void deleteTemplate(row)} className="inline-flex items-center gap-1 text-red-600 transition hover:text-red-700 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" />删除</button>}</div></td></tr>;
           })}</tbody></table>
         )}
       </section>

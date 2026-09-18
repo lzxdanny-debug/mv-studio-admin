@@ -37,7 +37,13 @@ import { PaginationBar } from '@/components/pagination-bar';
 import { SimpleSelect } from '@/components/ui/select';
 import { AdminConfigSync } from '@/components/admin-config-sync';
 
-type RoutingProvider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
+type RoutingProvider =
+  | 'mountsea'
+  | 'mountseaNewApi'
+  | 'apisale'
+  | 'smartfashion'
+  | 'aitokens'
+  | 'google';
 type AiCapability =
   | 'textGpt'
   | 'textGemini'
@@ -125,6 +131,12 @@ const PROVIDER_META: Record<RoutingProvider, ProviderMetaItem> = {
     icon: ServerCog,
     iconWrap: 'bg-blue-50',
     iconColor: 'text-blue-600',
+  },
+  mountseaNewApi: {
+    label: 'Mountsea New API',
+    icon: ServerCog,
+    iconWrap: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
   },
   apisale: {
     label: 'apisale',
@@ -369,7 +381,7 @@ export default function AiRoutingPage() {
             </p>
             <p className="text-xs text-slate-500 mt-2 leading-relaxed rounded-lg border border-slate-200 bg-white px-3 py-2 max-w-3xl">
               <strong className="text-slate-700">Mountsea</strong> 负责文本 / Agent / 视觉分析 / 音频；
-              <strong className="text-slate-700"> apisale / smartfashion / aitokens</strong> 负责媒体与口型等能力。
+              <strong className="text-slate-700"> apisale</strong> 负责媒体与口型等能力。
               文本类不会出现媒体渠道选项，这是能力矩阵边界，不是遗漏。
             </p>
           </div>
@@ -1045,9 +1057,8 @@ function CapabilityRow({
   // 后台不再按 capability 锁渠道；meta.support 应含全部，这里再兜底一次
   const allProviders: RoutingProvider[] = [
     'mountsea',
+    'mountseaNewApi',
     'apisale',
-    'smartfashion',
-    'aitokens',
     'google',
   ];
   const supportedProviders =

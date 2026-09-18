@@ -697,7 +697,7 @@ function PlanCard({
                   onChange={(n) => patch({ maxConcurrentJobs: Math.max(1, Math.round(n)) })}
                 />
               </FormField>
-              <FormField label="成片合成队列优先级" description="只作用于合成队列，数值越小优先级越高。">
+              <FormField label="队列优先级" description="用于 AIMV 项目排队和最终合成队列；数值越小，优先级越高。">
                 <NumberInput
                   size="sm"
                   value={local.queuePriority ?? 10}

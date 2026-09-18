@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { useAdminAuthStore } from '@/stores/admin-auth.store';
 
-type Provider = 'mountsea' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
+type Provider = 'mountsea' | 'mountseaNewApi' | 'apisale' | 'smartfashion' | 'aitokens' | 'google';
 type Capability = 'videoSingleRef' | 'videoMultiRef' | 'videoGrok' | 'videoUltron' | 'videoLipsync' | 'audioAnalyze' | 'imageNanoBanana';
 
 interface Catalog {
@@ -194,7 +194,7 @@ function AuxiliaryPriority({ kind }: { kind: 'analysis' | 'image' }) {
     capabilityModels: catalog.data!.auxiliaryCapabilityModels,
   };
   const copy = kind === 'analysis'
-    ? { title: 'AI MV 分析 / LLM 调用链', description: '用于读取音乐、识别人声区间并生成四阶段分镜规划', notice: '这是 AI MV 产品自己的音乐理解模型配置。支持 Mountsea 和 Google，失败后按优先级自动切换。' }
+    ? { title: 'AI MV 分析 / LLM 调用链', description: '用于读取音乐、识别人声区间并生成四阶段分镜规划', notice: '这是 AI MV 产品自己的音乐理解模型配置。支持 Mountsea、Mountsea New API 和 Google，失败后按优先级自动切换。' }
     : { title: 'AI MV 分镜图片调用链', description: '用于人物一致性锚点和每个分镜的故事板图片', notice: '这是 AI MV 产品自己的图片模型配置。图片余额不足或渠道失败时，会按这里的优先级 fallback。' };
   return <div className="space-y-4">
     <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">{copy.notice} 未配置时不会使用其他产品的全局路由。</div>
